@@ -4,7 +4,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSyn
 import { homedir } from 'node:os'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { deleteVault, readSecret, writeSecret } from './vault.ts'
+import { deleteSecret, deleteVault, readSecret, writeSecret } from './vault.ts'
 
 export type Profile = {
   username: string
@@ -88,7 +88,21 @@ export type AnswerLookup = (
   | { answer: string }
   | Promise<{ pick: string[] } | { answer: string }>
 
-export type Provider = 'anthropic' | 'openai'
+export type Provider = 'cursor' | 'copilot' | 'anthropic' | 'openai'
+
+export type ListedModel = {
+  id: string
+  displayName: string
+}
+
+export type CursorAccount = {
+  models: ListedModel[]
+  createdAt?: string
+  expiresAt?: string
+  error?: string
+}
+
+export type CursorLookup = (secret: string) => Promise<CursorAccount>
 
 export type ToolId = 'cursor' | 'copilot' | 'claude' | 'cursor-cli' | 'claude-cli' | 'copilot-cli'
 
@@ -118,12 +132,17 @@ type Settings = {
   profile: Profile
   vaultId: string
   keys: SavedKey[]
+  pinnedKeyId: string
   model: string
   learnerIntervalMs: number
   publisherIntervalMs: number
   drivePath: string
   disabledTools: string[]
+  learningStarted: boolean
   importedTranscripts: Record<string, string>
+  cursorModels: ListedModel[]
+  cursorKey: { createdAt: string; expiresAt: string; error: string }
+  selectedProvider: Provider | ''
 }
 
 const emptyProfile = (): Profile => ({ username: '', email: '', team: '' })
@@ -135,7 +154,16 @@ function requireAtLeastOneHour(intervalMs: number, job: string) {
   if (intervalMs < hourMs) throw new Error(`${job} interval must be at least one hour`)
 }
 
+const keyOrder: Record<Provider, number> = {
+  cursor: 0,
+  copilot: 1,
+  anthropic: 2,
+  openai: 3,
+}
+
 const modelCatalog: Record<Provider, { models: string[]; defaultModel: string }> = {
+  cursor: { models: [], defaultModel: '' },
+  copilot: { models: [], defaultModel: '' },
   anthropic: {
     models: ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5'],
     defaultModel: 'claude-haiku-5-5',
@@ -144,6 +172,125 @@ const modelCatalog: Record<Provider, { models: string[]; defaultModel: string }>
     models: ['gpt-6-luna', 'gpt-6-sol', 'gpt-6-astra'],
     defaultModel: 'gpt-6-luna',
   },
+}
+
+function providerName(value: unknown): Provider | '' {
+  return value === 'cursor' || value === 'copilot' || value === 'anthropic' || value === 'openai' ? value : ''
+}
+
+function cursorExpiry(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const ms = value < 1e12 ? value * 1000 : value
+    return new Date(ms).toISOString()
+  }
+  if (typeof value === 'string' && value !== '') {
+    if (/^\d+$/.test(value)) {
+      const parsed = Number(value)
+      const ms = parsed < 1e12 ? parsed * 1000 : parsed
+      return new Date(ms).toISOString()
+    }
+    return value
+  }
+  return ''
+}
+
+function cursorKeyInfo(value: unknown): { createdAt: string; expiresAt: string; error: string } {
+  const record = value && typeof value === 'object' ? (value as { createdAt?: unknown; expiresAt?: unknown; error?: unknown }) : {}
+  const text = (item: unknown) => (typeof item === 'string' ? item : '')
+  return { createdAt: text(record.createdAt), expiresAt: text(record.expiresAt), error: text(record.error) }
+}
+
+function listedModels(value: unknown): ListedModel[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const record = item as { id?: unknown; displayName?: unknown }
+    if (typeof record.id !== 'string' || record.id === '') return []
+    const displayName = typeof record.displayName === 'string' && record.displayName !== '' ? record.displayName : record.id
+    return [{ id: record.id, displayName }]
+  })
+}
+
+export async function lookupCursorAccount(secret: string, fetchImpl: typeof fetch = fetch): Promise<CursorAccount> {
+  const headers = { authorization: `Bearer ${secret}`, accept: 'application/json' }
+  let models: ListedModel[] = []
+  let error = ''
+  try {
+    const response = await fetchImpl('https://api.cursor.com/v1/models', { headers })
+    if (!response.ok) throw new Error(`Cursor models ${response.status}`)
+    const body = (await response.json()) as { items?: { id?: string; displayName?: string }[] }
+    models = (body.items ?? [])
+      .filter((item): item is { id: string; displayName?: string } => typeof item?.id === 'string' && item.id !== '')
+      .map((item) => ({ id: item.id, displayName: item.displayName || item.id }))
+    if (models.length === 0) throw new Error('Cursor returned no models')
+  } catch {
+    try {
+      const response = await fetchImpl('https://api.cursor.com/v0/models', { headers })
+      if (!response.ok) throw new Error(`Cursor models ${response.status}`)
+      const body = (await response.json()) as { models?: unknown }
+      const ids = Array.isArray(body.models) ? body.models.filter((id): id is string => typeof id === 'string' && id !== '') : []
+      models = ids.map((id) => ({ id, displayName: id }))
+      if (models.length === 0) throw new Error('Cursor returned no models')
+    } catch (fallback) {
+      error = fallback instanceof Error ? fallback.message : 'Cursor model list failed'
+    }
+  }
+  let createdAt = ''
+  let expiresAt = ''
+  try {
+    const response = await fetchImpl('https://api.cursor.com/v1/me', { headers })
+    if (response.ok) {
+      const body = (await response.json()) as {
+        createdAt?: unknown
+        expiresAt?: unknown
+        apiKeyExpiresAt?: unknown
+        apiKeyExpiresAtMs?: unknown
+      }
+      createdAt = typeof body.createdAt === 'string' ? body.createdAt : ''
+      expiresAt = cursorExpiry(body.apiKeyExpiresAtMs ?? body.apiKeyExpiresAt ?? body.expiresAt)
+    }
+  } catch {
+    // A key is still saved when the account call fails.
+  }
+  if (expiresAt === '') {
+    try {
+      expiresAt = await listedCursorKeyExpiry(secret, fetchImpl)
+    } catch {
+      expiresAt = ''
+    }
+  }
+  return { models, createdAt, expiresAt, error }
+}
+
+async function listedCursorKeyExpiry(secret: string, fetchImpl: typeof fetch) {
+  const exchange = await fetchImpl('https://api2.cursor.sh/auth/exchange_user_api_key', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
+    body: '{}',
+  })
+  if (!exchange.ok) return ''
+  const session = (await exchange.json()) as { accessToken?: unknown }
+  if (typeof session.accessToken !== 'string' || session.accessToken === '') return ''
+  const listed = await fetchImpl('https://api2.cursor.sh/aiserver.v1.DashboardService/ListUserApiKeys', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${session.accessToken}`,
+      'content-type': 'application/json',
+      'connect-protocol-version': '1',
+    },
+    body: '{}',
+  })
+  if (!listed.ok) return ''
+  const body = (await listed.json()) as { apiKeys?: unknown }
+  if (!Array.isArray(body.apiKeys)) return ''
+  const suffix = secret.slice(-4)
+  const match = body.apiKeys.find((item) => {
+    if (!item || typeof item !== 'object') return false
+    const masked = (item as { maskedKey?: unknown }).maskedKey
+    return typeof masked === 'string' && masked.endsWith(suffix)
+  }) as { expiresAt?: unknown; expiry?: unknown; expiresAtMs?: unknown; apiKeyExpiresAtMs?: unknown } | undefined
+  if (!match) return ''
+  return cursorExpiry(match.expiresAt ?? match.expiry ?? match.expiresAtMs ?? match.apiKeyExpiresAtMs)
 }
 
 function settingsPath(directory: string) {
@@ -155,12 +302,17 @@ function emptySettings(): Settings {
     profile: emptyProfile(),
     vaultId: '',
     keys: [],
+    pinnedKeyId: '',
     model: '',
     learnerIntervalMs: hourMs,
     publisherIntervalMs: hourMs,
     drivePath: '',
     disabledTools: [],
+    learningStarted: false,
     importedTranscripts: {},
+    cursorModels: [],
+    cursorKey: { createdAt: '', expiresAt: '', error: '' },
+    selectedProvider: '',
   }
 }
 
@@ -172,12 +324,17 @@ function readSettings(directory: string): Settings {
       profile: { ...defaults.profile, ...parsed.profile },
       vaultId: parsed.vaultId ?? defaults.vaultId,
       keys: parsed.keys ?? defaults.keys,
+      pinnedKeyId: parsed.pinnedKeyId ?? defaults.pinnedKeyId,
       model: parsed.model ?? defaults.model,
       learnerIntervalMs: parsed.learnerIntervalMs ?? defaults.learnerIntervalMs,
       publisherIntervalMs: parsed.publisherIntervalMs ?? defaults.publisherIntervalMs,
       drivePath: parsed.drivePath ?? defaults.drivePath,
       disabledTools: parsed.disabledTools ?? defaults.disabledTools,
+      learningStarted: parsed.learningStarted ?? defaults.learningStarted,
       importedTranscripts: parsed.importedTranscripts ?? defaults.importedTranscripts,
+      cursorModels: listedModels(parsed.cursorModels),
+      cursorKey: cursorKeyInfo(parsed.cursorKey),
+      selectedProvider: providerName(parsed.selectedProvider),
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptySettings()
@@ -654,6 +811,110 @@ function scanTools(machine: Machine) {
     .map((tool) => ({ id: tool.id, label: tool.label }))
 }
 
+function jsonlFiles(root: string) {
+  if (!isDirectory(root)) return []
+  const found: string[] = []
+  const stack = [root]
+  while (stack.length > 0) {
+    const dir = stack.pop()
+    if (!dir) continue
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) stack.push(path)
+      else if (entry.isFile() && entry.name.endsWith('.jsonl')) found.push(path)
+    }
+  }
+  return found
+}
+
+function flattenText(content: unknown): string {
+  if (typeof content === 'string') return content.trim()
+  if (!Array.isArray(content)) return ''
+  return content
+    .map((part) => {
+      if (typeof part === 'string') return part.trim()
+      if (part && typeof part === 'object' && 'text' in part && typeof part.text === 'string') return part.text.trim()
+      return ''
+    })
+    .filter(Boolean)
+    .join('\n')
+}
+
+function lineText(value: unknown) {
+  if (!value || typeof value !== 'object') return ''
+  const record = value as { role?: unknown; type?: unknown; message?: unknown; content?: unknown }
+  const role = typeof record.role === 'string' ? record.role : typeof record.type === 'string' ? record.type : ''
+  if (role !== 'user' && role !== 'assistant') return ''
+  const message = record.message
+  const content =
+    message && typeof message === 'object' && 'content' in message
+      ? (message as { content?: unknown }).content
+      : record.content
+  return flattenText(content)
+}
+
+function transcriptFromFile(file: string, source: string, root: string): Transcript | null {
+  let raw = ''
+  try {
+    raw = readFileSync(file, 'utf8')
+  } catch {
+    return null
+  }
+  const parts: string[] = []
+  for (const line of raw.split(/\r?\n/)) {
+    if (line.trim() === '') continue
+    try {
+      const text = lineText(JSON.parse(line) as unknown)
+      if (text) parts.push(text)
+    } catch {
+      continue
+    }
+  }
+  if (parts.length === 0) return null
+  const slug = relative(root, file).split(/[/\\]/)[0]
+  return {
+    id: file,
+    source,
+    text: parts.join('\n'),
+    repo: slug || undefined,
+    changedAt: statSync(file).mtime.toISOString(),
+  }
+}
+
+export function readInstalledTranscripts(machine: Machine = thisMachine()): Transcript[] {
+  const installed = new Set(scanTools(machine).map((tool) => tool.id))
+  const seen = new Set<string>()
+  const transcripts: Transcript[] = []
+  function take(files: string[], source: string, root: string) {
+    for (const file of files) {
+      if (seen.has(file)) continue
+      seen.add(file)
+      const transcript = transcriptFromFile(file, source, root)
+      if (transcript) transcripts.push(transcript)
+    }
+  }
+  const projects = join(machine.home, '.cursor', 'projects')
+  const agentTranscripts = (files: string[]) =>
+    files.filter((file) => file.split(/[/\\]/).includes('agent-transcripts'))
+  if (installed.has('cursor')) take(agentTranscripts(jsonlFiles(projects)), 'cursor', projects)
+  if (installed.has('cursor-cli')) {
+    const chats = join(machine.home, '.cursor', 'chats')
+    take(jsonlFiles(chats), 'cursor-cli', chats)
+    take(agentTranscripts(jsonlFiles(projects)), 'cursor-cli', projects)
+  }
+  if (installed.has('claude-cli')) {
+    const claude = join(machine.home, '.claude', 'projects')
+    take(jsonlFiles(claude), 'claude-cli', claude)
+  }
+  return transcripts
+}
+
 function cardFile(directory: string, path: string) {
   return relative(directory, path).split('\\').join('/')
 }
@@ -733,11 +994,27 @@ export function openApp(
   complete?: CompleteLesson,
   machine: Machine = thisMachine(),
   answer?: AnswerLookup,
+  cursorLookup: CursorLookup = lookupCursorAccount,
 ) {
   const settings = readSettings(directory)
+  function modelChoices(provider: Provider): ListedModel[] {
+    if (provider === 'cursor') return settings.cursorModels
+    return modelCatalog[provider].models.map((id) => ({ id, displayName: id }))
+  }
+  function chosenKey() {
+    if (settings.selectedProvider) {
+      const matches = settings.keys.filter((key) => key.provider === settings.selectedProvider)
+      if (matches.length === 0) return undefined
+      return matches.find((key) => key.id === settings.pinnedKeyId) ?? matches[matches.length - 1]
+    }
+    const pinned = settings.keys.find((key) => key.id === settings.pinnedKeyId)
+    if (pinned) return pinned
+    if (settings.keys.length === 0) return undefined
+    return settings.keys.reduce((best, key) => (keyOrder[key.provider] < keyOrder[best.provider] ? key : best))
+  }
   function offeredModels() {
     const active = settings.keys.find((key) => key.active)
-    return active ? modelCatalog[active.provider].models : []
+    return active ? modelChoices(active.provider).map((model) => model.id) : []
   }
   function profileIsComplete() {
     return [settings.profile.username, settings.profile.email, settings.profile.team].every(
@@ -745,13 +1022,15 @@ export function openApp(
     )
   }
   function chosenModel() {
-    if (offeredModels().includes(settings.model)) return settings.model
+    const offered = offeredModels()
+    if (offered.includes(settings.model)) return settings.model
     const active = settings.keys.find((key) => key.active)
     if (!active) throw new Error('No model')
-    return modelCatalog[active.provider].defaultModel
+    if (offered.length === 0) return ''
+    return modelCatalog[active.provider].defaultModel || offered[0]
   }
   function refreshDiscovery() {
-    if (!settings.keys.some((key) => key.active)) return
+    if (offeredModels().length === 0) return
     writeDiscoverySkills(machine, directory, chosenModel())
   }
   refreshDiscovery()
@@ -774,22 +1053,118 @@ export function openApp(
     profile(): Profile {
       return { ...settings.profile }
     },
-    saveKey(input: { provider: Provider; secret: string }) {
+    saveKey(input: { provider: Provider; secret: string; account?: CursorAccount }) {
       if (!settings.vaultId) settings.vaultId = randomUUID()
       const id = randomUUID()
       writeSecret(settings.vaultId, id, input.secret)
-      settings.keys.push({
-        id,
-        provider: input.provider,
-        active: settings.keys.every((key) => !key.active),
-      })
+      settings.keys.push({ id, provider: input.provider, active: false })
+      const chosen = chosenKey()
+      for (const key of settings.keys) key.active = chosen ? key.id === chosen.id : false
+      if (input.provider === 'cursor' && input.account) {
+        settings.cursorModels = input.account.models
+        settings.cursorKey = {
+          createdAt: input.account.createdAt ?? '',
+          expiresAt: input.account.expiresAt ?? '',
+          error: input.account.error ?? '',
+        }
+        if (!settings.cursorModels.some((model) => model.id === settings.model)) {
+          settings.model = settings.cursorModels[0]?.id ?? ''
+        }
+      }
+      writeSettings(directory, settings)
+      refreshDiscovery()
+    },
+    lookupCursor(secret: string) {
+      return cursorLookup(secret)
+    },
+    cursorSecret() {
+      const key = [...settings.keys].reverse().find((item) => item.provider === 'cursor')
+      if (!key || !settings.vaultId) return ''
+      try {
+        return readSecret(settings.vaultId, key.id)
+      } catch {
+        return ''
+      }
+    },
+    rememberCursor(account: CursorAccount) {
+      if (account.error || account.models.length === 0) {
+        settings.cursorKey = {
+          ...settings.cursorKey,
+          error: account.error || 'Cursor model list failed',
+        }
+        writeSettings(directory, settings)
+        return
+      }
+      settings.cursorModels = account.models
+      settings.cursorKey = {
+        createdAt: account.createdAt || settings.cursorKey.createdAt,
+        expiresAt: account.expiresAt || settings.cursorKey.expiresAt,
+        error: '',
+      }
+      const active = settings.keys.find((item) => item.active)
+      if (active?.provider === 'cursor' && !settings.cursorModels.some((model) => model.id === settings.model)) {
+        settings.model = settings.cursorModels[0]?.id ?? ''
+      }
       writeSettings(directory, settings)
       refreshDiscovery()
     },
     activateKey(id: string) {
       const match = settings.keys.find((key) => key.id === id)
       if (!match) throw new Error(`No key ${id}`)
+      settings.selectedProvider = match.provider
+      settings.pinnedKeyId = id
       for (const key of settings.keys) key.active = key.id === id
+      writeSettings(directory, settings)
+      refreshDiscovery()
+    },
+    activateProvider(provider: Provider) {
+      settings.selectedProvider = provider
+      const matches = settings.keys.filter((key) => key.provider === provider)
+      if (matches.length === 0) {
+        settings.pinnedKeyId = ''
+        for (const key of settings.keys) key.active = false
+        writeSettings(directory, settings)
+        return
+      }
+      const chosen = matches.find((key) => key.id === settings.pinnedKeyId) ?? matches[matches.length - 1]
+      this.activateKey(chosen.id)
+    },
+    activeProvider() {
+      return settings.selectedProvider || settings.keys.find((key) => key.active)?.provider || ''
+    },
+    modelsFor(provider: Provider) {
+      return modelChoices(provider).map((model) => model.id)
+    },
+    modelChoices,
+    cursorKey() {
+      return { ...settings.cursorKey }
+    },
+    revokeProvider(provider: Provider) {
+      const removed = settings.keys.filter((key) => key.provider === provider)
+      for (const key of removed) {
+        try {
+          deleteSecret(settings.vaultId, key.id)
+        } catch {
+          // The vault entry is already gone.
+        }
+      }
+      if (removed.some((key) => key.id === settings.pinnedKeyId)) settings.pinnedKeyId = ''
+      settings.keys = settings.keys.filter((key) => key.provider !== provider)
+      if (provider === 'cursor') {
+        settings.cursorModels = []
+        settings.cursorKey = { createdAt: '', expiresAt: '', error: '' }
+      }
+      if (settings.selectedProvider === provider && !settings.keys.some((key) => key.provider === provider)) {
+        for (const key of settings.keys) key.active = false
+        settings.model = ''
+      } else {
+        const chosen = chosenKey()
+        for (const key of settings.keys) key.active = chosen ? key.id === chosen.id : false
+        const offered = offeredModels()
+        if (!offered.includes(settings.model)) {
+          settings.model = chosen ? modelCatalog[chosen.provider].defaultModel || offered[0] || '' : ''
+        }
+      }
       writeSettings(directory, settings)
       refreshDiscovery()
     },
@@ -825,19 +1200,26 @@ export function openApp(
       settings.disabledTools = [...disabled]
       writeSettings(directory, settings)
     },
+    beginLearning(transcripts: Transcript[] = []) {
+      if (!profileIsComplete()) {
+        return 'Save your username, email, and team before learning can write cards.'
+      }
+      if (offeredModels().length === 0) {
+        return 'This SDK has no model list. Switch to Anthropic or OpenAI to start learning.'
+      }
+      settings.learningStarted = true
+      writeSettings(directory, settings)
+      this.runLearner(transcripts)
+      return ''
+    },
     runLearner(transcripts: Transcript[] = []) {
-      const activeKey = settings.keys.some((key) => key.active)
-      if (!profileIsComplete() || !activeKey) return { ran: false }
+      if (!profileIsComplete() || offeredModels().length === 0) return { ran: false }
       const model = chosenModel()
-      const enabled = new Set<string>(
-        listedTools()
-          .filter((tool) => tool.enabled)
-          .map((tool) => tool.id),
-      )
+      const installed = new Set<string>(listedTools().map((tool) => tool.id))
       const readable = newestFirst(
         transcripts.filter(
           (transcript) =>
-            enabled.has(transcript.source) &&
+            installed.has(transcript.source) &&
             settings.importedTranscripts[transcriptKey(transcript)] !== transcriptRevision(transcript),
         ),
       )
@@ -1079,6 +1461,7 @@ export function openUserSession(
   complete?: CompleteLesson,
   machine: Machine = thisMachine(),
   readTranscripts: () => Transcript[] = () => [],
+  cursorLookup: CursorLookup = lookupCursorAccount,
 ) {
   let loggedIn = false
   const jobs = new Map<string, ScheduledJobs>()
@@ -1092,11 +1475,12 @@ export function openUserSession(
   }
 
   function learn(directory: string) {
-    openApp(directory, complete, machine).runLearner(readTranscripts())
+    if (!readSettings(directory).learningStarted) return
+    openApp(directory, complete, machine, undefined, cursorLookup).runLearner(readTranscripts())
   }
 
   function publish(directory: string) {
-    openApp(directory, complete, machine).runPublisher()
+    openApp(directory, complete, machine, undefined, cursorLookup).runPublisher()
   }
 
   function arm(directory: string) {
@@ -1117,21 +1501,40 @@ export function openUserSession(
     return join(machine.home, '.sharlie', `${person}.json`)
   }
 
-  function registeredDirectories() {
+  function readRegistry() {
     try {
-      const parsed = JSON.parse(readFileSync(registryPath(), 'utf8')) as { directories?: unknown }
-      return Array.isArray(parsed.directories)
+      const parsed = JSON.parse(readFileSync(registryPath(), 'utf8')) as {
+        directories?: unknown
+        knowledge?: unknown
+      }
+      const directories = Array.isArray(parsed.directories)
         ? parsed.directories.filter((directory): directory is string => typeof directory === 'string')
         : []
+      const knowledge =
+        typeof parsed.knowledge === 'string' && parsed.knowledge.trim() !== '' ? parsed.knowledge : undefined
+      return knowledge ? { directories, knowledge } : { directories }
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { directories: [] }
       throw error
     }
   }
 
-  function writeRegistry(directories: string[]) {
+  function writeRegistryFile(registry: { directories: string[]; knowledge?: string }) {
     mkdirSync(join(machine.home, '.sharlie'), { recursive: true })
-    writeFileSync(registryPath(), JSON.stringify({ directories }))
+    writeFileSync(registryPath(), JSON.stringify(registry))
+  }
+
+  function registeredDirectories() {
+    return readRegistry().directories
+  }
+
+  function writeRegistry(directories: string[]) {
+    const current = readRegistry()
+    writeRegistryFile(current.knowledge ? { directories, knowledge: current.knowledge } : { directories })
+  }
+
+  function storedKnowledge(fallback: string) {
+    return readRegistry().knowledge ?? fallback
   }
 
   function remember(directory: string) {
@@ -1201,17 +1604,44 @@ export function openUserSession(
       unregister(directory)
     },
     openWindow(directory: string) {
-      const window = openApp(directory, complete, machine)
+      const current = storedKnowledge(directory)
+      const window = openApp(current, complete, machine, undefined, cursorLookup)
       return {
         ...window,
+        knowledgePath() {
+          return current
+        },
+        startLearning() {
+          return window.beginLearning(readTranscripts())
+        },
+        setKnowledgePath(path: string) {
+          const next = path.trim()
+          if (next === '') throw new Error('knowledge path is required')
+          if (next === current) return
+          mkdirSync(next, { recursive: true })
+          const previousSettings = join(current, 'settings.json')
+          const nextSettings = join(next, 'settings.json')
+          if (existsSync(previousSettings) && !existsSync(nextSettings)) {
+            copyFileSync(previousSettings, nextSettings)
+          }
+          if (registeredDirectories().includes(current)) {
+            unregister(current)
+            register(next)
+          }
+          const registry = readRegistry()
+          writeRegistryFile({ directories: registry.directories, knowledge: next })
+        },
         registerJobs() {
-          register(directory)
+          register(current)
         },
         unregisterJobs() {
-          unregister(directory)
+          unregister(current)
         },
         close() {},
       }
+    },
+    knowledgeDirectory(fallback: string) {
+      return storedKnowledge(fallback)
     },
   }
 }

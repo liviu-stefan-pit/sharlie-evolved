@@ -7,6 +7,9 @@ type Post = (
 ) => Promise<Response>
 
 export async function callModel(request: ModelRequest, fetchImpl: Post = fetch as unknown as Post) {
+  if (request.provider === 'cursor' || request.provider === 'copilot') {
+    throw new Error(`${request.provider} has no model`)
+  }
   if (request.provider === 'openai') {
     const response = await fetchImpl('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

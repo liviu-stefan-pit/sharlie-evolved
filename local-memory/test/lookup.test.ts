@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { discardVault, openApp, type AnswerLookup, type LessonDraft, type Transcript } from '../src/app.ts'
+import { discardVault, lookupCursorAccount, openApp, type AnswerLookup, type LessonDraft, type Transcript } from '../src/app.ts'
 import { machineWith } from './machine.ts'
 
 function withDirectory(run: (directory: string) => void | Promise<void>) {
@@ -284,6 +284,30 @@ test('an OpenAI lookup sends the prompt to the chosen model with the saved key',
   assert.equal(text, '{"answer":"Retry the deploy once."}')
 })
 
+test('a Cursor or Copilot lookup is refused before the secret is sent', async () => {
+  const { callModel } = await import('../src/lookup-cli.ts')
+  for (const provider of ['cursor', 'copilot'] as const) {
+    let sent = false
+    await assert.rejects(
+      () =>
+        callModel(
+          { provider, secret: 'sk-secret-value', model: '', prompt: 'how do I retry a deploy?' },
+          async () => {
+            sent = true
+            return new Response('no')
+          },
+        ),
+      (error: unknown) => {
+        assert.ok(error instanceof Error)
+        assert.match(error.message, /no model/i)
+        assert.equal(error.message.includes('sk-secret-value'), false)
+        return true
+      },
+    )
+    assert.equal(sent, false)
+  }
+})
+
 test('Cursor and Claude discovery skills point at the local knowledge and name the model, and the IDE model picker stays as it is', () => {
   withDirectory((directory) => {
     const machine = machineWith(directory, ['cursor', 'claude', 'copilot'])
@@ -325,4 +349,52 @@ test('Cursor and Claude discovery skills point at the local knowledge and name t
     assert.equal(readFileSync(cursorPath, 'utf8'), reopened)
     assert.equal(readFileSync(claudePath, 'utf8'), reopened)
   })
+})
+
+test('cursor account lookup reads key expiry from the me endpoint', async () => {
+  const seen: string[] = []
+  const account = await lookupCursorAccount('cursor-key', async (url) => {
+    seen.push(String(url))
+    if (String(url) === 'https://api.cursor.com/v1/models') {
+      return new Response(JSON.stringify({ items: [{ id: 'composer-2.5', displayName: 'Composer 2.5' }] }), { status: 200 })
+    }
+    if (String(url) === 'https://api.cursor.com/v1/me') {
+      return new Response(
+        JSON.stringify({ createdAt: '2026-10-01T00:00:00.000Z', apiKeyExpiresAtMs: Date.parse('2026-11-12T00:00:00.000Z') }),
+        { status: 200 },
+      )
+    }
+    return new Response('missing', { status: 404 })
+  })
+  assert.equal(account.createdAt, '2026-10-01T00:00:00.000Z')
+  assert.equal(account.expiresAt, '2026-11-12T00:00:00.000Z')
+  assert.equal(seen.includes('https://api.cursor.com/v1/me'), true)
+})
+
+test('cursor account lookup reads expiry from the key list when the me call has none', async () => {
+  const account = await lookupCursorAccount('cursor-key-e5f6', async (url) => {
+    const address = String(url)
+    if (address === 'https://api.cursor.com/v1/models') {
+      return new Response(JSON.stringify({ items: [{ id: 'composer-2.5', displayName: 'Composer 2.5' }] }), { status: 200 })
+    }
+    if (address === 'https://api.cursor.com/v1/me') {
+      return new Response(JSON.stringify({ createdAt: '2026-10-01T00:00:00.000Z' }), { status: 200 })
+    }
+    if (address === 'https://api2.cursor.sh/auth/exchange_user_api_key') {
+      return new Response(JSON.stringify({ accessToken: 'session-token' }), { status: 200 })
+    }
+    if (address === 'https://api2.cursor.sh/aiserver.v1.DashboardService/ListUserApiKeys') {
+      return new Response(
+        JSON.stringify({
+          apiKeys: [
+            { maskedKey: 'crsr_...ffff', createdAt: '1780000000000' },
+            { maskedKey: 'crsr_...e5f6', createdAt: '1780000000000', expiresAt: '2026-11-12T00:00:00.000Z' },
+          ],
+        }),
+        { status: 200 },
+      )
+    }
+    return new Response('missing', { status: 404 })
+  })
+  assert.equal(account.expiresAt, '2026-11-12T00:00:00.000Z')
 })

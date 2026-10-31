@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { test } from 'node:test'
@@ -95,6 +95,117 @@ test('keys are stored in the operating system vault, and they are not written in
     assert.equal(reopened.activeKey().secret, 'sk-ant-api03-aaaa')
     reopened.activateKey(reopened.keys().find((key) => key.provider === 'openai')!.id)
     assert.equal(reopened.activeKey().secret, 'sk-proj-bbbb')
+  })
+})
+
+test('an unpinned key follows Cursor, then Copilot, then Anthropic, then OpenAI, and Use keeps that pin', () => {
+  withDirectory((directory) => {
+    const app = open(directory)
+    app.saveKey({ provider: 'openai', secret: 'sk-proj-bbbb' })
+    assert.equal(app.keys().find((key) => key.active)?.provider, 'openai')
+
+    app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'anthropic')
+
+    app.saveKey({ provider: 'openai', secret: 'sk-proj-cccc' })
+    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'anthropic')
+
+    app.saveKey({ provider: 'copilot', secret: 'sk-copilot-dddd' })
+    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'copilot')
+
+    app.saveKey({ provider: 'cursor', secret: 'sk-cursor-eeee' })
+    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'cursor')
+
+    const copilot = app.keys().find((key) => key.provider === 'copilot')
+    assert.ok(copilot)
+    app.activateKey(copilot.id)
+    app.saveKey({ provider: 'cursor', secret: 'sk-cursor-ffff' })
+    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'copilot')
+
+    const reopened = open(directory)
+    reopened.saveKey({ provider: 'cursor', secret: 'sk-cursor-gggg' })
+    assert.equal(reopened.keys().filter((key) => key.active).map((key) => key.provider).join(), 'copilot')
+
+    const settings = readFileSync(join(directory, 'settings.json'), 'utf8')
+    assert.equal(settings.includes('sk-proj-bbbb'), false)
+    assert.equal(settings.includes('sk-cursor-eeee'), false)
+    assert.equal(settings.includes('sk-copilot-dddd'), false)
+  })
+})
+
+test('Copilot has no model list, so discovery is skipped and the learner stays idle', () => {
+  withDirectory((directory) => {
+    let calls = 0
+    const machine = machineWith(machineRoot(directory), ['cursor'])
+    const app = openApp(
+      directory,
+      () => {
+        calls += 1
+        throw new Error('model was called')
+      },
+      machine,
+    )
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({ provider: 'copilot', secret: 'sk-secret-value' })
+    assert.deepEqual(app.models(), [])
+    assert.doesNotThrow(() => app.chosenModel())
+    assert.equal(app.chosenModel(), '')
+    const skipped = app.runLearner([
+      { source: 'cursor', text: 'retry the deploy', repo: 'sharlie-evolved' },
+    ])
+    assert.equal(skipped.ran, false)
+    assert.equal(skipped.model, undefined)
+    assert.equal(calls, 0)
+    assert.equal(existsSync(join(machine.home, '.cursor', 'skills', 'local-knowledge', 'SKILL.md')), false)
+    assert.equal(existsSync(join(machine.home, '.claude', 'skills', 'local-knowledge', 'SKILL.md')), false)
+    assert.equal(readFileSync(join(directory, 'settings.json'), 'utf8').includes('sk-secret-value'), false)
+  })
+})
+
+test('a Cursor key offers the models Cursor returned and the learner uses the first', () => {
+  withDirectory((directory) => {
+    let calls = 0
+    const machine = machineWith(machineRoot(directory), ['cursor'])
+    const app = openApp(
+      directory,
+      () => {
+        calls += 1
+        return {
+          scope: 'work',
+          title: 'Retry a deploy',
+          topics: ['deploys'],
+          summary: 'Retry a failed deploy once.',
+          situation: 'A deploy failed after the lock timed out.',
+          whatToDo: 'Retry the deploy once, then read the log.',
+          why: 'The lock clears on its own within a minute.',
+          apply: 'When a deploy fails on a lock, retry once before changing config.',
+          otherNames: [],
+          belongsToProject: null,
+          clearlyOneProduct: true,
+          subjectProject: null,
+          generalTechnique: false,
+        }
+      },
+      machine,
+    )
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({
+      provider: 'cursor',
+      secret: 'sk-secret-value',
+      account: {
+        models: [
+          { id: 'composer-2.5', displayName: 'Composer 2.5' },
+          { id: 'auto-smart', displayName: 'Auto' },
+        ],
+      },
+    })
+    assert.deepEqual(app.models(), ['composer-2.5', 'auto-smart'])
+    assert.equal(app.chosenModel(), 'composer-2.5')
+    const ran = app.runLearner([{ source: 'cursor', text: 'retry the deploy', repo: 'sharlie-evolved' }])
+    assert.equal(ran.ran, true)
+    assert.equal(ran.model, 'composer-2.5')
+    assert.equal(calls, 1)
+    assert.equal(readFileSync(join(directory, 'settings.json'), 'utf8').includes('sk-secret-value'), false)
   })
 })
 

@@ -16,6 +16,10 @@ export function readSecret(vaultId: string, keyId: string): string {
   return secret
 }
 
+export function deleteSecret(vaultId: string, keyId: string) {
+  entry(vaultId, keyId).deletePassword()
+}
+
 export function deleteVault(vaultId: string) {
   for (const credential of findCredentials(service)) {
     if (credential.account.startsWith(`${vaultId}/`)) {

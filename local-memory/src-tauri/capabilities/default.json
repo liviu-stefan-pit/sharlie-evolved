@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "The Sharlie window can ask the host for the page.",
+  "windows": ["main"],
+  "permissions": ["core:default", "allow-render", "allow-submit"]
+}

@@ -51,6 +51,7 @@ function prepare(session: ReturnType<typeof openUserSession>, directory: string,
   window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
   window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
   window.setDrivePath(drive)
+  window.startLearning()
   window.close()
   return window
 }
@@ -132,6 +133,7 @@ test('the window can register both jobs', () => {
     window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
     window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
     window.setDrivePath(drive)
+    window.startLearning()
     transcripts.push({
       id: 'deploy',
       source: 'cursor',
@@ -353,6 +355,16 @@ test('opening or closing the window leaves the jobs as they are', () => {
   withPerson('ada', (ada, directory, transcripts) => {
     const drive = join(directory, 'drive')
     const profile = { username: 'ada', email: 'ada@example.com', team: 'platform' }
+    const setup = ada.openWindow(directory)
+    setup.saveProfile(profile)
+    setup.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    setup.setDrivePath(drive)
+    setup.startLearning()
+    ada.install(directory)
+    setup.close()
+    assert.deepEqual(cardFiles(join(directory, 'work', 'platform')), [])
+    assert.equal(existsSync(drive), false)
+
     transcripts.push({
       id: 'deploy',
       source: 'cursor',
@@ -360,16 +372,6 @@ test('opening or closing the window leaves the jobs as they are', () => {
       changedAt: '2024-06-01T00:00:00.000Z',
       repo: 'sharlie-evolved',
     })
-
-    const setup = ada.openWindow(directory)
-    setup.saveProfile(profile)
-    setup.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
-    setup.setDrivePath(drive)
-    ada.install(directory)
-    setup.close()
-    assert.deepEqual(cardFiles(join(directory, 'work', 'platform')), [])
-    assert.equal(existsSync(drive), false)
-
     const window = ada.openWindow(directory)
     ada.logIn()
     const folder = join(directory, 'work', 'platform')
@@ -465,6 +467,7 @@ test('the publisher job copies work cards and leaves personal cards on the machi
       window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
       window.setDrivePath(drive)
       window.setPublisherInterval(2 * hour)
+      window.startLearning()
       window.close()
       transcripts.push(
         {

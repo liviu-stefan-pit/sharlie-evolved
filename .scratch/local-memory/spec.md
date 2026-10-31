@@ -8,7 +8,7 @@ Lessons from coding sessions are trapped in the transcripts of several tools. A 
 
 ## Solution
 
-A desktop app for Windows and macOS records two background jobs. While the person is logged in, a learner reads new transcripts from the coding tools installed on the machine and writes one markdown card per lesson into a local knowledge folder. A publisher copies only the work cards into a Drive folder the person chose. Personal cards stay on the machine. The same model key that writes the cards also answers lookups: it sees every card's name and summary, then the full text of the cards it needs. A graph in the app draws the whole local folder. GitHub and the company graph are not part of this version.
+A desktop app for Windows and macOS records two background jobs. While the person is logged in, a learner reads new transcripts from the coding tools installed on the machine and writes one markdown card per lesson into a local knowledge folder. A publisher copies only the work cards into a Drive folder the person chose. Personal cards stay on the machine. The same active key that writes the cards also answers lookups: it sees every card's name and summary, then the full text of the cards it needs. A graph in the app draws the whole local folder. GitHub and the company graph are not part of this version.
 
 ## User Stories
 
@@ -19,17 +19,17 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 5. As a person using the app, I want to open and close the window whenever I like, so that the jobs do not depend on the window staying open.
 6. As a person setting up, I want the learner to stay idle until I have saved a username, an email, and a team, so that every card has an author and a team folder.
 7. As a person setting up, I want the learner to stay idle until I have saved an SDK key, so that it never calls a model without credentials.
-8. As a person setting up, I want to save more than one key and keep exactly one active, so that I can switch provider without retyping.
+8. As a person setting up, I want to save four SDK keys, Cursor, Copilot, Anthropic, and OpenAI, and keep exactly one active, so that the highest saved key in that order is the one in use until I press Use, and saving another key later does not replace the pin.
 9. As a person setting up, I want the keys stored in the operating system vault, so that they are not written into an ordinary settings file.
-10. As a person setting up, I want the background model chosen in the app, so that I control which model writes and reads the knowledge.
+10. As a person setting up, I want the background model chosen in the app when the active key is Anthropic or OpenAI, so that I control which model writes and reads the knowledge.
 11. As a person with an Anthropic key, I want the default model to be Haiku 5.5, with Sonnet 5.5 and Opus 5.5 also listed, so that the cheap model runs unless I choose otherwise.
 12. As a person with an OpenAI key, I want the default model to be GPT-6 Luna, with GPT-6 Sol and GPT-6 Astra also listed, so that the cheap model runs unless I choose otherwise.
 13. As a person working in Cursor or Claude, I want the discovery skill to name the model the app is using, so that I can see it in the IDE.
 14. As a person working in Cursor or Claude, I want that chat to use the model I selected in the IDE, so that the app does not change the IDE's picker.
 15. As a person opening the app, I want it to scan for Cursor, Copilot in VS Code, Claude, Cursor CLI, Claude CLI, and Copilot CLI, so that I see which of those tools this machine has.
 16. As a person opening the app, I want a label only for tools that are installed, so that missing tools do not fill the window.
-17. As a person opening the app, I want each installed tool to start enabled, so that learning includes them without extra setup.
-18. As a person opening the app, I want to turn an installed tool off, so that its transcripts are skipped.
+17. As a person opening the app, I want each installed tool shown as an indicator, so that I can see what this machine has.
+18. As a person opening the app, I want those indicators to stay non-clickable, so that learning reads every installed tool.
 19. As a person on a first run, I want every existing transcript imported, newest first, so that the knowledge starts from the work I already did.
 20. As a person on a first run, I want that import to proceed in batches while I am logged in, so that years of chat are not forced into one model call.
 21. As a person after the import, I want each later run to read only transcripts that changed since the last success, so that a period while the machine was off is still picked up and old history is not reread.
@@ -76,12 +76,13 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 - The app is a Tauri shell on Windows and macOS, using the system webview. The window is for settings, identity, the model, the tool list, and the graph. It is not the process that learns or publishes.
 - Two scheduled jobs run in the user session. They are registered at install, removed on uninstall, and can be registered or unregistered from the window. They start at login and stop at logout or shutdown.
 - The learner and the publisher have separate intervals. Each defaults to one hour. The window refuses a value under one hour.
-- The learner runs only when an SDK key is saved and username, email, and team are all saved. Otherwise it does not run.
+- The learner runs only when an SDK key is saved and username, email, and team are all saved. Otherwise it does not run. On an empty graph the person presses Start learning. That click does nothing until the profile is complete and the active SDK has a model list. The hourly job stays idle until that click succeeds.
 - The first learner run after those are present imports all existing transcripts from the enabled tools, newest first, in batches, back to back while the session lasts. When that import finishes, a run reads only transcripts changed since the last successful run.
 - One learner pass reads every enabled source before it writes, so the same claim from two tools becomes one card. The card's sources list gains the extra tool.
-- Enabled sources are the installed members of this set: Cursor, Copilot in VS Code, Claude, Cursor CLI, Claude CLI, and Copilot CLI. The window lists only the ones it finds. Each found tool starts enabled. The person can turn one off.
-- Exactly one key is active. Extra keys may be stored. All keys live in the operating system credential store.
-- The active key's provider selects the model list. Anthropic offers `claude-haiku-5-5` (default), `claude-sonnet-5-5`, and `claude-opus-5-5`. OpenAI offers `gpt-6-luna` (default), `gpt-6-sol`, and `gpt-6-astra`. That one model writes cards, chooses personal or work, chooses update or new, and answers lookups. No other model is installed.
+- Enabled sources are the installed members of this set: Cursor, Copilot in VS Code, Claude, Cursor CLI, Claude CLI, and Copilot CLI. The window lists only the ones it finds, as indicators. Every installed tool is read.
+- A person can save four SDK keys: Cursor, Copilot, Anthropic, and OpenAI. Exactly one is active. All keys live in the operating system credential store.
+- Cursor is the default, then Copilot, then Anthropic, then OpenAI. When the person has not pinned a key, the highest saved key in that order is the one in use. Pressing Use pins that key, and saving another key later does not replace the pin.
+- Anthropic offers `claude-haiku-5-5` (default), `claude-sonnet-5-5`, and `claude-opus-5-5`. OpenAI offers `gpt-6-luna` (default), `gpt-6-sol`, and `gpt-6-astra`. No other model ids for those two. A saved Cursor key stores the model ids and display names Cursor returns for it, and the first id stays selected until the person picks another. Copilot has no model list. When the active key has a model list, that chosen model writes cards, chooses personal or work, chooses update or new, and answers lookups.
 - A discovery skill for Cursor and a discovery skill for Claude name the chosen model and point at the local knowledge. An IDE chat uses the model selected in that IDE. The app does not change the IDE's picker.
 - A lookup sends every card's file name and summary, then the full text of the cards the model selects. Personal and work cards on the machine are both included.
 - Each card is one markdown file. Front matter holds `id`, `at`, `author.username`, `author.email`, `author.team`, `scope` (`personal` or `work`), `sources`, `project`, `title`, `topics`, and `summary`. The body is four prose parts: the situation, what to do, why, and how someone who was not in the chat applies it. A missing required field means the card is not written.

@@ -20,8 +20,8 @@
 - [x] Saving the key and the model updates the Cursor and Claude discovery skills so they name that model and point at the local knowledge
 - [x] An IDE chat keeps the model selected in that IDE
 - [x] The window shows a label only for the installed members of Cursor, Copilot in VS Code, Claude, Cursor CLI, Claude CLI, and Copilot CLI
-- [x] Each installed tool starts enabled
-- [x] Turning an installed tool off skips its transcripts, and turning it back on includes them again
+- [x] Each installed tool is shown as an indicator, and the indicator is not clickable
+- [x] Every installed tool is read, including one that was previously turned off
 - [x] The person can set the Drive folder path in the window
 - [x] An empty Drive path means the publisher does not run
 - [x] The learner interval and the publisher interval each default to one hour
@@ -33,5 +33,5 @@
 - [x] A node is a person, a team, a project, a source, a topic, or a card, and the links come from the cards in the local folder
 - [x] A work card that the publisher has copied shows as synced, in `#a3be8c`
 - [x] A card that has not been copied does not show as synced
-- [x] `#a3be8c` is used only for the synced status
+- [x] `#a3be8c` is used for a synced card and for the installed-tool indicator
 - [x] Clicking a node shows what is in it
