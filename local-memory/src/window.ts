@@ -152,38 +152,35 @@ function renderWindow(app: WindowApp, notice = '') {
     panel.style.background = payload.panel
     panel.style.color = payload.text
     host.append(surface, panel)
-    const placed = (node) => node
     new ForceGraph(surface)
       .width(Math.max(host.clientWidth - 280, 1))
       .height(Math.max(host.clientHeight, 1))
       .backgroundColor(payload.canvas)
-      .nodeColor((node) => placed(node).color)
-      .nodeLabel((node) => placed(node).label)
+      .nodeColor((node) => node.color)
+      .nodeLabel((node) => node.label)
       .linkColor(() => payload.accent)
       .nodeCanvasObject((node, ctx, globalScale) => {
-        const drawn = placed(node)
-        const x = drawn.x || 0
-        const y = drawn.y || 0
+        const x = node.x || 0
+        const y = node.y || 0
         ctx.beginPath()
         ctx.arc(x, y, 4, 0, 2 * Math.PI)
-        ctx.fillStyle = drawn.color
+        ctx.fillStyle = node.color
         ctx.fill()
         const fontSize = 12 / globalScale
         ctx.font = fontSize + 'px sans-serif'
         ctx.fillStyle = payload.text
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
-        ctx.fillText(drawn.label, x + 6, y)
+        ctx.fillText(node.label, x + 6, y)
       })
       .nodePointerAreaPaint((node, color, ctx) => {
-        const drawn = placed(node)
         ctx.beginPath()
-        ctx.arc(drawn.x || 0, drawn.y || 0, 8, 0, 2 * Math.PI)
+        ctx.arc(node.x || 0, node.y || 0, 8, 0, 2 * Math.PI)
         ctx.fillStyle = color
         ctx.fill()
       })
       .onNodeClick((node) => {
-        panel.textContent = payload.details[placed(node).id]
+        panel.textContent = payload.details[node.id]
       })
       .graphData({ nodes: payload.nodes, links: payload.links })
   </script>
@@ -248,8 +245,10 @@ function applyWindow(app: WindowApp, params: URLSearchParams): string {
   if (action === 'unregister') app.unregisterJobs()
   if (action === 'close') app.close()
   if (action === 'set-learner-interval' || action === 'set-publisher-interval') {
-    const intervalMs = Number(params.get('hours')) * hourMs
+    const hours = Number(params.get('hours'))
+    const intervalMs = hours * hourMs
     try {
+      if (!Number.isFinite(hours)) throw new Error('interval must be at least one hour')
       if (action === 'set-learner-interval') app.setLearnerInterval(intervalMs)
       else app.setPublisherInterval(intervalMs)
     } catch (error) {

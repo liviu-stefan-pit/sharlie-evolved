@@ -400,6 +400,10 @@ test('the window refuses a learner or publisher interval shorter than one hour',
 
     const again = await post(url, { action: 'set-learner-interval', hours: '1' })
     assert.equal(fieldValue(again, 'learner-hours'), '1')
+
+    const nonsense = await post(url, { action: 'set-learner-interval', hours: 'soon' })
+    assert.match(nonsense, /must be at least one hour/)
+    assert.equal(fieldValue(nonsense, 'learner-hours'), '1')
   })
 })
 
