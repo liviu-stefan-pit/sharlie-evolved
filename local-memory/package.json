@@ -1,0 +1,17 @@
+{
+  "name": "local-memory",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-test-module-mocks --disable-warning=ExperimentalWarning --test test/gate.test.ts test/card.test.ts test/tools.test.ts test/import.test.ts test/publish.test.ts test/lookup.test.ts test/graph.test.ts test/session.test.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@napi-rs/keyring": "^2.1.2",
+    "force-graph": "^1.52.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
