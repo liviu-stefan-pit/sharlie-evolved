@@ -2,4 +2,6 @@
 .env.*
 !.env.example
 node_modules/
-local-memory/src-tauri/target/
+local-memory/release/
+local-memory/ui/dist/
+local-memory/test-results/

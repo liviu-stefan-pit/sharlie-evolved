@@ -138,8 +138,8 @@ test('a tool that is not installed does not have its transcripts read', () => {
       { source: 'cursor', text: 'the deploy failed', repo: 'sharlie-evolved' },
       { source: 'claude', text: 'read the log' },
     ])
-    const folder = join(directory, 'work', 'platform')
-    const files = readdirSync(folder)
+    const folder = join(directory, 'cards')
+    const files = readdirSync(folder).filter((name) => name.endsWith('.md'))
     assert.equal(files.length, 1)
     const card = readFileSync(join(folder, files[0]), 'utf8')
     assert.match(card, /- cursor/)
@@ -164,8 +164,8 @@ test('an installed tool is still read after it was turned off', () => {
       { source: 'cursor', text: 'the deploy failed', repo: 'sharlie-evolved' },
       { source: 'claude', text: 'read the log' },
     ])
-    const folder = join(directory, 'work', 'platform')
-    const files = readdirSync(folder)
+    const folder = join(directory, 'cards')
+    const files = readdirSync(folder).filter((name) => name.endsWith('.md'))
     assert.equal(files.length, 2)
     const cards = files.map((file) => readFileSync(join(folder, file), 'utf8'))
     assert.equal(

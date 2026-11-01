@@ -2,8 +2,10 @@ import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, relative } from 'node:path'
+import { join, posix, relative, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { registerLoginItem, unregisterLoginItem } from './login-item.ts'
+import { localGraph, publishCard, readCards, type CardRelation } from './synapse.ts'
 import { deleteSecret, deleteVault, readSecret, writeSecret } from './vault.ts'
 
 export type Profile = {
@@ -50,6 +52,10 @@ export type LessonDraft = {
   sources?: string[]
   sameClaim?: boolean
   updateId?: string
+  context?: { os: string; tool_version: string; framework: string }
+  solution?: string
+  failure_modes?: string[]
+  relations?: CardRelation[]
 }
 
 export type CompleteLesson = (request: {
@@ -58,7 +64,7 @@ export type CompleteLesson = (request: {
   transcripts: Transcript[]
   projects: string[]
   cards: KnownCard[]
-}) => LessonDraft
+}) => LessonDraft | Promise<LessonDraft>
 
 export type LookupTurn =
   | {
@@ -77,6 +83,9 @@ export type ModelRequest = {
   secret: string
   model: string
   prompt: string
+  baseUrl?: string
+  chatCompletions?: boolean
+  cwd?: string
 }
 
 export type ModelExchange = (request: ModelRequest) => string | Promise<string>
@@ -88,11 +97,12 @@ export type AnswerLookup = (
   | { answer: string }
   | Promise<{ pick: string[] } | { answer: string }>
 
-export type Provider = 'cursor' | 'copilot' | 'anthropic' | 'openai'
+export type Provider = 'cursor' | 'copilot' | 'anthropic' | 'openai' | 'custom'
 
 export type ListedModel = {
   id: string
   displayName: string
+  chatCompletions?: boolean
 }
 
 export type CursorAccount = {
@@ -105,6 +115,8 @@ export type CursorAccount = {
 export type CursorLookup = (secret: string) => Promise<CursorAccount>
 
 export type ToolId = 'cursor' | 'copilot' | 'claude' | 'cursor-cli' | 'claude-cli' | 'copilot-cli'
+
+export type SourceFolder = { tool: string; path: string }
 
 export type Machine = {
   platform: 'win32' | 'darwin'
@@ -141,17 +153,26 @@ type Settings = {
   learningStarted: boolean
   importedTranscripts: Record<string, string>
   cursorModels: ListedModel[]
+  copilotModels: ListedModel[]
   cursorKey: { createdAt: string; expiresAt: string; error: string }
   selectedProvider: Provider | ''
+  customBaseUrl: string
+  customModel: string
+  autoDrop: boolean
 }
 
 const emptyProfile = (): Profile => ({ username: '', email: '', team: '' })
 
 const hourMs = 60 * 60 * 1000
+const thirtyMin = 30 * 60 * 1000
 const importBatchSize = 10
 
-function requireAtLeastOneHour(intervalMs: number, job: string) {
-  if (intervalMs < hourMs) throw new Error(`${job} interval must be at least one hour`)
+const fifteenMin = 15 * 60 * 1000
+
+function requireInterval(intervalMs: number, job: string) {
+  if (intervalMs !== 0 && intervalMs !== fifteenMin && intervalMs !== thirtyMin && intervalMs !== hourMs) {
+    throw new Error(`${job} interval must be 15 minutes, 30 minutes, 1 hour, or manual`)
+  }
 }
 
 const keyOrder: Record<Provider, number> = {
@@ -159,6 +180,7 @@ const keyOrder: Record<Provider, number> = {
   copilot: 1,
   anthropic: 2,
   openai: 3,
+  custom: 4,
 }
 
 const modelCatalog: Record<Provider, { models: string[]; defaultModel: string }> = {
@@ -169,13 +191,16 @@ const modelCatalog: Record<Provider, { models: string[]; defaultModel: string }>
     defaultModel: 'claude-haiku-5-5',
   },
   openai: {
-    models: ['gpt-6-luna', 'gpt-6-sol', 'gpt-6-astra'],
+    models: ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'],
     defaultModel: 'gpt-6-luna',
   },
+  custom: { models: [], defaultModel: '' },
 }
 
 function providerName(value: unknown): Provider | '' {
-  return value === 'cursor' || value === 'copilot' || value === 'anthropic' || value === 'openai' ? value : ''
+  return value === 'cursor' || value === 'copilot' || value === 'anthropic' || value === 'openai' || value === 'custom'
+    ? value
+    : ''
 }
 
 function cursorExpiry(value: unknown) {
@@ -207,7 +232,8 @@ function listedModels(value: unknown): ListedModel[] {
     const record = item as { id?: unknown; displayName?: unknown }
     if (typeof record.id !== 'string' || record.id === '') return []
     const displayName = typeof record.displayName === 'string' && record.displayName !== '' ? record.displayName : record.id
-    return [{ id: record.id, displayName }]
+    const chatCompletions = (record as { chatCompletions?: unknown }).chatCompletions
+    return [{ id: record.id, displayName, ...(chatCompletions === false ? { chatCompletions: false as const } : {}) }]
   })
 }
 
@@ -304,15 +330,19 @@ function emptySettings(): Settings {
     keys: [],
     pinnedKeyId: '',
     model: '',
-    learnerIntervalMs: hourMs,
-    publisherIntervalMs: hourMs,
+    learnerIntervalMs: thirtyMin,
+    publisherIntervalMs: thirtyMin,
     drivePath: '',
     disabledTools: [],
     learningStarted: false,
     importedTranscripts: {},
     cursorModels: [],
+    copilotModels: [],
     cursorKey: { createdAt: '', expiresAt: '', error: '' },
     selectedProvider: '',
+    customBaseUrl: '',
+    customModel: '',
+    autoDrop: false,
   }
 }
 
@@ -333,8 +363,12 @@ function readSettings(directory: string): Settings {
       learningStarted: parsed.learningStarted ?? defaults.learningStarted,
       importedTranscripts: parsed.importedTranscripts ?? defaults.importedTranscripts,
       cursorModels: listedModels(parsed.cursorModels),
+      copilotModels: listedModels(parsed.copilotModels),
       cursorKey: cursorKeyInfo(parsed.cursorKey),
       selectedProvider: providerName(parsed.selectedProvider),
+      customBaseUrl: parsed.customBaseUrl ?? defaults.customBaseUrl,
+      customModel: parsed.customModel ?? defaults.customModel,
+      autoDrop: parsed.autoDrop ?? defaults.autoDrop,
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptySettings()
@@ -412,6 +446,19 @@ function redactSecrets(text: string) {
       /\b(password|passwd|pwd|token|api[_-]?key|secret)\b(\s*[:=]\s*)(['"]?)[^\s'"]+\3/gi,
       '$1$2[redacted]',
     )
+    .replace(/-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g, '[redacted]')
+    .replace(
+      /\b([A-Za-z_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_KEY)[A-Za-z0-9_]*)(\s*=\s*)(?:"[^"\n]*"|'[^'\n]*'|[^\s\n]+)/gi,
+      '$1$2[redacted]',
+    )
+    .replace(/\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
+    .replace(/\b172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
+    .replace(/\b192\.168\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
+    .replace(/\b169\.254\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
+    .replace(
+      /(?<![\w:])(?:(?:fc|fd)[0-9a-f]{2}|fe[89ab][0-9a-f])(?::[0-9a-f]{0,4}){1,7}(?![\w:])/gi,
+      '[redacted]',
+    )
 }
 
 function termPattern(term: string) {
@@ -444,128 +491,38 @@ function scrubText(text: string, names: string[], keep: string[]) {
     .trim()
 }
 
-function yaml(value: string) {
-  if (/[:#[\]{}&*!|>%`"'\n\r,]|^\s|\s$|^[-?]/.test(value)) {
-    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`
-  }
-  return value
-}
-
 function knowledgeProjects(directory: string) {
   const found: string[] = []
-  function walk(folder: string) {
-    if (!existsSync(folder)) return
-    for (const entry of readdirSync(folder, { withFileTypes: true })) {
-      const path = join(folder, entry.name)
-      if (entry.isDirectory()) {
-        walk(path)
-        continue
-      }
-      if (!entry.name.endsWith('.md')) continue
-      const project = readFileSync(path, 'utf8').match(/^project: "?([^"\n]+)"?$/m)?.[1]
-      if (project && project !== 'none' && !found.includes(project)) found.push(project)
-    }
+  for (const card of readCards(directory)) {
+    const project = card.context.framework
+    if (project && project !== 'none' && !found.includes(project)) found.push(project)
   }
-  walk(join(directory, 'personal'))
-  walk(join(directory, 'work'))
   return found
 }
-
-function unyaml(value: string) {
-  const trimmed = value.trim()
-  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return trimmed.slice(1, -1).replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\')
-  }
-  return trimmed
-}
-
-function frontField(front: string, name: string) {
-  return unyaml(front.match(new RegExp(`^${name}: (.*)$`, 'm'))?.[1] ?? '')
-}
-
-function frontList(front: string, name: string) {
-  const lines = front.split('\n')
-  const start = lines.findIndex((line) => line === `${name}:`)
-  if (start === -1) return []
-  const items: string[] = []
-  for (const line of lines.slice(start + 1)) {
-    if (!line.startsWith('  - ')) break
-    items.push(unyaml(line.slice(4)))
-  }
-  return items
-}
-
-function lessonSection(body: string, heading: string) {
-  const marker = `## ${heading}\n\n`
-  const start = body.indexOf(marker)
-  if (start === -1) return ''
-  const rest = body.slice(start + marker.length)
-  const next = rest.search(/\n## /)
-  return (next === -1 ? rest : rest.slice(0, next)).trim()
-}
-
-type GraphKind = 'person' | 'team' | 'project' | 'source' | 'topic' | 'card'
 
 type StoredCard = KnownCard & {
   path: string
   at: string
   author: Profile
-  scope: 'personal' | 'work'
   project: string
 }
 
-function authorField(front: string, name: string) {
-  return unyaml(front.match(new RegExp(`^  ${name}: (.*)$`, 'm'))?.[1] ?? '')
-}
-
-function parseCard(text: string, path: string): StoredCard | null {
-  const match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
-  if (!match) return null
-  const front = match[1]
-  const body = match[2]
-  const id = frontField(front, 'id')
-  if (!id) return null
-  const scope = frontField(front, 'scope')
-  return {
-    path,
-    id,
-    at: frontField(front, 'at'),
-    author: {
-      username: authorField(front, 'username'),
-      email: authorField(front, 'email'),
-      team: authorField(front, 'team'),
-    },
-    scope: scope === 'personal' ? 'personal' : 'work',
-    sources: frontList(front, 'sources'),
-    project: frontField(front, 'project'),
-    title: frontField(front, 'title'),
-    topics: frontList(front, 'topics'),
-    summary: frontField(front, 'summary'),
-    situation: lessonSection(body, 'Situation'),
-    whatToDo: lessonSection(body, 'What to do'),
-    why: lessonSection(body, 'Why'),
-    apply: lessonSection(body, 'How someone who was not in the chat applies it'),
-  }
-}
-
-function readStoredCards(directory: string) {
-  const found: StoredCard[] = []
-  function walk(folder: string) {
-    if (!existsSync(folder)) return
-    for (const entry of readdirSync(folder, { withFileTypes: true })) {
-      const path = join(folder, entry.name)
-      if (entry.isDirectory()) {
-        walk(path)
-        continue
-      }
-      if (!entry.name.endsWith('.md')) continue
-      const card = parseCard(readFileSync(path, 'utf8'), path)
-      if (card) found.push(card)
-    }
-  }
-  walk(join(directory, 'personal'))
-  walk(join(directory, 'work'))
-  return found
+function readStoredCards(directory: string): StoredCard[] {
+  return readCards(directory).map((card) => ({
+    path: join(directory, 'cards', `${card.id}.md`),
+    id: card.id,
+    at: card.created_at,
+    author: card.author,
+    sources: card.sources,
+    project: card.context.framework || 'none',
+    title: card.title,
+    topics: card.relations.map((relation) => relation.target_entity),
+    summary: card.title,
+    situation: card.failure_modes[0] ?? '',
+    whatToDo: card.solution,
+    why: card.failure_modes[1] ?? '',
+    apply: card.failure_modes[2] ?? '',
+  }))
 }
 
 function transcriptKey(transcript: Transcript) {
@@ -599,90 +556,6 @@ function newestFirst(transcripts: Transcript[]) {
 function knownProject(name: string | null, projects: string[]) {
   if (!name) return null
   return projects.find((project) => project.toLowerCase() === name.toLowerCase()) ?? null
-}
-
-function cardIsSynced(directory: string, drivePath: string, card: StoredCard) {
-  if (card.scope !== 'work' || drivePath.trim() === '') return false
-  const rel = relative(join(directory, 'work'), card.path)
-  if (rel.startsWith('..')) return false
-  const copy = join(drivePath, rel)
-  if (!existsSync(copy)) return false
-  return readFileSync(card.path).equals(readFileSync(copy))
-}
-
-function copyWorkTree(source: string, dest: string) {
-  if (!existsSync(source)) return
-  for (const entry of readdirSync(source, { withFileTypes: true })) {
-    const from = join(source, entry.name)
-    const to = join(dest, entry.name)
-    if (entry.isDirectory()) {
-      copyWorkTree(from, to)
-      continue
-    }
-    if (!entry.isFile()) continue
-    mkdirSync(dest, { recursive: true })
-    copyFileSync(from, to)
-  }
-}
-
-function slug(title: string) {
-  const value = title
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, '-')
-    .replace(/^-|-$/g, '')
-  return value || 'lesson'
-}
-
-function renderCard(card: {
-  id: string
-  at: string
-  author: Profile
-  scope: 'personal' | 'work'
-  sources: string[]
-  project: string
-  title: string
-  topics: string[]
-  summary: string
-  situation: string
-  whatToDo: string
-  why: string
-  apply: string
-}) {
-  return [
-    '---',
-    `id: ${card.id}`,
-    `at: ${card.at}`,
-    'author:',
-    `  username: ${yaml(card.author.username)}`,
-    `  email: ${yaml(card.author.email)}`,
-    `  team: ${yaml(card.author.team)}`,
-    `scope: ${card.scope}`,
-    'sources:',
-    ...card.sources.map((source) => `  - ${yaml(source)}`),
-    `project: ${yaml(card.project)}`,
-    `title: ${yaml(card.title)}`,
-    'topics:',
-    ...card.topics.map((topic) => `  - ${yaml(topic)}`),
-    `summary: ${yaml(card.summary)}`,
-    '---',
-    '',
-    '## Situation',
-    '',
-    card.situation,
-    '',
-    '## What to do',
-    '',
-    card.whatToDo,
-    '',
-    '## Why',
-    '',
-    card.why,
-    '',
-    '## How someone who was not in the chat applies it',
-    '',
-    card.apply,
-    '',
-  ].join('\n')
 }
 
 function isFile(path: string) {
@@ -887,32 +760,455 @@ function transcriptFromFile(file: string, source: string, root: string): Transcr
   }
 }
 
-export function readInstalledTranscripts(machine: Machine = thisMachine()): Transcript[] {
+function roamingAppData(machine: Machine) {
+  if (machine.platform === 'darwin') return join(machine.home, 'Library', 'Application Support')
+  return join(machine.home, 'AppData', 'Roaming')
+}
+
+function baseName(path: string) {
+  if (!path) return undefined
+  return path.split(/[/\\]/).filter(Boolean).pop()
+}
+
+function directoryNames(root: string) {
+  if (!isDirectory(root)) return []
+  try {
+    return readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+  } catch {
+    return []
+  }
+}
+
+function namedFiles(root: string, accept: (name: string) => boolean, nested: boolean) {
+  if (!isDirectory(root)) return []
+  const found: string[] = []
+  const stack = [root]
+  while (stack.length > 0) {
+    const dir = stack.pop()
+    if (!dir) continue
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      if (entry.name === 'state.vscdb' || entry.name === 'node_modules' || entry.name === '.git') continue
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (nested) stack.push(path)
+        continue
+      }
+      if (entry.isFile() && accept(entry.name)) found.push(path)
+    }
+  }
+  return found
+}
+
+function textValue(value: unknown): string {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) return value.map((item) => textValue(item)).filter(Boolean).join('\n')
+  if (!value || typeof value !== 'object') return ''
+  const record = value as { text?: unknown; value?: unknown; content?: unknown }
+  if (typeof record.text === 'string' && record.text.trim()) return record.text.trim()
+  if (typeof record.value === 'string' && record.value.trim()) return record.value.trim()
+  if ('content' in record && record.content !== value) return textValue(record.content)
+  return ''
+}
+
+function eventText(value: unknown) {
+  if (!value || typeof value !== 'object') return ''
+  const record = value as { type?: unknown; data?: unknown }
+  if (record.type !== 'user.message' && record.type !== 'assistant.message') return ''
+  if (!record.data || typeof record.data !== 'object') return ''
+  return textValue((record.data as { content?: unknown }).content)
+}
+
+function textsFromRequest(value: unknown) {
+  if (!value || typeof value !== 'object') return []
+  const request = value as { message?: unknown; response?: unknown }
+  const parts: string[] = []
+  const message = textValue(request.message)
+  if (message) parts.push(message)
+  const response = request.response
+  if (typeof response === 'string') {
+    if (response.trim()) parts.push(response.trim())
+  } else if (Array.isArray(response)) {
+    for (const part of response) {
+      const text = textValue(part)
+      if (text) parts.push(text)
+    }
+  } else {
+    const text = textValue(response)
+    if (text) parts.push(text)
+  }
+  return parts
+}
+
+function textsFromChat(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap((item) => textsFromChat(item))
+  if (!value || typeof value !== 'object') return []
+  const record = value as { kind?: unknown; v?: unknown; requests?: unknown; messages?: unknown }
+  if (record.kind === 0) return textsFromChat(record.v)
+  if (Array.isArray(record.requests)) return record.requests.flatMap((item) => textsFromRequest(item))
+  if (Array.isArray(record.messages)) {
+    return record.messages.map((item) => lineText(item) || textValue(item)).filter((text) => text !== '')
+  }
+  const event = eventText(value)
+  if (event) return [event]
+  if ('message' in record || 'response' in record) return textsFromRequest(value)
+  const line = lineText(value)
+  return line ? [line] : []
+}
+
+function isIndex(part: string | number) {
+  return typeof part === 'number' || (typeof part === 'string' && /^\d+$/.test(part))
+}
+
+function applyChatOp(state: unknown, op: unknown) {
+  if (!op || typeof op !== 'object') return state
+  const record = op as { kind?: unknown; k?: unknown; v?: unknown }
+  if (record.kind === 0) return record.v && typeof record.v === 'object' ? record.v : state
+  if (record.kind !== 1 && record.kind !== 2 && record.kind !== 3) return state
+  if (!Array.isArray(record.k) || record.k.length === 0) return state
+  const path = record.k.filter((part): part is string | number => typeof part === 'string' || typeof part === 'number')
+  if (path.length !== record.k.length) return state
+  const root = state && typeof state === 'object' ? (state as Record<string | number, unknown>) : {}
+  let parent: Record<string | number, unknown> = root
+  for (let index = 0; index < path.length - 1; index++) {
+    const key = path[index]
+    const next = path[index + 1]
+    const current = parent[key]
+    if (current == null || typeof current !== 'object') parent[key] = isIndex(next) ? [] : {}
+    parent = parent[key] as Record<string | number, unknown>
+  }
+  const last = path[path.length - 1]
+  if (record.kind === 3) {
+    if (Array.isArray(parent) && isIndex(last)) parent.splice(Number(last), 1)
+    else delete parent[last]
+    return root
+  }
+  if (record.kind === 2) {
+    if (!Array.isArray(parent[last])) parent[last] = []
+    const target = parent[last] as unknown[]
+    if (Array.isArray(record.v)) target.push(...record.v)
+    else target.push(record.v)
+    return root
+  }
+  parent[last] = record.v
+  return root
+}
+
+function parsedLines(raw: string) {
+  const parsed: unknown[] = []
+  for (const line of raw.split(/\r?\n/)) {
+    if (line.trim() === '') continue
+    try {
+      parsed.push(JSON.parse(line) as unknown)
+    } catch {
+      continue
+    }
+  }
+  return parsed
+}
+
+function conversationFromParsed(parsed: unknown[]) {
+  const op = parsed.some(
+    (item) => !!item && typeof item === 'object' && typeof (item as { kind?: unknown }).kind === 'number',
+  )
+  if (!op) return parsed.flatMap((item) => textsFromChat(item))
+  let state: unknown = {}
+  for (const item of parsed) state = applyChatOp(state, item)
+  return textsFromChat(state)
+}
+
+function eventCwd(parsed: unknown[]) {
+  for (const item of parsed) {
+    if (!item || typeof item !== 'object') continue
+    const record = item as { type?: unknown; data?: { context?: { cwd?: unknown } } }
+    if (record.type !== 'session.start') continue
+    const cwd = record.data?.context?.cwd
+    if (typeof cwd === 'string' && cwd.trim()) return cwd.trim()
+  }
+  return ''
+}
+
+function transcriptFromChatFile(file: string, source: string, root: string, repo?: string): Transcript | null {
+  let raw = ''
+  try {
+    raw = readFileSync(file, 'utf8')
+  } catch {
+    return null
+  }
+  const jsonl = file.endsWith('.jsonl')
+  const parsed = jsonl ? parsedLines(raw) : []
+  let parts: string[] = []
+  if (jsonl) parts = conversationFromParsed(parsed)
+  else {
+    try {
+      parts = textsFromChat(JSON.parse(raw) as unknown)
+    } catch {
+      return null
+    }
+  }
+  const text = parts.join('\n').trim()
+  if (!text) return null
+  const slug = relative(root, file).split(/[/\\]/)[0]
+  const nested = slug && slug !== file && !/\.jsonl?$/.test(slug) ? slug : undefined
+  return {
+    id: file,
+    source,
+    text,
+    repo: repo || baseName(jsonl ? eventCwd(parsed) : '') || nested,
+    changedAt: statSync(file).mtime.toISOString(),
+  }
+}
+
+function fileUriToPath(value: string) {
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'file:') return ''
+    let path = decodeURIComponent(url.pathname)
+    if (/^\/[A-Za-z]:/.test(path)) path = win32.normalize(path.slice(1))
+    return path
+  } catch {
+    return ''
+  }
+}
+
+function folderFromWorkspaceJson(file: string) {
+  if (!isFile(file)) return ''
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as { folder?: unknown }
+    if (typeof parsed.folder !== 'string' || parsed.folder === '') return ''
+    const path = parsed.folder.startsWith('file:') ? fileUriToPath(parsed.folder) : parsed.folder
+    return isDirectory(path) ? path : ''
+  } catch {
+    return ''
+  }
+}
+
+function trustedWorkspacePath(file: string) {
+  if (!isFile(file)) return ''
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as { workspacePath?: unknown }
+    return typeof parsed.workspacePath === 'string' ? parsed.workspacePath : ''
+  } catch {
+    return ''
+  }
+}
+
+function resolveSlug(api: typeof win32, root: string, tokens: string[]) {
+  let current = root
+  let index = 0
+  while (index < tokens.length) {
+    let matched = -1
+    for (let end = tokens.length; end > index; end--) {
+      const name = tokens.slice(index, end).join('-')
+      if (!name) continue
+      if (isDirectory(api.join(current, name))) {
+        matched = end
+        break
+      }
+    }
+    if (matched < 0) return ''
+    current = api.join(current, tokens.slice(index, matched).join('-'))
+    index = matched
+  }
+  return current
+}
+
+function decodeCursorSlug(machine: Machine, slug: string) {
+  const api = machine.platform === 'win32' ? win32 : posix
+  if (machine.platform === 'win32') {
+    const match = /^([A-Za-z])-(.+)$/.exec(slug)
+    if (!match) return ''
+    return resolveSlug(api, `${match[1].toUpperCase()}:\\`, match[2].split('-'))
+  }
+  if (!slug) return ''
+  return resolveSlug(api, '/', slug.split('-'))
+}
+
+function pathKey(machine: Machine, path: string) {
+  const normal = (machine.platform === 'win32' ? win32 : posix).normalize(path)
+  return machine.platform === 'win32' ? normal.toLowerCase() : normal
+}
+
+function addUnique(machine: Machine, roots: string[], path: string) {
+  if (!path || !isDirectory(path)) return
+  const key = pathKey(machine, path)
+  if (roots.some((root) => pathKey(machine, root) === key)) return
+  roots.push(path)
+}
+
+function workspaceNoteRoots(machine: Machine) {
+  const roots: string[] = []
+  const projects = join(machine.home, '.cursor', 'projects')
+  for (const name of directoryNames(projects)) {
+    const trusted = trustedWorkspacePath(join(projects, name, '.workspace-trusted'))
+    addUnique(machine, roots, isDirectory(trusted) ? trusted : decodeCursorSlug(machine, name))
+  }
+  const storage = join(roamingAppData(machine), 'Code', 'User', 'workspaceStorage')
+  for (const name of directoryNames(storage)) {
+    addUnique(machine, roots, folderFromWorkspaceJson(join(storage, name, 'workspace.json')))
+  }
+  return roots
+}
+
+function isWorkspaceNote(root: string, file: string, name: string) {
+  const lower = name.toLowerCase()
+  if (!lower.endsWith('.md')) return false
+  if (lower.endsWith('.plan.md') || lower === 'readme.md' || lower.includes('architecture')) return true
+  const rel = relative(root, file).split('\\').join('/').toLowerCase()
+  return /^docs\/(?:.+\/)?adr\/.+\.md$/.test(rel)
+}
+
+function noteFiles(root: string) {
+  if (!isDirectory(root)) return []
+  const found: string[] = []
+  const stack = [root]
+  while (stack.length > 0) {
+    const dir = stack.pop()
+    if (!dir) continue
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        stack.push(path)
+        continue
+      }
+      if (entry.isFile() && isWorkspaceNote(root, path, entry.name)) found.push(path)
+    }
+  }
+  return found
+}
+
+function transcriptFromNote(file: string, root: string): Transcript | null {
+  let text = ''
+  try {
+    text = readFileSync(file, 'utf8').trim()
+  } catch {
+    return null
+  }
+  if (!text) return null
+  return {
+    id: file,
+    source: 'workspace',
+    text,
+    repo: baseName(root),
+    changedAt: statSync(file).mtime.toISOString(),
+  }
+}
+
+function sessionJsonl(root: string) {
+  return jsonlFiles(root).filter((file) => file.split(/[/\\]/).pop() !== 'audit.jsonl')
+}
+
+function copilotCliFiles(root: string) {
+  if (!isDirectory(root)) return []
+  let entries
+  try {
+    entries = readdirSync(root, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  const found: string[] = []
+  for (const entry of entries) {
+    const path = join(root, entry.name)
+    if (entry.isFile() && entry.name.endsWith('.jsonl')) found.push(path)
+    else if (entry.isDirectory() && isFile(join(path, 'events.jsonl'))) found.push(join(path, 'events.jsonl'))
+  }
+  return found
+}
+
+function collectInstalledSources(machine: Machine) {
   const installed = new Set(scanTools(machine).map((tool) => tool.id))
+  const folders: SourceFolder[] = []
   const seen = new Set<string>()
   const transcripts: Transcript[] = []
-  function take(files: string[], source: string, root: string) {
+  function walk(folder: string, tool: string, files: string[], read: (file: string) => Transcript | null) {
+    if (!isDirectory(folder)) return
+    folders.push({ tool, path: folder })
     for (const file of files) {
       if (seen.has(file)) continue
       seen.add(file)
-      const transcript = transcriptFromFile(file, source, root)
+      const transcript = read(file)
       if (transcript) transcripts.push(transcript)
     }
   }
   const projects = join(machine.home, '.cursor', 'projects')
-  const agentTranscripts = (files: string[]) =>
-    files.filter((file) => file.split(/[/\\]/).includes('agent-transcripts'))
-  if (installed.has('cursor')) take(agentTranscripts(jsonlFiles(projects)), 'cursor', projects)
+  const agentFiles = () => jsonlFiles(projects).filter((file) => file.split(/[/\\]/).includes('agent-transcripts'))
+  if (installed.has('cursor')) walk(projects, 'Cursor', agentFiles(), (file) => transcriptFromFile(file, 'cursor', projects))
   if (installed.has('cursor-cli')) {
     const chats = join(machine.home, '.cursor', 'chats')
-    take(jsonlFiles(chats), 'cursor-cli', chats)
-    take(agentTranscripts(jsonlFiles(projects)), 'cursor-cli', projects)
+    walk(chats, 'Cursor CLI', jsonlFiles(chats), (file) => transcriptFromFile(file, 'cursor-cli', chats))
+    walk(projects, 'Cursor CLI', agentFiles(), (file) => transcriptFromFile(file, 'cursor-cli', projects))
   }
+  const claudeProjects = join(machine.home, '.claude', 'projects')
   if (installed.has('claude-cli')) {
-    const claude = join(machine.home, '.claude', 'projects')
-    take(jsonlFiles(claude), 'claude-cli', claude)
+    walk(claudeProjects, 'Claude CLI', jsonlFiles(claudeProjects), (file) =>
+      transcriptFromFile(file, 'claude-cli', claudeProjects),
+    )
   }
-  return transcripts
+  if (installed.has('copilot')) {
+    const user = join(roamingAppData(machine), 'Code', 'User')
+    const storage = join(user, 'workspaceStorage')
+    const accept = (name: string) => name.endsWith('.jsonl') || name.endsWith('.json')
+    for (const id of directoryNames(storage)) {
+      const home = join(storage, id)
+      const repo = baseName(folderFromWorkspaceJson(join(home, 'workspace.json')))
+      const sessions = join(home, 'chatSessions')
+      const transcriptsFolder = join(home, 'GitHub.copilot-chat', 'transcripts')
+      walk(sessions, 'Copilot in VS Code', namedFiles(sessions, accept, true), (file) =>
+        transcriptFromChatFile(file, 'copilot', sessions, repo),
+      )
+      walk(transcriptsFolder, 'Copilot in VS Code', namedFiles(transcriptsFolder, accept, true), (file) =>
+        transcriptFromChatFile(file, 'copilot', transcriptsFolder, repo),
+      )
+    }
+    const empty = join(user, 'globalStorage', 'emptyWindowChatSessions')
+    walk(empty, 'Copilot in VS Code', namedFiles(empty, accept, true), (file) =>
+      transcriptFromChatFile(file, 'copilot', empty),
+    )
+  }
+  if (installed.has('claude')) {
+    const sessions = join(roamingAppData(machine), 'Claude', 'local-agent-mode-sessions')
+    walk(sessions, 'Claude', sessionJsonl(sessions), (file) => transcriptFromFile(file, 'claude', sessions))
+    if (installed.has('claude-cli')) {
+      if (isDirectory(claudeProjects)) folders.push({ tool: 'Claude', path: claudeProjects })
+    } else {
+      walk(claudeProjects, 'Claude', jsonlFiles(claudeProjects), (file) => transcriptFromFile(file, 'claude', claudeProjects))
+    }
+  }
+  if (installed.has('copilot-cli')) {
+    const state = join(machine.home, '.copilot', 'session-state')
+    walk(state, 'Copilot CLI', copilotCliFiles(state), (file) => transcriptFromChatFile(file, 'copilot-cli', state))
+  }
+  for (const root of workspaceNoteRoots(machine)) {
+    walk(root, 'Workspace notes', noteFiles(root), (file) => transcriptFromNote(file, root))
+  }
+  return { folders, transcripts }
+}
+
+export function sourceFolders(machine: Machine = thisMachine()): SourceFolder[] {
+  return collectInstalledSources(machine).folders
+}
+
+export function readInstalledTranscripts(machine: Machine = thisMachine()): Transcript[] {
+  return collectInstalledSources(machine).transcripts
+}
+
+function onDisk(file: string) {
+  if (file.includes('app.asar.unpacked')) return file
+  return file.replaceAll('app.asar', 'app.asar.unpacked')
 }
 
 function cardFile(directory: string, path: string) {
@@ -920,7 +1216,7 @@ function cardFile(directory: string, path: string) {
 }
 
 function discoverySkill(knowledge: string, model: string) {
-  const lookupCli = fileURLToPath(new URL('./lookup-cli.ts', import.meta.url))
+  const lookupCli = onDisk(fileURLToPath(new URL('./lookup-cli.ts', import.meta.url)))
   return [
     '---',
     'name: local-knowledge',
@@ -941,7 +1237,7 @@ function discoverySkill(knowledge: string, model: string) {
   ].join('\n')
 }
 
-function renderLookup(turn: LookupTurn) {
+export function renderLookup(turn: LookupTurn) {
   if ('catalog' in turn) {
     return [
       `Question: ${turn.question}`,
@@ -966,15 +1262,21 @@ export async function ask(
   exchange: ModelExchange,
   machine?: Machine,
 ) {
-  const key = openApp(directory, undefined, machine).activeKey()
+  const stored = openApp(directory, undefined, machine)
+  const key = stored.activeKey()
+  const baseUrl = stored.customBaseUrl()
   const app = openApp(directory, undefined, machine, async (turn) => {
     const text = await exchange({
       provider: key.provider,
       secret: key.secret,
       model: turn.model,
       prompt: renderLookup(turn),
+      baseUrl,
+      chatCompletions: key.provider === 'copilot' ? stored.copilotChat(turn.model) : undefined,
+      cwd: directory,
     })
-    return JSON.parse(text) as { pick: string[] } | { answer: string }
+    const json = text.match(/\{[\s\S]*\}/)?.[0] ?? text
+    return JSON.parse(json) as { pick: string[] } | { answer: string }
   })
   const result = await app.lookup(question)
   return result.answer
@@ -999,6 +1301,10 @@ export function openApp(
   const settings = readSettings(directory)
   function modelChoices(provider: Provider): ListedModel[] {
     if (provider === 'cursor') return settings.cursorModels
+    if (provider === 'copilot') return settings.copilotModels
+    if (provider === 'custom') {
+      return settings.customModel === '' ? [] : [{ id: settings.customModel, displayName: settings.customModel }]
+    }
     return modelCatalog[provider].models.map((id) => ({ id, displayName: id }))
   }
   function chosenKey() {
@@ -1053,7 +1359,7 @@ export function openApp(
     profile(): Profile {
       return { ...settings.profile }
     },
-    saveKey(input: { provider: Provider; secret: string; account?: CursorAccount }) {
+    saveKey(input: { provider: Provider; secret: string; account?: CursorAccount; baseUrl?: string; model?: string }) {
       if (!settings.vaultId) settings.vaultId = randomUUID()
       const id = randomUUID()
       writeSecret(settings.vaultId, id, input.secret)
@@ -1069,6 +1375,19 @@ export function openApp(
         }
         if (!settings.cursorModels.some((model) => model.id === settings.model)) {
           settings.model = settings.cursorModels[0]?.id ?? ''
+        }
+      }
+      if (input.provider === 'copilot' && input.account) {
+        settings.copilotModels = input.account.models
+        if (!settings.copilotModels.some((model) => model.id === settings.model)) {
+          settings.model = settings.copilotModels[0]?.id ?? settings.model
+        }
+      }
+      if (input.provider === 'custom') {
+        if (typeof input.baseUrl === 'string') settings.customBaseUrl = input.baseUrl
+        if (typeof input.model === 'string' && input.model.trim() !== '') {
+          settings.customModel = input.model.trim()
+          settings.model = settings.customModel
         }
       }
       writeSettings(directory, settings)
@@ -1107,6 +1426,47 @@ export function openApp(
       }
       writeSettings(directory, settings)
       refreshDiscovery()
+    },
+    rememberCopilot(account: CursorAccount) {
+      if (account.models.length === 0) return
+      settings.copilotModels = account.models
+      const active = settings.keys.find((item) => item.active)
+      if (active?.provider === 'copilot' && !settings.copilotModels.some((model) => model.id === settings.model)) {
+        settings.model = settings.copilotModels[0]?.id ?? ''
+      }
+      writeSettings(directory, settings)
+      refreshDiscovery()
+    },
+    customBaseUrl() {
+      return settings.customBaseUrl
+    },
+    setCustomBaseUrl(url: string) {
+      settings.customBaseUrl = url
+      writeSettings(directory, settings)
+    },
+    copilotChat(model: string) {
+      const found = settings.copilotModels.find((item) => item.id === model)
+      return found?.chatCompletions !== false
+    },
+    autoDrop() {
+      return settings.autoDrop
+    },
+    setAutoDrop(enabled: boolean) {
+      settings.autoDrop = enabled
+      writeSettings(directory, settings)
+    },
+    cadence() {
+      if (settings.learnerIntervalMs === 0) return 'manual' as const
+      if (settings.learnerIntervalMs === 15 * 60 * 1000) return '15m' as const
+      if (settings.learnerIntervalMs === hourMs) return '1h' as const
+      return '30m' as const
+    },
+    setCadence(cadence: '15m' | '30m' | '1h' | 'manual') {
+      const interval =
+        cadence === '15m' ? fifteenMin : cadence === '1h' ? hourMs : cadence === 'manual' ? 0 : thirtyMin
+      settings.learnerIntervalMs = interval
+      settings.publisherIntervalMs = interval
+      writeSettings(directory, settings)
     },
     activateKey(id: string) {
       const match = settings.keys.find((key) => key.id === id)
@@ -1153,6 +1513,11 @@ export function openApp(
       if (provider === 'cursor') {
         settings.cursorModels = []
         settings.cursorKey = { createdAt: '', expiresAt: '', error: '' }
+      }
+      if (provider === 'copilot') settings.copilotModels = []
+      if (provider === 'custom') {
+        settings.customBaseUrl = ''
+        settings.customModel = ''
       }
       if (settings.selectedProvider === provider && !settings.keys.some((key) => key.provider === provider)) {
         for (const key of settings.keys) key.active = false
@@ -1219,12 +1584,13 @@ export function openApp(
       const readable = newestFirst(
         transcripts.filter(
           (transcript) =>
-            installed.has(transcript.source) &&
+            (installed.has(transcript.source) || transcript.source === 'workspace') &&
             settings.importedTranscripts[transcriptKey(transcript)] !== transcriptRevision(transcript),
         ),
       )
       if (readable.length === 0) return { ran: true, model }
       if (!complete) throw new Error('No model')
+      const pending: Promise<void>[] = []
       for (let start = 0; start < readable.length; start += importBatchSize) {
         const batch = readable.slice(start, start + importBatchSize)
         const projects = knowledgeProjects(directory)
@@ -1240,11 +1606,31 @@ export function openApp(
           why: card.why,
           apply: card.apply,
         }))
-        const lessons = batch.map((transcript) => ({
-          transcript,
-          lesson: complete({ model, transcript, transcripts: batch, projects, cards }),
+        const keepNames = [settings.profile.username, settings.profile.email, settings.profile.team].filter(filled)
+        const prepared = batch.map((original) => ({
+          original,
+          transcript: {
+            ...original,
+            text: scrubText(original.text, [], keepNames),
+            repo: original.repo ? scrubText(original.repo, [], keepNames) : original.repo,
+            workspace: original.workspace ? scrubText(original.workspace, [], keepNames) : original.workspace,
+          },
         }))
-        for (const { transcript, lesson } of lessons) {
+        const lessons = prepared.map(({ original, transcript }) => ({
+          original,
+          transcript,
+          lesson: complete({
+            model,
+            transcript,
+            transcripts: prepared.map((item) => item.transcript),
+            projects,
+            cards,
+          }),
+        }))
+        const writeLessons = (
+          ready: { original: Transcript; transcript: Transcript; lesson: LessonDraft }[],
+        ) => {
+        for (const { original, transcript, lesson } of ready) {
           if (lesson.sameClaim) continue
           const recorded =
             [transcript.repo, transcript.workspace].find((name) => name && filled(name))?.trim() ?? null
@@ -1273,6 +1659,26 @@ export function openApp(
             whatToDo: scrubText(asText(lesson.whatToDo), names, keep),
             why: scrubText(asText(lesson.why), names, keep),
             apply: scrubText(asText(lesson.apply), names, keep),
+            solution: lesson.solution ? scrubText(asText(lesson.solution), names, keep) : undefined,
+            failure_modes: Array.isArray(lesson.failure_modes)
+              ? lesson.failure_modes.map((mode) => scrubText(asText(mode), names, keep)).filter(filled)
+              : undefined,
+            context: lesson.context
+              ? {
+                  os: scrubText(asText(lesson.context.os), names, keep),
+                  tool_version: scrubText(asText(lesson.context.tool_version), names, keep),
+                  framework: scrubText(asText(lesson.context.framework), names, keep),
+                }
+              : undefined,
+            relations: Array.isArray(lesson.relations)
+              ? lesson.relations
+                  .map((relation) => ({
+                    entity: scrubText(asText(relation.entity), names, keep),
+                    relation: asText(relation.relation).trim(),
+                    target_entity: scrubText(asText(relation.target_entity), names, keep),
+                  }))
+                  .filter((relation) => filled(relation.entity) && filled(relation.relation) && filled(relation.target_entity))
+              : undefined,
           }
           const previous = lesson.updateId ? stored.find((card) => card.id === lesson.updateId) : undefined
           if (lesson.updateId && !previous) continue
@@ -1289,36 +1695,67 @@ export function openApp(
             ),
           ]
           if (!lessonIsComplete(scrubbed, sources[0] ?? '')) continue
-          const id = previous?.id ?? randomUUID()
-          const folder =
-            scrubbed.scope === 'personal'
-              ? join(directory, 'personal')
-              : join(directory, 'work', settings.profile.team)
-          if (!previous) mkdirSync(folder, { recursive: true })
-          writeFileSync(
-            previous?.path ?? join(folder, `${slug(scrubbed.title)}-${id}.md`),
-            renderCard({
-              id,
-              at: previous?.at ?? new Date().toISOString(),
-              author: settings.profile,
-              scope: scrubbed.scope,
-              sources,
-              project,
+          const relations =
+            scrubbed.relations && scrubbed.relations.length > 0
+              ? scrubbed.relations
+              : [
+                  ...sources.map((source) => ({
+                    entity: scrubbed.title,
+                    relation: 'APPLIES_TO',
+                    target_entity: source,
+                  })),
+                  ...(project !== 'none'
+                    ? [{ entity: scrubbed.title, relation: 'RESOLVES', target_entity: project }]
+                    : []),
+                ]
+          const failureModes = [
+            ...(scrubbed.failure_modes?.length ? scrubbed.failure_modes : [scrubbed.situation]),
+            scrubbed.why,
+            scrubbed.apply,
+          ].filter(filled)
+          publishCard({
+            directory,
+            legacyId: previous?.id ?? randomUUID(),
+            autoDrop: settings.autoDrop,
+            drivePath: settings.drivePath,
+            username: settings.profile.username,
+            card: {
               title: scrubbed.title,
-              topics: scrubbed.topics,
-              summary: scrubbed.summary,
-              situation: scrubbed.situation,
-              whatToDo: scrubbed.whatToDo,
-              why: scrubbed.why,
-              apply: scrubbed.apply,
-            }),
-          )
+              context: scrubbed.context ?? {
+                os: machine.platform,
+                tool_version: '',
+                framework: project,
+              },
+              solution: scrubbed.solution || scrubbed.whatToDo,
+              failure_modes: failureModes,
+              relations,
+              sources,
+              author: { ...settings.profile },
+            },
+          })
         }
-        for (const transcript of batch) {
-          settings.importedTranscripts[transcriptKey(transcript)] = transcriptRevision(transcript)
+        for (const item of ready) {
+          settings.importedTranscripts[transcriptKey(item.original)] = transcriptRevision(item.original)
         }
         writeSettings(directory, settings)
+        }
+        if (lessons.some((item) => item.lesson instanceof Promise)) {
+          pending.push(
+            Promise.all(
+              lessons.map(async (item) => ({
+                original: item.original,
+                transcript: item.transcript,
+                lesson: await item.lesson,
+              })),
+            ).then((ready) => {
+              writeLessons(ready)
+            }),
+          )
+          continue
+        }
+        writeLessons(lessons as { original: Transcript; transcript: Transcript; lesson: LessonDraft }[])
       }
+      if (pending.length > 0) return Promise.all(pending).then(() => ({ ran: true as const, model }))
       return { ran: true, model }
     },
     answerLookup() {
@@ -1347,7 +1784,7 @@ export function openApp(
       return settings.learnerIntervalMs
     },
     setLearnerInterval(intervalMs: number) {
-      requireAtLeastOneHour(intervalMs, 'Learner')
+      requireInterval(intervalMs, 'Learner')
       settings.learnerIntervalMs = intervalMs
       writeSettings(directory, settings)
     },
@@ -1360,91 +1797,73 @@ export function openApp(
     },
     runPublisher() {
       if (settings.drivePath.trim() === '') return { ran: false }
-      copyWorkTree(join(directory, 'work'), settings.drivePath)
+      const username = settings.profile.username.trim()
+      if (username === '') return { ran: false }
+      const cardsDir = join(directory, 'cards')
+      const names = existsSync(cardsDir)
+        ? readdirSync(cardsDir).filter(
+            (name) => name !== '.claims.json' && (name.endsWith('.md') || name.endsWith('.json')),
+          )
+        : []
+      if (names.length === 0) return { ran: true }
+      const dest = join(settings.drivePath, 'Dropzone', username)
+      mkdirSync(dest, { recursive: true })
+      for (const name of names) copyFileSync(join(cardsDir, name), join(dest, name))
       return { ran: true }
     },
     graph() {
-      const accent = '#88c0d0'
-      const nodes = new Map<
-        string,
-        { id: string; kind: GraphKind; label: string; color: string; synced?: boolean }
-      >()
-      const links: { source: string; target: string }[] = []
-      function ensure(kind: GraphKind, key: string, label: string) {
-        const id = `${kind}:${key}`
-        if (!nodes.has(id)) nodes.set(id, { id, kind, label, color: accent })
-        return id
-      }
-      for (const card of readStoredCards(directory)) {
-        const cardId = ensure('card', card.id, card.title)
-        const synced = cardIsSynced(directory, settings.drivePath, card)
-        const cardNode = nodes.get(cardId)!
-        cardNode.synced = synced
-        cardNode.color = synced ? '#a3be8c' : accent
-        const link = (other: string) => links.push({ source: cardId, target: other })
-        link(ensure('person', card.author.email, card.author.username))
-        link(ensure('team', card.author.team, card.author.team))
-        link(ensure('project', card.project, card.project))
-        for (const source of card.sources) link(ensure('source', source, source))
-        for (const topic of card.topics) link(ensure('topic', topic, topic))
-      }
-      return {
-        canvas: '#2e3440',
-        panel: '#3b4252',
-        text: '#eceff4',
-        accent,
-        nodes: [...nodes.values()],
-        links,
-      }
+      return localGraph(directory, settings.drivePath, settings.autoDrop)
     },
     show(id: string) {
       const split = id.indexOf(':')
       const kind = id.slice(0, split)
       const key = id.slice(split + 1)
-      const cards = readStoredCards(directory)
-      const titles = (matched: StoredCard[]) =>
+      const cards = readCards(directory)
+      const titles = (matched: typeof cards) =>
         matched.map((card) => card.title).sort((left, right) => left.localeCompare(right))
+      const dropped = (card: (typeof cards)[number]) =>
+        settings.drivePath.trim() !== '' &&
+        existsSync(join(settings.drivePath, 'Dropzone', card.author.username, `${card.id}.json`))
       if (kind === 'card') {
         const card = cards.find((item) => item.id === key)
         if (!card) throw new Error(`No node ${id}`)
         return {
           kind: 'card' as const,
           title: card.title,
-          summary: card.summary,
-          situation: card.situation,
-          whatToDo: card.whatToDo,
-          why: card.why,
-          apply: card.apply,
-          synced: cardIsSynced(directory, settings.drivePath, card),
+          solution: card.solution,
+          failure_modes: card.failure_modes,
+          created_at: card.created_at,
+          synced: dropped(card),
         }
       }
-      if (kind === 'person') {
-        const matched = cards.filter((card) => card.author.email === key)
+      if (kind === 'developer') {
+        const matched = cards.filter((card) => (card.author.email || card.author.username) === key)
         const author = matched[0]?.author
         if (!author) throw new Error(`No node ${id}`)
         return {
-          kind: 'person' as const,
+          kind: 'developer' as const,
           username: author.username,
           email: author.email,
           team: author.team,
           cards: titles(matched),
         }
       }
-      const named = (name: string, matched: StoredCard[]) => {
+      const named = (name: string, matched: typeof cards) => {
         if (matched.length === 0) throw new Error(`No node ${id}`)
-        return { kind: kind as 'team' | 'project' | 'source' | 'topic', name, cards: titles(matched) }
+        return { kind: kind as 'tool' | 'issue' | 'antipattern', name, cards: titles(matched) }
       }
-      if (kind === 'team') return named(key, cards.filter((card) => card.author.team === key))
-      if (kind === 'project') return named(key, cards.filter((card) => card.project === key))
-      if (kind === 'source') return named(key, cards.filter((card) => card.sources.includes(key)))
-      if (kind === 'topic') return named(key, cards.filter((card) => card.topics.includes(key)))
+      const linked = cards.filter(
+        (card) =>
+          card.sources.includes(key) || card.relations.some((relation) => relation.target_entity === key),
+      )
+      if (kind === 'tool' || kind === 'issue' || kind === 'antipattern') return named(key, linked)
       throw new Error(`No node ${id}`)
     },
     publisherInterval() {
       return settings.publisherIntervalMs
     },
     setPublisherInterval(intervalMs: number) {
-      requireAtLeastOneHour(intervalMs, 'Publisher')
+      requireInterval(intervalMs, 'Publisher')
       settings.publisherIntervalMs = intervalMs
       writeSettings(directory, settings)
     },
@@ -1464,7 +1883,10 @@ export function openUserSession(
   cursorLookup: CursorLookup = lookupCursorAccount,
 ) {
   let loggedIn = false
+  let harvestPaused = false
+  let answer: AnswerLookup | undefined
   const jobs = new Map<string, ScheduledJobs>()
+  const folders = () => sourceFolders(machine)
 
   function scheduled(directory: string) {
     const existing = jobs.get(directory)
@@ -1476,7 +1898,7 @@ export function openUserSession(
 
   function learn(directory: string) {
     if (!readSettings(directory).learningStarted) return
-    openApp(directory, complete, machine, undefined, cursorLookup).runLearner(readTranscripts())
+    return openApp(directory, complete, machine, answer, cursorLookup).runLearner(readTranscripts())
   }
 
   function publish(directory: string) {
@@ -1558,11 +1980,13 @@ export function openUserSession(
     remember(directory)
     scheduled(directory)
     start(directory)
+    registerLoginItem()
   }
 
   function unregister(directory: string) {
     forget(directory)
     jobs.delete(directory)
+    if (registeredDirectories().length === 0) unregisterLoginItem()
   }
 
   return {
@@ -1581,31 +2005,72 @@ export function openUserSession(
       endSession()
     },
     pass(ms: number) {
-      if (!loggedIn) return
+      if (!loggedIn || harvestPaused) return
       for (const [directory, entry] of jobs) {
         if (entry.learnerDue === null || entry.publisherDue === null) continue
-        entry.learnerDue -= ms
-        entry.publisherDue -= ms
         const settings = () => readSettings(directory)
-        while (entry.learnerDue <= 0) {
-          learn(directory)
-          entry.learnerDue += settings().learnerIntervalMs
+        const learnerInterval = settings().learnerIntervalMs
+        const publisherInterval = settings().publisherIntervalMs
+        if (learnerInterval > 0) {
+          entry.learnerDue -= ms
+          while (entry.learnerDue <= 0) {
+            learn(directory)
+            const step = settings().learnerIntervalMs
+            if (step <= 0) {
+              entry.learnerDue = 0
+              break
+            }
+            entry.learnerDue += step
+          }
         }
-        while (entry.publisherDue <= 0) {
-          publish(directory)
-          entry.publisherDue += settings().publisherIntervalMs
+        if (publisherInterval > 0) {
+          entry.publisherDue -= ms
+          while (entry.publisherDue <= 0) {
+            publish(directory)
+            const step = settings().publisherIntervalMs
+            if (step <= 0) {
+              entry.publisherDue = 0
+              break
+            }
+            entry.publisherDue += step
+          }
         }
       }
+    },
+    pauseHarvest() {
+      harvestPaused = true
+    },
+    resumeHarvest() {
+      harvestPaused = false
+    },
+    harvestPaused() {
+      return harvestPaused
+    },
+    syncNow() {
+      const pending: Promise<unknown>[] = []
+      for (const directory of new Set([...registeredDirectories(), ...jobs.keys()])) {
+        const result = learn(directory)
+        if (result instanceof Promise) pending.push(result)
+        publish(directory)
+      }
+      return pending.length > 0 ? Promise.all(pending).then(() => ({ ran: true })) : { ran: true }
+    },
+    setLookup(next: AnswerLookup) {
+      answer = next
+    },
+    sourceFolders() {
+      return folders()
     },
     install(directory: string) {
       register(directory)
     },
     uninstall(directory: string) {
       unregister(directory)
+      if (registeredDirectories().length === 0) unregisterLoginItem()
     },
     openWindow(directory: string) {
       const current = storedKnowledge(directory)
-      const window = openApp(current, complete, machine, undefined, cursorLookup)
+      const window = openApp(current, complete, machine, answer, cursorLookup)
       return {
         ...window,
         knowledgePath() {

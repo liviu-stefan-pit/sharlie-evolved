@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { discardVault, openUserSession, type LessonDraft, type Transcript } from '../src/app.ts'
+import { runningUnderTest } from '../src/login-item.ts'
 import { machineWith } from './machine.ts'
 
 const hour = 60 * 60 * 1000
@@ -58,8 +59,88 @@ function prepare(session: ReturnType<typeof openUserSession>, directory: string,
 
 function cardFiles(folder: string) {
   if (!existsSync(folder)) return []
-  return readdirSync(folder)
+  return readdirSync(folder).filter((name) => name.endsWith('.md'))
 }
+
+test('unit tests skip the operating system login item', () => {
+  assert.equal(runningUnderTest(), true)
+})
+
+test('manual cadence does not tick, and sync now runs one learner pass and one publish pass', () => {
+  withPerson('ada', (ada, directory, transcripts) => {
+    const drive = join(directory, 'drive')
+    ada.logIn()
+    const window = prepare(ada, directory, drive)
+    transcripts.push({
+      id: 'deploy',
+      source: 'cursor',
+      text: 'retry the deploy',
+      changedAt: '2024-06-01T00:00:00.000Z',
+      repo: 'sharlie-evolved',
+    })
+    ada.install(directory)
+    window.setLearnerInterval(0)
+    window.setPublisherInterval(0)
+    transcripts.push({
+      id: 'later',
+      source: 'cursor',
+      text: 'read the lock log',
+      changedAt: '2024-07-01T00:00:00.000Z',
+      repo: 'sharlie-evolved',
+    })
+    const folder = join(directory, 'cards')
+    writeFileSync(join(folder, 'extra-note.md'), 'a work card added while manual')
+    ada.pass(hour)
+    assert.equal(
+      cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('read the lock log')),
+      false,
+    )
+    assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
+
+    ada.syncNow()
+    assert.equal(
+      cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
+      true,
+    )
+    assert.equal(readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'), 'a work card added while manual')
+  })
+})
+
+test('pause harvest stops the clock and leaves the registered jobs in place', () => {
+  withPerson('ada', (ada, directory, transcripts) => {
+    const drive = join(directory, 'drive')
+    ada.logIn()
+    prepare(ada, directory, drive)
+    transcripts.push({
+      id: 'deploy',
+      source: 'cursor',
+      text: 'retry the deploy',
+      changedAt: '2024-06-01T00:00:00.000Z',
+      repo: 'sharlie-evolved',
+    })
+    ada.install(directory)
+    ada.pauseHarvest()
+    transcripts.push({
+      id: 'later',
+      source: 'cursor',
+      text: 'read the lock log',
+      changedAt: '2024-07-01T00:00:00.000Z',
+      repo: 'sharlie-evolved',
+    })
+    ada.pass(hour)
+    const folder = join(directory, 'cards')
+    assert.equal(
+      cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('read the lock log')),
+      false,
+    )
+    ada.resumeHarvest()
+    ada.pass(30 * 60 * 1000)
+    assert.equal(
+      cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
+      true,
+    )
+  })
+})
 
 test('installing registers the learner and the publisher, and both run with the window closed', () => {
   withPerson('ada', (ada, directory, transcripts) => {
@@ -75,17 +156,17 @@ test('installing registers the learner and the publisher, and both run with the 
     })
 
     ada.pass(hour)
-    assert.deepEqual(cardFiles(join(directory, 'work', 'platform')), [])
+    assert.deepEqual(cardFiles(join(directory, 'cards')), [])
     assert.equal(existsSync(drive), false)
 
     ada.install(directory)
 
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const files = cardFiles(folder)
     assert.equal(files.length, 1)
     const local = readFileSync(join(folder, files[0]))
     assert.equal(local.toString().includes('title: retry the deploy'), true)
-    assert.deepEqual(readFileSync(join(drive, 'platform', files[0])), local)
+    assert.deepEqual(readFileSync(join(drive, 'Dropzone', 'ada', files[0])), local)
   })
 })
 
@@ -110,7 +191,7 @@ test('uninstalling unregisters both jobs, and neither keeps running', () => {
       changedAt: '2024-07-01T00:00:00.000Z',
       repo: 'sharlie-evolved',
     })
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     writeFileSync(join(folder, 'extra-note.md'), 'a work card added after uninstall')
     ada.uninstall(directory)
     ada.pass(hour)
@@ -120,8 +201,8 @@ test('uninstalling unregisters both jobs, and neither keeps running', () => {
     const files = cardFiles(folder).filter((file) => file !== 'extra-note.md')
     assert.equal(files.length, 1)
     assert.equal(readFileSync(join(folder, files[0]), 'utf8').includes('read the lock log'), false)
-    assert.equal(existsSync(join(drive, 'platform', 'extra-note.md')), false)
-    assert.equal(cardFiles(join(drive, 'platform')).includes('extra-note.md'), false)
+    assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
+    assert.equal(cardFiles(join(drive, 'Dropzone', 'ada')).includes('extra-note.md'), false)
   })
 })
 
@@ -145,12 +226,12 @@ test('the window can register both jobs', () => {
     window.registerJobs()
     window.close()
 
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const files = cardFiles(folder)
     assert.equal(files.length, 1)
     const local = readFileSync(join(folder, files[0]))
     assert.equal(local.toString().includes('title: retry the deploy'), true)
-    assert.deepEqual(readFileSync(join(drive, 'platform', files[0])), local)
+    assert.deepEqual(readFileSync(join(drive, 'Dropzone', 'ada', files[0])), local)
   })
 })
 
@@ -178,7 +259,7 @@ test('the window can unregister both jobs and pause the system without uninstall
       changedAt: '2024-07-01T00:00:00.000Z',
       repo: 'sharlie-evolved',
     })
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     writeFileSync(join(folder, 'extra-note.md'), 'a work card added while paused')
     ada.pass(hour)
     ada.logOut()
@@ -189,7 +270,7 @@ test('the window can unregister both jobs and pause the system without uninstall
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('read the lock log')),
       false,
     )
-    assert.equal(existsSync(join(drive, 'platform', 'extra-note.md')), false)
+    assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
 
     const resumed = ada.openWindow(directory)
     resumed.registerJobs()
@@ -200,7 +281,7 @@ test('the window can unregister both jobs and pause the system without uninstall
       true,
     )
     assert.equal(
-      readFileSync(join(drive, 'platform', 'extra-note.md'), 'utf8'),
+      readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
       'a work card added while paused',
     )
   })
@@ -220,14 +301,14 @@ test('the jobs start when the person logs in and stop when they log out', () => 
     ada.install(directory)
     ada.pass(hour)
 
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     assert.deepEqual(cardFiles(folder), [])
     assert.equal(existsSync(drive), false)
 
     ada.logIn()
     const files = cardFiles(folder)
     assert.equal(files.length, 1)
-    assert.deepEqual(readFileSync(join(drive, 'platform', files[0])), readFileSync(join(folder, files[0])))
+    assert.deepEqual(readFileSync(join(drive, 'Dropzone', 'ada', files[0])), readFileSync(join(folder, files[0])))
 
     transcripts.push({
       id: 'later',
@@ -244,7 +325,7 @@ test('the jobs start when the person logs in and stop when they log out', () => 
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('read the lock log')),
       false,
     )
-    assert.equal(existsSync(join(drive, 'platform', 'extra-note.md')), false)
+    assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
 
     ada.logIn()
     assert.equal(
@@ -252,7 +333,7 @@ test('the jobs start when the person logs in and stop when they log out', () => 
       true,
     )
     assert.equal(
-      readFileSync(join(drive, 'platform', 'extra-note.md'), 'utf8'),
+      readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
       'a work card added after logout',
     )
   })
@@ -279,7 +360,7 @@ test('the jobs stop when the machine shuts down', () => {
       changedAt: '2024-07-01T00:00:00.000Z',
       repo: 'sharlie-evolved',
     })
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     writeFileSync(join(folder, 'extra-note.md'), 'a work card added after shutdown')
     ada.shutDown()
     ada.pass(hour)
@@ -288,7 +369,7 @@ test('the jobs stop when the machine shuts down', () => {
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('read the lock log')),
       false,
     )
-    assert.equal(existsSync(join(drive, 'platform', 'extra-note.md')), false)
+    assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
 
     ada.logIn()
     assert.equal(
@@ -296,7 +377,7 @@ test('the jobs stop when the machine shuts down', () => {
       true,
     )
     assert.equal(
-      readFileSync(join(drive, 'platform', 'extra-note.md'), 'utf8'),
+      readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
       'a work card added after shutdown',
     )
   })
@@ -334,7 +415,7 @@ test("the jobs run only in that person's session", () => {
     bob.openWindow(directory).close()
     bob.pass(hour)
 
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     assert.equal(
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('read the lock log')),
       false,
@@ -362,7 +443,7 @@ test('opening or closing the window leaves the jobs as they are', () => {
     setup.startLearning()
     ada.install(directory)
     setup.close()
-    assert.deepEqual(cardFiles(join(directory, 'work', 'platform')), [])
+    assert.deepEqual(cardFiles(join(directory, 'cards')), [])
     assert.equal(existsSync(drive), false)
 
     transcripts.push({
@@ -374,10 +455,10 @@ test('opening or closing the window leaves the jobs as they are', () => {
     })
     const window = ada.openWindow(directory)
     ada.logIn()
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const first = cardFiles(folder)
     assert.equal(first.length, 1)
-    assert.equal(existsSync(join(drive, 'platform', first[0])), true)
+    assert.equal(existsSync(join(drive, 'Dropzone', 'ada', first[0])), true)
 
     transcripts.push({
       id: 'later',
@@ -403,8 +484,8 @@ test('opening or closing the window leaves the jobs as they are', () => {
       true,
     )
     assert.equal(
-      cardFiles(join(drive, 'platform')).some((file) =>
-        readFileSync(join(drive, 'platform', file), 'utf8').includes('title: read the lock log'),
+      cardFiles(join(drive, 'Dropzone', 'ada')).some((file) =>
+        readFileSync(join(drive, 'Dropzone', 'ada', file), 'utf8').includes('title: read the lock log'),
       ),
       true,
     )
@@ -444,7 +525,7 @@ test('the learner job imports history newest first, then reads only what changed
       older.changedAt = '2025-01-01T00:00:00.000Z'
       ada.pass(hour)
       assert.deepEqual(seen, ['older chat revised'])
-      const folder = join(directory, 'work', 'platform')
+      const folder = join(directory, 'cards')
       const titles = cardFiles(folder).map((file) => readFileSync(join(folder, file), 'utf8'))
       assert.equal(titles.some((card) => card.includes('title: newer chat')), true)
       assert.equal(titles.some((card) => card.includes('title: older chat revised')), true)
@@ -466,7 +547,7 @@ test('the publisher job copies work cards and leaves personal cards on the machi
       window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
       window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
       window.setDrivePath(drive)
-      window.setPublisherInterval(2 * hour)
+      window.setPublisherInterval(hour)
       window.startLearning()
       window.close()
       transcripts.push(
@@ -486,17 +567,19 @@ test('the publisher job copies work cards and leaves personal cards on the machi
       )
       ada.install(directory)
 
-      const work = join(directory, 'work', 'platform')
-      const personal = join(directory, 'personal')
+      const work = join(directory, 'cards')
+      const drop = join(drive, 'Dropzone', 'ada')
       assert.equal(
-        cardFiles(personal).some((file) => readFileSync(join(personal, file), 'utf8').includes('title: my scratch note')),
+        cardFiles(work).some((file) => readFileSync(join(work, file), 'utf8').includes('title: my scratch note')),
         true,
       )
       assert.equal(existsSync(join(drive, 'personal')), false)
       assert.equal(
-        cardFiles(join(drive, 'platform')).some((file) =>
-          readFileSync(join(drive, 'platform', file), 'utf8').includes('title: retry the deploy'),
-        ),
+        cardFiles(drop).some((file) => readFileSync(join(drop, file), 'utf8').includes('title: retry the deploy')),
+        true,
+      )
+      assert.equal(
+        cardFiles(drop).some((file) => readFileSync(join(drop, file), 'utf8').includes('title: my scratch note')),
         true,
       )
 
@@ -507,22 +590,22 @@ test('the publisher job copies work cards and leaves personal cards on the machi
         changedAt: '2024-07-01T00:00:00.000Z',
         repo: 'sharlie-evolved',
       })
-      ada.pass(hour)
+      ada.pass(30 * 60 * 1000)
       assert.equal(
         cardFiles(work).some((file) => readFileSync(join(work, file), 'utf8').includes('title: read the lock log')),
         true,
       )
       assert.equal(
-        cardFiles(join(drive, 'platform')).some((file) =>
-          readFileSync(join(drive, 'platform', file), 'utf8').includes('read the lock log'),
+        cardFiles(join(drive, 'Dropzone', 'ada')).some((file) =>
+          readFileSync(join(drive, 'Dropzone', 'ada', file), 'utf8').includes('read the lock log'),
         ),
         false,
       )
 
-      ada.pass(hour)
+      ada.pass(30 * 60 * 1000)
       assert.equal(
-        cardFiles(join(drive, 'platform')).some((file) =>
-          readFileSync(join(drive, 'platform', file), 'utf8').includes('title: read the lock log'),
+        cardFiles(join(drive, 'Dropzone', 'ada')).some((file) =>
+          readFileSync(join(drive, 'Dropzone', 'ada', file), 'utf8').includes('title: read the lock log'),
         ),
         true,
       )

@@ -68,12 +68,12 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 54. As a person in Cursor or Claude, I want a discovery skill that points at the local knowledge and names the model, so that the IDE can find the cards.
 55. As a person on this machine, I want personal and work cards both included in lookup and in the graph, so that the local knowledge is the whole folder.
 56. As a person reviewing the knowledge, I want to click a node in the graph and see what is in it, so that I can look at a lesson after it has already been written.
-57. As a person looking at the window, I want the graph drawn with force-graph on the Nord palette, so that the view matches the dark Nordic screens: canvas `#2e3440`, panels `#3b4252`, text `#eceff4`, ice accent `#88c0d0`, and `#a3be8c` only for the synced status.
+57. As a person looking at the window, I want the graph drawn with force-graph on an open dark palette, so that the view stays quiet: canvas `#1f1f1f`, panels `#252526`, fields `#313131`, text `#cccccc`, links `#5c5c5c`, other nodes `#9d9d9d`, unsynced cards `#b89a6a`, synced status `#6f8f78`, and primary buttons `#0078d4`.
 58. As a teammate opening the shared Drive folder, I want to see work cards grouped by team and nothing personal, so that I can read reusable lessons from the people on that team.
 
 ## Implementation Decisions
 
-- The app is a Tauri shell on Windows and macOS, using the system webview. The window is for settings, identity, the model, the tool list, and the graph. It is not the process that learns or publishes.
+- The app is an Electron shell on Windows and macOS. The window is for settings, identity, the model, the tool list, and the graph. It is not the process that learns or publishes.
 - Two scheduled jobs run in the user session. They are registered at install, removed on uninstall, and can be registered or unregistered from the window. They start at login and stop at logout or shutdown.
 - The learner and the publisher have separate intervals. Each defaults to one hour. The window refuses a value under one hour.
 - The learner runs only when an SDK key is saved and username, email, and team are all saved. Otherwise it does not run. On an empty graph the person presses Start learning. That click does nothing until the profile is complete and the active SDK has a model list. The hourly job stays idle until that click succeeds.
@@ -94,11 +94,11 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 - The filename is a readable name, unique in its folder, ending with the card id. The id is a UUID and is also stored in the front matter.
 - Before the file is written, other people's names are removed from the title, the lesson, and the topics, and keys, tokens, and passwords are replaced with `[redacted]`. Project names and code stay. The stored file is the scrubbed card, and the Drive copy is that same file.
 - The publisher copies `work/` to the Drive path the person set, preserving folders and file bytes. It does not need the model key. It does not sign into Google. An empty Drive path means it does not run.
-- The graph draws the whole local tree, personal included, using force-graph. A click shows what is in that node. The web is the person, the team, the project, the source, the topic, and the card between them, taken from the cards in the folder. Colors are Nord: canvas `#2e3440`, panels `#3b4252`, text `#eceff4`, accent `#88c0d0`, synced status `#a3be8c`.
+- The graph draws the whole local tree, personal included, using force-graph. A click shows what is in that node. The web is the person, the team, the project, the source, the topic, and the card between them, taken from the cards in the folder. Colors are an open dark set: canvas `#1f1f1f`, panels `#252526`, fields `#313131`, text `#cccccc`, links `#5c5c5c`, other nodes `#9d9d9d`, unsynced cards `#b89a6a`, synced status `#6f8f78`, and primary buttons `#0078d4`.
 
 ## Testing Decisions
 
-The product does not exist in this repo yet, so there is no existing test seam to extend. The seam is the knowledge pipeline as seen from outside: given a profile, a key, a set of transcripts, and a Drive path, the local folder and the Drive folder contain the right cards, and a lookup returns summaries then the chosen bodies. Tests assert those files and that lookup result. They do not assert how a job is scheduled, how the window is drawn, or which library reads a transcript.
+The product does not exist in this repo yet, so there is no existing test seam to extend. The seam is the knowledge pipeline as seen from outside: given a profile, a key, a set of transcripts, and a Drive path, the local folder and the Drive folder contain the right cards, and a lookup returns summaries then the chosen bodies. Tests assert those files and that lookup result. They do not assert how a job is scheduled or which library reads a transcript. The React window has Playwright interaction tests that click the controls and assert they stay visible and enabled.
 
 A good test feeds transcripts and settings in, then reads cards, the published tree, and the lookup payload out. It covers a missing profile, a missing key, a first import, a later run that sees only changes, a repeated claim, a second claim, a personal card that is not published, a scrubbed secret, a shared filename that does not collide, a project reused from the knowledge, a project left as `none`, and an interval refused when it is under one hour.
 

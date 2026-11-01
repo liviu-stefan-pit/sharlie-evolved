@@ -2,18 +2,69 @@
   "name": "local-memory",
   "private": true,
   "type": "module",
+  "main": "electron/start.mjs",
   "scripts": {
-    "test": "node --experimental-test-module-mocks --disable-warning=ExperimentalWarning --test test/gate.test.ts test/card.test.ts test/tools.test.ts test/import.test.ts test/publish.test.ts test/lookup.test.ts test/graph.test.ts test/session.test.ts test/window.test.ts",
-    "start": "tauri dev",
-    "check": "tsc --noEmit"
+    "test": "node --experimental-test-module-mocks --disable-warning=ExperimentalWarning --test test/gate.test.ts test/card.test.ts test/tools.test.ts test/import.test.ts test/publish.test.ts test/lookup.test.ts test/graph.test.ts test/session.test.ts test/window.test.ts test/host.test.ts test/relay.test.ts test/mcp.test.ts",
+    "test:ui": "playwright test",
+    "relay": "node relay/run.ts",
+    "start": "node electron/dev.mjs",
+    "check": "tsc --noEmit",
+    "ui:dev": "vite --config ui/vite.config.ts",
+    "ui:build": "vite build --config ui/vite.config.ts",
+    "electron:build": "npm run ui:build && electron-builder"
   },
   "dependencies": {
+    "@cursor/sdk": "^1.2.0",
     "@napi-rs/keyring": "^2.1.2",
-    "force-graph": "^1.52.0"
+    "neo4j-driver": "^6.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-force-graph-2d": "^1.29.2"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.12.4",
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.6",
-    "typescript": "^7.0.2"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "build": {
+    "appId": "app.sharlie.local",
+    "productName": "Sharlie",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**",
+      "src/**",
+      "ui/dist/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "src/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "include": "electron/installer.nsh",
+      "oneClick": false,
+      "perMachine": false
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    }
   }
 }

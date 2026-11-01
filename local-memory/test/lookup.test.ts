@@ -80,18 +80,22 @@ test('a lookup sends every card file name and summary first, personal and work t
       { source: 'cursor', text: 'private scratch' },
     ])
 
-    const personal = readdirSync(join(directory, 'personal'))[0]
-    const work = readdirSync(join(directory, 'work', 'platform'))[0]
+    const names = readdirSync(join(directory, 'cards'))
+      .filter((name) => name.endsWith('.md'))
+      .sort((left, right) => `cards/${left}`.localeCompare(`cards/${right}`))
     await app.lookup('how do I retry a deploy?')
 
     assert.equal(calls[0].model, 'claude-sonnet-5-5')
     assert.equal(calls[0].question, 'how do I retry a deploy?')
     assert.ok('catalog' in calls[0])
     if (!('catalog' in calls[0])) return
-    assert.deepEqual(calls[0].catalog, [
-      { file: `personal/${personal}`, summary: 'Keep the scratch note on this machine.' },
-      { file: `work/platform/${work}`, summary: 'Retry a failed deploy once.' },
-    ])
+    assert.deepEqual(
+      calls[0].catalog,
+      names.map((name) => ({
+        file: `cards/${name}`,
+        summary: readFileSync(join(directory, 'cards', name), 'utf8').match(/^title: "?(.+?)"?$/m)?.[1],
+      })),
+    )
     const first = JSON.stringify(calls[0])
     assert.equal(first.includes('The scratch note is only for me.'), false)
     assert.equal(first.includes('A deploy failed after the lock timed out.'), false)
@@ -121,7 +125,11 @@ test('a lookup then sends the full text of only the cards the model picks', () =
       (turn) => {
         calls.push(turn)
         if ('catalog' in turn) {
-          return { pick: turn.catalog.filter((card) => card.file.startsWith('work/')).map((card) => card.file) }
+          const picked = turn.catalog.filter((card) => {
+            const name = card.file.split('/').pop() ?? ''
+            return readFileSync(join(directory, 'cards', name), 'utf8').includes('title: Retry failed deploys')
+          })
+          return { pick: picked.map((card) => card.file) }
         }
         return { answer: 'Retry the deploy once.' }
       },
@@ -132,7 +140,10 @@ test('a lookup then sends the full text of only the cards the model picks', () =
       { source: 'cursor', text: 'private scratch' },
     ])
 
-    const work = readdirSync(join(directory, 'work', 'platform'))[0]
+    const work = readdirSync(join(directory, 'cards')).find(
+      (name) => name.endsWith('.md') && readFileSync(join(directory, 'cards', name), 'utf8').includes('title: Retry failed deploys'),
+    )
+    assert.ok(work)
     const result = await app.lookup('how do I retry a deploy?')
 
     assert.equal(calls.length, 2)
@@ -142,8 +153,8 @@ test('a lookup then sends the full text of only the cards the model picks', () =
     if (!('cards' in calls[1])) return
     assert.deepEqual(calls[1].cards, [
       {
-        file: `work/platform/${work}`,
-        text: readFileSync(join(directory, 'work', 'platform', work), 'utf8'),
+        file: `cards/${work}`,
+        text: readFileSync(join(directory, 'cards', work), 'utf8'),
       },
     ])
     assert.equal(JSON.stringify(calls[1]).includes('The scratch note is only for me.'), false)
@@ -195,13 +206,16 @@ test('the lookup command sends the catalog, then only the picked card, and retur
       { source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' },
       { source: 'cursor', text: 'private scratch' },
     ])
-    const work = readdirSync(join(directory, 'work', 'platform'))[0]
+    const work = readdirSync(join(directory, 'cards')).find(
+      (name) => name.endsWith('.md') && readFileSync(join(directory, 'cards', name), 'utf8').includes('title: Retry failed deploys'),
+    )
+    assert.ok(work)
     const calls: { model: string; secret: string; prompt: string }[] = []
     const answer = await main(
       [directory, 'how do I retry a deploy?'],
       async (request: { model: string; secret: string; prompt: string }) => {
         calls.push({ model: request.model, secret: request.secret, prompt: request.prompt })
-        if (calls.length === 1) return JSON.stringify({ pick: [`work/platform/${work}`] })
+        if (calls.length === 1) return JSON.stringify({ pick: [`cards/${work}`] })
         return JSON.stringify({ answer: 'Retry the deploy once.' })
       },
       machine,
@@ -210,8 +224,9 @@ test('the lookup command sends the catalog, then only the picked card, and retur
     assert.equal(calls.length, 2)
     assert.equal(calls[0].model, 'claude-sonnet-5-5')
     assert.equal(calls[0].secret, 'sk-ant-api03-aaaa')
-    assert.equal(calls[0].prompt.includes('Retry a failed deploy once.'), true)
-    assert.equal(calls[0].prompt.includes('Keep the scratch note on this machine.'), true)
+    assert.equal(calls[0].prompt.includes('cards/'), true)
+    assert.equal(calls[0].prompt.includes('Retry failed deploys'), true)
+    assert.equal(calls[0].prompt.includes('My scratch note'), true)
     assert.equal(calls[0].prompt.includes('The scratch note is only for me.'), false)
     assert.equal(calls[0].prompt.includes('A deploy failed after the lock timed out.'), false)
     assert.equal(calls[1].model, 'claude-sonnet-5-5')
@@ -233,7 +248,7 @@ test('an Anthropic lookup sends the prompt to the chosen model with the saved ke
       prompt: 'Catalog:\nwork/platform/retry.md\nRetry a failed deploy once.',
     },
     async (url: string, init: { headers?: Record<string, string>; body?: string }) => {
-      const body = JSON.parse(init.body ?? '{}') as { model: string; messages: { content: string }[] }
+      const body = JSON.parse(init.body ?? '{}') as { model: string; max_tokens: number; messages: { content: string }[] }
       seen = {
         url,
         key: init.headers?.['x-api-key'] ?? '',
@@ -241,6 +256,7 @@ test('an Anthropic lookup sends the prompt to the chosen model with the saved ke
         model: body.model,
         prompt: body.messages[0].content,
       }
+      assert.ok(body.max_tokens >= 4096)
       return new Response(JSON.stringify({ content: [{ type: 'text', text: '{"answer":"Retry the deploy once."}' }] }))
     },
   )
@@ -264,13 +280,14 @@ test('an OpenAI lookup sends the prompt to the chosen model with the saved key',
       prompt: 'Catalog:\nwork/platform/retry.md\nRetry a failed deploy once.',
     },
     async (url: string, init: { headers?: Record<string, string>; body?: string }) => {
-      const body = JSON.parse(init.body ?? '{}') as { model: string; messages: { content: string }[] }
+      const body = JSON.parse(init.body ?? '{}') as { model: string; max_tokens: number; messages: { content: string }[] }
       seen = {
         url,
         authorization: init.headers?.authorization ?? '',
         model: body.model,
         prompt: body.messages[0].content,
       }
+      assert.ok(body.max_tokens >= 4096)
       return new Response(
         JSON.stringify({ choices: [{ message: { content: '{"answer":"Retry the deploy once."}' } }] }),
       )
@@ -284,28 +301,163 @@ test('an OpenAI lookup sends the prompt to the chosen model with the saved key',
   assert.equal(text, '{"answer":"Retry the deploy once."}')
 })
 
-test('a Cursor or Copilot lookup is refused before the secret is sent', async () => {
+test('an Anthropic reply joins every text block and skips a preceding thinking block', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
-  for (const provider of ['cursor', 'copilot'] as const) {
-    let sent = false
-    await assert.rejects(
-      () =>
-        callModel(
-          { provider, secret: 'sk-secret-value', model: '', prompt: 'how do I retry a deploy?' },
-          async () => {
-            sent = true
-            return new Response('no')
-          },
-        ),
-      (error: unknown) => {
-        assert.ok(error instanceof Error)
-        assert.match(error.message, /no model/i)
-        assert.equal(error.message.includes('sk-secret-value'), false)
-        return true
+  const text = await callModel(
+    {
+      provider: 'anthropic',
+      secret: 'sk-ant-api03-aaaa',
+      model: 'claude-sonnet-5-5',
+      prompt: 'Write the card.',
+    },
+    async () =>
+      new Response(
+        JSON.stringify({
+          content: [
+            { type: 'thinking', thinking: '{"title":"wrong"}' },
+            { type: 'text', text: '{"answer":' },
+            { type: 'text', text: '"Retry the deploy once."}' },
+          ],
+        }),
+      ),
+  )
+  assert.equal(text, '{"answer":"Retry the deploy once."}')
+})
+
+test('a Cursor lookup uses the injected agent prompt with the saved key and model', async () => {
+  const { callModel } = await import('../src/lookup-cli.ts')
+  let sent = false
+  let seen: { secret: string; model: string; prompt: string; cwd?: string } | undefined
+  const text = await callModel(
+    {
+      provider: 'cursor',
+      secret: 'cursor-key',
+      model: 'composer-2.5',
+      prompt: 'Reply with JSON {"answer":"..."}.',
+      cwd: 'C:\\vault',
+    },
+    async () => {
+      sent = true
+      return new Response('no')
+    },
+    {
+      cursorPrompt: async (request) => {
+        seen = { secret: request.secret, model: request.model, prompt: request.prompt, cwd: request.cwd }
+        return '{"answer":"Retry the deploy once."}'
       },
+    },
+  )
+  assert.equal(sent, false)
+  assert.ok(seen)
+  assert.equal(seen.secret, 'cursor-key')
+  assert.equal(seen.model, 'composer-2.5')
+  assert.equal(seen.cwd, 'C:\\vault')
+  assert.match(seen.prompt, /Do not edit any files/)
+  assert.equal(text, '{"answer":"Retry the deploy once."}')
+})
+
+test('a Copilot lookup sends the saved token to the GitHub API', async () => {
+  const { callModel } = await import('../src/lookup-cli.ts')
+  let seen: { url: string; authorization: string; integration: string; model: string; prompt: string } | undefined
+  const text = await callModel(
+    {
+      provider: 'copilot',
+      secret: 'copilot-token',
+      model: 'gpt-4o',
+      prompt: 'Catalog:\nwork/platform/retry.md',
+    },
+    async (url: string, init: { headers?: Record<string, string>; body?: string }) => {
+      const body = JSON.parse(init.body ?? '{}') as { model: string; messages: { content: string }[] }
+      seen = {
+        url,
+        authorization: init.headers?.authorization ?? '',
+        integration: init.headers?.['Copilot-Integration-Id'] ?? '',
+        model: body.model,
+        prompt: body.messages[0].content,
+      }
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"answer":"Retry the deploy once."}' } }] }))
+    },
+  )
+  assert.ok(seen)
+  assert.equal(seen.url, 'https://api.githubcopilot.com/chat/completions')
+  assert.equal(seen.authorization, 'Bearer copilot-token')
+  assert.equal(seen.integration, 'copilot-developer-cli')
+  assert.equal(seen.model, 'gpt-4o')
+  assert.equal(seen.prompt, 'Catalog:\nwork/platform/retry.md')
+  assert.equal(text, '{"answer":"Retry the deploy once."}')
+})
+
+test('a Copilot model without chat completions uses the responses API', async () => {
+  const { callModel } = await import('../src/lookup-cli.ts')
+  let seen = ''
+  const text = await callModel(
+    {
+      provider: 'copilot',
+      secret: 'copilot-token',
+      model: 'resp-model',
+      prompt: 'Catalog',
+      chatCompletions: false,
+    },
+    async (url: string) => {
+      seen = url
+      return new Response(JSON.stringify({ output_text: '{"answer":"Retry the deploy once."}' }))
+    },
+  )
+  assert.equal(seen, 'https://api.githubcopilot.com/responses')
+  assert.equal(text, '{"answer":"Retry the deploy once."}')
+})
+
+test('a custom lookup posts to the saved OpenAI-compatible base URL', async () => {
+  const { callModel } = await import('../src/lookup-cli.ts')
+  let seen: { url: string; authorization: string; model: string } | undefined
+  const text = await callModel(
+    {
+      provider: 'custom',
+      secret: 'local-key',
+      model: 'llama-local',
+      prompt: 'Catalog',
+      baseUrl: 'http://127.0.0.1:8080/v1/',
+    },
+    async (url: string, init: { headers?: Record<string, string>; body?: string }) => {
+      const body = JSON.parse(init.body ?? '{}') as { model: string; max_tokens: number }
+      seen = { url, authorization: init.headers?.authorization ?? '', model: body.model }
+      assert.ok(body.max_tokens >= 4096)
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"answer":"Retry the deploy once."}' } }] }))
+    },
+  )
+  assert.ok(seen)
+  assert.equal(seen.url, 'http://127.0.0.1:8080/v1/chat/completions')
+  assert.equal(seen.authorization, 'Bearer local-key')
+  assert.equal(seen.model, 'llama-local')
+  assert.equal(text, '{"answer":"Retry the deploy once."}')
+})
+
+test('Copilot model list marks chat completions unavailable when the entry says so', async () => {
+  const { listCopilotModels } = await import('../src/exchange.ts')
+  let seen: { url: string; authorization: string; integration: string } | undefined
+  const models = await listCopilotModels('copilot-token', async (url, init) => {
+    seen = {
+      url,
+      authorization: init.headers?.authorization ?? '',
+      integration: init.headers?.['Copilot-Integration-Id'] ?? '',
+    }
+    return new Response(
+      JSON.stringify({
+        data: [
+          { id: 'gpt-4o', name: 'GPT-4o' },
+          { id: 'resp-model', displayName: 'Responses', capabilities: { supports: { chat_completions: false } } },
+        ],
+      }),
     )
-    assert.equal(sent, false)
-  }
+  })
+  assert.ok(seen)
+  assert.equal(seen.url, 'https://api.githubcopilot.com/models')
+  assert.equal(seen.authorization, 'Bearer copilot-token')
+  assert.equal(seen.integration, 'copilot-developer-cli')
+  assert.deepEqual(models, [
+    { id: 'gpt-4o', displayName: 'GPT-4o' },
+    { id: 'resp-model', displayName: 'Responses', chatCompletions: false },
+  ])
 })
 
 test('Cursor and Claude discovery skills point at the local knowledge and name the model, and the IDE model picker stays as it is', () => {

@@ -65,7 +65,7 @@ test('an empty Drive path means the publisher does not run', () => {
   withDirectory((directory) => {
     const app = ready(directory, () => draft())
     app.runLearner([transcript])
-    assert.equal(readdirSync(join(directory, 'work', 'platform')).length, 1)
+    assert.equal(readdirSync(join(directory, 'cards')).some((name) => name.endsWith('.md')), true)
 
     assert.equal(app.runPublisher().ran, false)
     assert.equal(existsSync(join(directory, 'drive')), false)
@@ -77,13 +77,12 @@ test('an empty Drive path means the publisher does not run', () => {
   })
 })
 
-test('a teammate opening the shared folder sees work cards grouped by team, with the same file bytes, and nothing personal', () => {
+test('auto-drop off leaves cards on the machine until the publisher copies them into Dropzone', () => {
   withDirectory((directory) => {
     const drive = join(directory, 'drive')
     const lessons: Record<string, Partial<LessonDraft>> = {
       'shared deploy lesson': { scope: 'work', title: 'Retry failed deploys' },
       'private scratch': { scope: 'personal', title: 'My scratch note' },
-      'shared lock lesson': { scope: 'work', title: 'Read the lock log' },
     }
     const app = ready(directory, (request) => draft(lessons[request.transcript.text]))
     app.setDrivePath(drive)
@@ -91,26 +90,43 @@ test('a teammate opening the shared folder sees work cards grouped by team, with
       { source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' },
       { source: 'cursor', text: 'private scratch' },
     ])
-    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'reliability' })
-    app.runLearner([{ source: 'claude', text: 'shared lock lesson', repo: 'sharlie-evolved' }])
+    assert.equal(existsSync(drive), false)
 
     assert.equal(app.runPublisher().ran, true)
-
-    const platformFile = readdirSync(join(directory, 'work', 'platform'))[0]
-    const reliabilityFile = readdirSync(join(directory, 'work', 'reliability'))[0]
-    assert.deepEqual(readdirSync(drive).sort(), ['platform', 'reliability'])
-    assert.deepEqual(
-      readFileSync(join(drive, 'platform', platformFile)),
-      readFileSync(join(directory, 'work', 'platform', platformFile)),
-    )
-    assert.deepEqual(
-      readFileSync(join(drive, 'reliability', reliabilityFile)),
-      readFileSync(join(directory, 'work', 'reliability', reliabilityFile)),
-    )
+    const drop = join(drive, 'Dropzone', 'ada')
+    const local = readdirSync(join(directory, 'cards')).filter((name) => name.endsWith('.md') || name.endsWith('.json'))
+    for (const name of local) {
+      if (name === '.claims.json') continue
+      assert.deepEqual(readFileSync(join(drop, name)), readFileSync(join(directory, 'cards', name)))
+    }
     assert.equal(existsSync(join(drive, 'personal')), false)
-    assert.equal(readFileSync(join(drive, 'platform', platformFile), 'utf8').includes('My scratch note'), false)
-    assert.equal(readFileSync(join(drive, 'reliability', reliabilityFile), 'utf8').includes('My scratch note'), false)
-    assert.equal(readdirSync(join(directory, 'personal')).length, 1)
+    assert.equal(existsSync(join(drive, 'platform')), false)
+    assert.equal(
+      readdirSync(drop).some((name) => readFileSync(join(drop, name), 'utf8').includes('My scratch note')),
+      true,
+    )
+    assert.equal(
+      readdirSync(drop).some((name) => readFileSync(join(drop, name), 'utf8').includes('Retry failed deploys')),
+      true,
+    )
+  })
+})
+
+test('auto-drop copies the inbox file into Dropzone and then files it under cards', () => {
+  withDirectory((directory) => {
+    const drive = join(directory, 'drive')
+    const app = ready(directory, () => draft())
+    app.setDrivePath(drive)
+    app.setAutoDrop(true)
+    app.runLearner([transcript])
+    const file = readdirSync(join(directory, 'cards')).find((name) => name.endsWith('.md'))
+    assert.ok(file)
+    assert.equal(readdirSync(join(directory, 'inbox')).length, 0)
+    assert.deepEqual(
+      readFileSync(join(drive, 'Dropzone', 'ada', file)),
+      readFileSync(join(directory, 'cards', file)),
+    )
+    assert.equal(app.runPublisher().ran, true)
   })
 })
 
@@ -144,10 +160,11 @@ test('publishing continues after the model key is removed', () => {
     assert.equal(reopened.runPublisher().ran, true)
     assert.equal(modelCalls, learned)
 
-    const file = readdirSync(join(directory, 'work', 'platform'))[0]
+    const file = readdirSync(join(directory, 'cards')).find((name) => name.endsWith('.md'))
+    assert.ok(file)
     assert.deepEqual(
-      readFileSync(join(drive, 'platform', file)),
-      readFileSync(join(directory, 'work', 'platform', file)),
+      readFileSync(join(drive, 'Dropzone', 'ada', file)),
+      readFileSync(join(directory, 'cards', file)),
     )
   })
 })

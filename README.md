@@ -16,6 +16,7 @@ cd local-memory
 npm install
 npm test
 npm run check
+npm start
 ```
 
 ## License

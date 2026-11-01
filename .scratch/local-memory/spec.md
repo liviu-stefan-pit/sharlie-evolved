@@ -73,7 +73,7 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 
 ## Implementation Decisions
 
-- The app is a Tauri shell on Windows and macOS, using the system webview. The window is for settings, identity, the model, the tool list, and the graph. It is not the process that learns or publishes.
+- The app is an Electron shell on Windows and macOS. The window is for settings, identity, the model, the tool list, and the graph. It is not the process that learns or publishes.
 - Two scheduled jobs run in the user session. They are registered at install, removed on uninstall, and can be registered or unregistered from the window. They start at login and stop at logout or shutdown.
 - The learner and the publisher have separate intervals. Each defaults to one hour. The window refuses a value under one hour.
 - The learner runs only when an SDK key is saved and username, email, and team are all saved. Otherwise it does not run. On an empty graph the person presses Start learning. That click does nothing until the profile is complete and the active SDK has a model list. The hourly job stays idle until that click succeeds.

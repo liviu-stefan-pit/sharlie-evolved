@@ -1,19 +1,208 @@
-import { createInterface } from 'node:readline'
 import { homedir, userInfo } from 'node:os'
 import { join } from 'node:path'
-import { openUserSession, readInstalledTranscripts } from './app.ts'
+import {
+  openApp,
+  openUserSession,
+  readInstalledTranscripts,
+  renderLookup,
+  type CompleteLesson,
+  type LessonDraft,
+  type Machine,
+  type Transcript,
+} from './app.ts'
+import { callModel, listCopilotModels, type ExchangeDeps } from './exchange.ts'
+import { mergeSynapseConfig } from './mcp.ts'
 import { openDesktopHost } from './window.ts'
 
-export async function serveDesktopHost() {
-  const session = openUserSession(userInfo().username, undefined, undefined, () => readInstalledTranscripts())
-  session.logIn()
-  const host = await openDesktopHost({
-    directory: join(homedir(), '.sharlie', 'knowledge'),
-    session,
+type Post = (
+  url: string,
+  init: { method?: string; headers?: Record<string, string>; body?: string },
+) => Promise<Response>
+
+function limitWords(text: string, max = 120) {
+  const words = text.trim().split(/\s+/).filter(Boolean)
+  return words.slice(0, max).join(' ')
+}
+
+function sentences(text: string, count: number) {
+  const parts = text
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const chosen = parts.slice(0, count)
+  if (chosen.length === 0) return ''
+  return chosen.join(' ')
+}
+
+export function lessonFromModel(text: string): LessonDraft {
+  const match = text.match(/\{[\s\S]*\}/)
+  const parsed = JSON.parse(match ? match[0] : text) as Partial<LessonDraft>
+  const solution = typeof parsed.solution === 'string' ? parsed.solution : typeof parsed.whatToDo === 'string' ? parsed.whatToDo : ''
+  const failure = Array.isArray(parsed.failure_modes)
+    ? parsed.failure_modes.filter((mode): mode is string => typeof mode === 'string')
+    : typeof parsed.situation === 'string' && parsed.situation !== ''
+      ? [parsed.situation]
+      : []
+  const whatToDo = limitWords(typeof parsed.whatToDo === 'string' && parsed.whatToDo !== '' ? parsed.whatToDo : solution)
+  const situation = limitWords(
+    typeof parsed.situation === 'string' && parsed.situation !== '' ? parsed.situation : failure.join(' '),
+  )
+  const summarySource = typeof parsed.summary === 'string' && parsed.summary !== '' ? parsed.summary : solution
+  const summary = sentences(summarySource, 2) || sentences(`${summarySource}.`, 1)
+  return {
+    scope: parsed.scope === 'personal' ? 'personal' : 'work',
+    title: typeof parsed.title === 'string' ? parsed.title : '',
+    topics: Array.isArray(parsed.topics) ? parsed.topics.filter((topic): topic is string => typeof topic === 'string') : ['lesson'],
+    summary,
+    situation,
+    whatToDo,
+    why: limitWords(typeof parsed.why === 'string' && parsed.why !== '' ? parsed.why : 'The card records what worked.'),
+    apply: limitWords(typeof parsed.apply === 'string' && parsed.apply !== '' ? parsed.apply : whatToDo),
+    otherNames: Array.isArray(parsed.otherNames)
+      ? parsed.otherNames.filter((name): name is string => typeof name === 'string')
+      : [],
+    belongsToProject: typeof parsed.belongsToProject === 'string' ? parsed.belongsToProject : null,
+    clearlyOneProduct: parsed.clearlyOneProduct === true,
+    subjectProject: typeof parsed.subjectProject === 'string' ? parsed.subjectProject : null,
+    generalTechnique: parsed.generalTechnique === true,
+    sources: Array.isArray(parsed.sources) ? parsed.sources.filter((source): source is string => typeof source === 'string') : undefined,
+    sameClaim: parsed.sameClaim === true,
+    updateId: typeof parsed.updateId === 'string' && parsed.updateId !== '' ? parsed.updateId : undefined,
+    solution,
+    failure_modes: failure,
+    context: parsed.context,
+    relations: Array.isArray(parsed.relations) ? parsed.relations : undefined,
+  }
+}
+
+function cardPrompt(request: Parameters<CompleteLesson>[0]) {
+  return [
+    'Do not edit any files. Reply with one JSON object and no markdown fences.',
+    'The object is one lesson card. Include title, context with os, tool_version, and framework, solution, failure_modes, relations as {entity, relation, target_entity}, and sources.',
+    'Also include scope (personal or work), topics, summary (one or two sentences), situation, whatToDo, why, apply, otherNames, belongsToProject, clearlyOneProduct, subjectProject, generalTechnique, sameClaim, and updateId.',
+    'Keep each of situation, whatToDo, why, and apply within 120 words.',
+    'Keep the person\'s username, email, and team. Put every other person\'s name only in otherNames, not in the title, the lesson text, or the topics.',
+    'A repeated claim sets sameClaim true or updateId to the known card id. A different claim leaves updateId empty. A second tool is added to sources.',
+    '',
+    `Model: ${request.model}`,
+    `Source: ${request.transcript.source}`,
+    `Repo: ${request.transcript.repo ?? ''}`,
+    `Workspace: ${request.transcript.workspace ?? ''}`,
+    'Known cards:',
+    ...request.cards.map((card) => `${card.id} ${card.title} ${card.sources.join(',')}`),
+    '',
+    'Transcript:',
+    request.transcript.text,
+  ].join('\n')
+}
+
+async function ensureCopilotModels(directory: string, fetchImpl?: Post, machine?: Machine) {
+  const app = openApp(directory, undefined, machine)
+  let key: ReturnType<typeof app.activeKey>
+  try {
+    key = app.activeKey()
+  } catch {
+    return app
+  }
+  if (key.provider !== 'copilot' || app.modelsFor('copilot').length > 0) return app
+  try {
+    const models = await listCopilotModels(key.secret, fetchImpl)
+    app.rememberCopilot({ models })
+  } catch {
+    // The saved key is still used with the model id already chosen.
+  }
+  return app
+}
+
+export function desktopLesson(
+  directory: () => string,
+  fetchImpl?: Post,
+  deps: ExchangeDeps = {},
+  machine?: Machine,
+): CompleteLesson {
+  return async (request) => {
+    const folder = directory()
+    const app = await ensureCopilotModels(folder, fetchImpl, machine)
+    const key = app.activeKey()
+    const model = request.model || app.chosenModel()
+    const text = await callModel(
+      {
+        provider: key.provider,
+        secret: key.secret,
+        model,
+        prompt: cardPrompt({ ...request, model }),
+        baseUrl: app.customBaseUrl(),
+        chatCompletions: key.provider === 'copilot' ? app.copilotChat(model) : undefined,
+        cwd: folder,
+      },
+      fetchImpl,
+      deps,
+    )
+    return lessonFromModel(text)
+  }
+}
+
+export function startHarvestTimer(session: { pass: (ms: number) => void; harvestPaused: () => boolean }, stepMs = 1000) {
+  return setInterval(() => {
+    if (!session.harvestPaused()) session.pass(stepMs)
+  }, stepMs)
+}
+
+export async function openDesktopHarness(options: {
+  person: string
+  directory: string
+  machine?: Machine
+  readTranscripts?: () => Transcript[]
+  fetchImpl?: Post
+  deps?: ExchangeDeps
+}) {
+  let session: ReturnType<typeof openUserSession>
+  session = openUserSession(
+    options.person,
+    desktopLesson(() => session.knowledgeDirectory(options.directory), options.fetchImpl, options.deps, options.machine),
+    options.machine,
+    options.readTranscripts ?? (() => (options.machine ? readInstalledTranscripts(options.machine) : readInstalledTranscripts())),
+  )
+  await ensureCopilotModels(session.knowledgeDirectory(options.directory), options.fetchImpl, options.machine)
+  session.setLookup(async (turn) => {
+    const folder = session.knowledgeDirectory(options.directory)
+    const app = openApp(folder, undefined, options.machine)
+    const key = app.activeKey()
+    const text = await callModel(
+      {
+        provider: key.provider,
+        secret: key.secret,
+        model: turn.model,
+        prompt: renderLookup(turn),
+        baseUrl: app.customBaseUrl(),
+        chatCompletions: key.provider === 'copilot' ? app.copilotChat(turn.model) : undefined,
+        cwd: folder,
+      },
+      options.fetchImpl,
+      options.deps,
+    )
+    return JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? text) as { pick: string[] } | { answer: string }
   })
-  const lines = createInterface({ input: process.stdin, terminal: false })
-  for await (const line of lines) {
-    if (line.trim() === '') continue
-    process.stdout.write(`${await host.line(line)}\n`)
+  session.logIn()
+  if (options.machine) mergeSynapseConfig(options.machine)
+  const timer = startHarvestTimer(session)
+  return { session, timer }
+}
+
+export async function openRunningDesktopHost() {
+  const directory = join(homedir(), '.sharlie', 'knowledge')
+  const harness = await openDesktopHarness({
+    person: userInfo().username,
+    directory,
+    readTranscripts: () => readInstalledTranscripts(),
+  })
+  mergeSynapseConfig()
+  const host = await openDesktopHost({
+    directory,
+    session: harness.session,
+  })
+  return {
+    line: (input: string) => host.line(input),
+    close: () => clearInterval(harness.timer),
   }
 }

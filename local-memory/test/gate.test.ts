@@ -223,12 +223,12 @@ test('an Anthropic key offers claude-haiku-5-5 as the default, plus claude-sonne
   })
 })
 
-test('an OpenAI key offers gpt-6-luna as the default, plus gpt-6-sol and gpt-6-astra', () => {
+test('an OpenAI key offers gpt-6-luna as the default, plus gpt-6.1-sol and gpt-6-astra', () => {
   withDirectory((directory) => {
     const app = open(directory)
     app.saveKey({ provider: 'openai', secret: 'sk-proj-bbbb' })
 
-    assert.deepEqual(app.models(), ['gpt-6-luna', 'gpt-6-sol', 'gpt-6-astra'])
+    assert.deepEqual(app.models(), ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'])
     assert.equal(app.chosenModel(), 'gpt-6-luna')
   })
 })
@@ -250,7 +250,7 @@ test("the active key's provider selects the model list, and no other model is of
     assert.ok(openai)
     app.activateKey(openai.id)
 
-    assert.deepEqual(app.models(), ['gpt-6-luna', 'gpt-6-sol', 'gpt-6-astra'])
+    assert.deepEqual(app.models(), ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'])
     assert.equal(app.chosenModel(), 'gpt-6-luna')
     assert.throws(() => app.selectModel('claude-opus-5-5'), /not offered/)
   })
@@ -277,41 +277,48 @@ test('the model chosen in the app is the model that writes cards and answers loo
   })
 })
 
-test('the learner interval defaults to one hour', () => {
+test('the learner interval defaults to 30 minutes', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    assert.equal(app.learnerInterval(), 60 * 60 * 1000)
+    assert.equal(app.learnerInterval(), 30 * 60 * 1000)
   })
 })
 
-test('the publisher interval defaults to one hour', () => {
+test('the publisher interval defaults to 30 minutes', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    assert.equal(app.publisherInterval(), 60 * 60 * 1000)
+    assert.equal(app.publisherInterval(), 30 * 60 * 1000)
   })
 })
 
-test('the window refuses a learner interval shorter than one hour', () => {
+test('the learner interval accepts 15 minutes, 30 minutes, 1 hour, and manual', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    app.setLearnerInterval(2 * 60 * 60 * 1000)
-    assert.throws(() => app.setLearnerInterval(60 * 60 * 1000 - 1), /hour/)
-    assert.equal(app.learnerInterval(), 2 * 60 * 60 * 1000)
-
+    app.setLearnerInterval(15 * 60 * 1000)
+    app.setLearnerInterval(30 * 60 * 1000)
     app.setLearnerInterval(60 * 60 * 1000)
+    app.setLearnerInterval(0)
+    assert.equal(app.learnerInterval(), 0)
+    assert.throws(() => app.setLearnerInterval(60 * 60 * 1000 - 1), /15 minutes, 30 minutes, 1 hour, or manual/)
+    assert.throws(() => app.setLearnerInterval(2 * 60 * 60 * 1000), /15 minutes, 30 minutes, 1 hour, or manual/)
+    assert.equal(app.learnerInterval(), 0)
+
+    app.setLearnerInterval(30 * 60 * 1000)
     const reopened = open(directory)
-    assert.equal(reopened.learnerInterval(), 60 * 60 * 1000)
+    assert.equal(reopened.learnerInterval(), 30 * 60 * 1000)
   })
 })
 
-test('the window refuses a publisher interval shorter than one hour', () => {
+test('the publisher interval accepts 15 minutes, 30 minutes, 1 hour, and manual', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    app.setPublisherInterval(2 * 60 * 60 * 1000)
-    assert.throws(() => app.setPublisherInterval(60 * 60 * 1000 - 1), /hour/)
-    assert.equal(app.publisherInterval(), 2 * 60 * 60 * 1000)
-    assert.equal(app.learnerInterval(), 60 * 60 * 1000)
+    app.setPublisherInterval(15 * 60 * 1000)
+    assert.equal(app.publisherInterval(), 15 * 60 * 1000)
+    assert.equal(app.learnerInterval(), 30 * 60 * 1000)
+    assert.throws(() => app.setPublisherInterval(60 * 60 * 1000 - 1), /15 minutes, 30 minutes, 1 hour, or manual/)
+    assert.equal(app.publisherInterval(), 15 * 60 * 1000)
 
+    app.setPublisherInterval(0)
     app.setPublisherInterval(60 * 60 * 1000)
     const reopened = open(directory)
     assert.equal(reopened.publisherInterval(), 60 * 60 * 1000)

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { mock, test } from 'node:test'
+import { test } from 'node:test'
 import { discardVault, openApp, type LessonDraft, type Transcript } from '../src/app.ts'
 import { machineWith } from './machine.ts'
 
@@ -93,11 +93,9 @@ test('the graph links each card to its person, team, project, source, and topic'
         .filter((node) => node.kind === kind)
         .map((node) => node.label)
         .sort()
-    assert.deepEqual(labels('person'), ['ada'])
-    assert.deepEqual(labels('team'), ['platform'])
-    assert.deepEqual(labels('project'), ['none', 'sharlie-evolved'])
-    assert.deepEqual(labels('source'), ['claude', 'cursor'])
-    assert.deepEqual(labels('topic'), ['deploys'])
+    assert.deepEqual(labels('developer'), ['ada'])
+    assert.deepEqual(labels('issue'), ['sharlie-evolved'])
+    assert.deepEqual(labels('tool'), ['claude', 'cursor'])
     assert.deepEqual(labels('card'), ['My scratch note', 'Retry failed deploys'])
 
     const id = (kind: string, label: string) => {
@@ -114,24 +112,9 @@ test('the graph links each card to its person, team, project, source, and topic'
     }
     assert.deepEqual(
       ends('Retry failed deploys'),
-      [
-        id('person', 'ada'),
-        id('project', 'sharlie-evolved'),
-        id('source', 'cursor'),
-        id('team', 'platform'),
-        id('topic', 'deploys'),
-      ].sort(),
+      [id('developer', 'ada'), id('issue', 'sharlie-evolved'), id('tool', 'cursor')].sort(),
     )
-    assert.deepEqual(
-      ends('My scratch note'),
-      [
-        id('person', 'ada'),
-        id('project', 'none'),
-        id('source', 'claude'),
-        id('team', 'platform'),
-        id('topic', 'deploys'),
-      ].sort(),
-    )
+    assert.deepEqual(ends('My scratch note'), [id('developer', 'ada'), id('tool', 'claude')].sort())
   })
 })
 
@@ -178,11 +161,11 @@ test('a work card the publisher has copied shows as synced', () => {
       return node.synced
     }
     assert.equal(synced('Retry failed deploys'), true)
-    assert.equal(synced('My scratch note'), false)
+    assert.equal(synced('My scratch note'), true)
   })
 })
 
-test('the graph uses the Nord palette, and green only on a synced card', () => {
+test('the graph uses the zinc palette, and green only on a synced card', () => {
   withDirectory((directory) => {
     const lessons: Record<string, Partial<LessonDraft>> = {
       'shared deploy lesson': { scope: 'work', title: 'Retry failed deploys' },
@@ -197,16 +180,16 @@ test('the graph uses the Nord palette, and green only on a synced card', () => {
     app.runPublisher()
 
     const graph = app.graph()
-    assert.equal(graph.canvas, '#2e3440')
-    assert.equal(graph.panel, '#3b4252')
-    assert.equal(graph.text, '#eceff4')
-    assert.equal(graph.accent, '#88c0d0')
+    assert.equal(graph.canvas, '#1f1f1f')
+    assert.equal(graph.panel, '#252526')
+    assert.equal(graph.text, '#cccccc')
+    assert.equal(graph.accent, '#5c5c5c')
     assert.equal(
       graph.nodes.find((node) => node.label === 'Retry failed deploys')?.color,
-      '#a3be8c',
+      '#6f8f78',
     )
     for (const node of graph.nodes) {
-      assert.equal(node.color, node.synced ? '#a3be8c' : '#88c0d0')
+      assert.equal(node.color, node.synced ? '#6f8f78' : node.kind === 'card' ? '#b89a6a' : '#9d9d9d')
     }
   })
 })
@@ -221,11 +204,13 @@ test('clicking a card shows the lesson in it', () => {
     assert.deepEqual(app.show(card.id), {
       kind: 'card',
       title: 'Retry failed deploys',
-      summary: 'Retry a failed deploy once.',
-      situation: 'A deploy failed after the lock timed out.',
-      whatToDo: 'Retry the deploy once, then read the log.',
-      why: 'The lock clears on its own within a minute.',
-      apply: 'When a deploy fails on a lock, retry once before changing config.',
+      solution: 'Retry the deploy once, then read the log.',
+      failure_modes: [
+        'A deploy failed after the lock timed out.',
+        'The lock clears on its own within a minute.',
+        'When a deploy fails on a lock, retry once before changing config.',
+      ],
+      created_at: app.show(card.id).created_at,
       synced: false,
     })
   })
@@ -260,175 +245,27 @@ test('clicking a person, team, project, source, or topic shows the cards in it',
       return app.show(node.id)
     }
 
-    assert.deepEqual(show('person', 'ada'), {
-      kind: 'person',
+    assert.deepEqual(show('developer', 'ada'), {
+      kind: 'developer',
       username: 'ada',
       email: 'ada@example.com',
       team: 'platform',
       cards: ['My scratch note', 'Retry failed deploys'],
     })
-    assert.deepEqual(show('team', 'platform'), {
-      kind: 'team',
-      name: 'platform',
-      cards: ['My scratch note', 'Retry failed deploys'],
-    })
-    assert.deepEqual(show('project', 'sharlie-evolved'), {
-      kind: 'project',
+    assert.deepEqual(show('issue', 'sharlie-evolved'), {
+      kind: 'issue',
       name: 'sharlie-evolved',
       cards: ['Retry failed deploys'],
     })
-    assert.deepEqual(show('project', 'none'), {
-      kind: 'project',
-      name: 'none',
-      cards: ['My scratch note'],
-    })
-    assert.deepEqual(show('source', 'cursor'), {
-      kind: 'source',
+    assert.deepEqual(show('tool', 'cursor'), {
+      kind: 'tool',
       name: 'cursor',
       cards: ['Retry failed deploys'],
     })
-    assert.deepEqual(show('topic', 'deploys'), {
-      kind: 'topic',
-      name: 'deploys',
-      cards: ['Retry failed deploys'],
+    assert.deepEqual(show('tool', 'claude'), {
+      kind: 'tool',
+      name: 'claude',
+      cards: ['My scratch note'],
     })
   })
 })
-
-test('the window draws the graph with force-graph and shows the clicked node', async () => {
-  const mounted: {
-    element: { style: { background: string; color: string } }
-    background?: string
-    nodeColorFn?: (node: { color: string }) => string
-    linkColorFn?: () => string
-    click?: (node: { id: string }) => void
-    data?: { nodes: unknown[]; links: unknown[] }
-  }[] = []
-  class FakeForceGraph {
-    element: { style: { background: string; color: string } }
-    background?: string
-    nodeColorFn?: (node: { color: string }) => string
-    linkColorFn?: () => string
-    click?: (node: { id: string }) => void
-    data?: { nodes: unknown[]; links: unknown[] }
-    constructor(element: { style: { background: string; color: string } }) {
-      this.element = element
-      mounted.push(this)
-    }
-    width() {
-      return this
-    }
-    height() {
-      return this
-    }
-    backgroundColor(color?: string) {
-      if (color === undefined) return this.background
-      this.background = color
-      return this
-    }
-    nodeColor(fn: (node: { color: string }) => string) {
-      this.nodeColorFn = fn
-      return this
-    }
-    nodeLabel() {
-      return this
-    }
-    nodeCanvasObject() {
-      return this
-    }
-    nodePointerAreaPaint() {
-      return this
-    }
-    linkColor(fn: () => string) {
-      this.linkColorFn = fn
-      return this
-    }
-    onNodeClick(fn: (node: { id: string }) => void) {
-      this.click = fn
-      return this
-    }
-    graphData(data: { nodes: unknown[]; links: unknown[] }) {
-      this.data = data
-      return this
-    }
-  }
-  mock.module('force-graph', { exports: { default: FakeForceGraph } })
-  const { mountGraph } = await import('../src/graph-window.ts')
-
-  await withDirectory((directory) => {
-    const lessons: Record<string, Partial<LessonDraft>> = {
-      'shared deploy lesson': { scope: 'work', title: 'Retry failed deploys' },
-      'private scratch': { scope: 'personal', title: 'My scratch note' },
-    }
-    const app = ready(directory, (request) => draft(lessons[request.transcript.text]))
-    app.setDrivePath(join(directory, 'drive'))
-    app.runLearner([
-      { source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' },
-      { source: 'cursor', text: 'private scratch' },
-    ])
-    app.runPublisher()
-    const graph = app.graph()
-    const root = fakeWindow()
-    mountGraph(root as unknown as HTMLElement, directory, machineWith(directory, ['cursor', 'claude']))
-
-    const chart = mounted[0]
-    assert.ok(chart)
-    assert.equal(chart.background, '#2e3440')
-    assert.equal(root.style.background, '#2e3440')
-    const panel = root.children.find((child) => child !== chart.element)
-    assert.ok(panel)
-    assert.equal(panel.style.background, '#3b4252')
-    assert.equal(panel.style.color, '#eceff4')
-    const work = graph.nodes.find((node) => node.label === 'Retry failed deploys')
-    const personal = graph.nodes.find((node) => node.label === 'My scratch note')
-    assert.ok(work && personal && chart.nodeColorFn && chart.linkColorFn && chart.click)
-    assert.equal(chart.nodeColorFn(work), '#a3be8c')
-    assert.equal(chart.nodeColorFn(personal), '#88c0d0')
-    assert.equal(chart.linkColorFn(), '#88c0d0')
-    assert.equal(chart.data?.nodes.length, graph.nodes.length)
-    assert.equal(chart.data?.links.length, graph.links.length)
-
-    chart.click(work)
-    assert.equal(
-      panel.textContent,
-      [
-        'Retry failed deploys',
-        'synced',
-        'Retry a failed deploy once.',
-        'Situation',
-        'A deploy failed after the lock timed out.',
-        'What to do',
-        'Retry the deploy once, then read the log.',
-        'Why',
-        'The lock clears on its own within a minute.',
-        'How someone who was not in the chat applies it',
-        'When a deploy fails on a lock, retry once before changing config.',
-      ].join('\n'),
-    )
-
-    const topic = graph.nodes.find((node) => node.kind === 'topic' && node.label === 'deploys')
-    assert.ok(topic)
-    chart.click(topic)
-    assert.equal(panel.textContent, ['deploys', 'My scratch note', 'Retry failed deploys'].join('\n'))
-  })
-})
-
-function fakeWindow() {
-  function pane() {
-    return {
-      style: { background: '', color: '' },
-      dataset: {} as Record<string, string>,
-      textContent: '',
-    }
-  }
-  const root = {
-    style: { background: '' },
-    innerHTML: '',
-    children: [] as ReturnType<typeof pane>[],
-    ownerDocument: { createElement: pane },
-    append(...children: ReturnType<typeof pane>[]) {
-      this.children.push(...children)
-    },
-  }
-  return root
-}

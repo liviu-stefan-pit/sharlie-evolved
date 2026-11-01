@@ -54,31 +54,32 @@ test('one transcript becomes one markdown card with the lesson and its front mat
     const result = app.runLearner([transcript])
 
     assert.equal(result.ran, true)
-    const folder = join(directory, 'work', 'platform')
-    const files = readdirSync(folder)
+    const files = cardFiles(directory)
     assert.equal(files.length, 1)
-    const text = readFileSync(join(folder, files[0]), 'utf8')
-    const id = files[0].match(
-      /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.md$/,
-    )?.[1]
+    const text = readFileSync(join(directory, 'cards', files[0]), 'utf8')
+    const json = JSON.parse(readFileSync(join(directory, 'cards', files[0].replace(/\.md$/, '.json')), 'utf8')) as {
+      id: string
+      title: string
+      solution: string
+    }
+    const id = files[0].match(/^(card_\d{8}_\d{6}(?:_\d+)?)\.md$/)?.[1]
     assert.ok(id)
+    assert.equal(json.id, id)
     assert.match(text, new RegExp(`id: ${id}`))
     assert.match(text, /username: ada/)
     assert.match(text, /email: ada@example.com/)
     assert.match(text, /team: platform/)
-    assert.match(text, /scope: work/)
     assert.match(text, /- cursor/)
-    assert.match(text, /project: sharlie-evolved/)
+    assert.match(text, /framework: sharlie-evolved/)
     assert.match(text, /title: Retry failed deploys/)
-    assert.match(text, /- deploys/)
-    assert.match(text, /summary: Retry a failed deploy once\./)
-    assert.match(text, /## Situation\n\nA deploy failed after the lock timed out\./)
-    assert.match(text, /## What to do\n\nRetry the deploy once, then read the log\./)
-    assert.match(text, /## Why\n\nThe lock clears on its own within a minute\./)
-    assert.match(
-      text,
-      /## How someone who was not in the chat applies it\n\nWhen a deploy fails on a lock, retry once before changing config\./,
-    )
+    assert.equal(json.title, 'Retry failed deploys')
+    assert.match(text, /## Solution\n\nRetry the deploy once, then read the log\./)
+    assert.match(text, /## Failure modes\n\nA deploy failed after the lock timed out\./)
+    assert.match(text, /The lock clears on its own within a minute\./)
+    assert.match(text, /When a deploy fails on a lock, retry once before changing config\./)
+    assert.equal(readdirSync(join(directory, 'inbox')).length, 0)
+    assert.equal(existsSync(join(directory, 'personal')), false)
+    assert.equal(existsSync(join(directory, 'work')), false)
   })
 })
 
@@ -86,37 +87,33 @@ function words(count: number) {
   return Array.from({ length: count }, () => 'word').join(' ')
 }
 
-test('a private lesson is filed in personal and a reusable lesson is filed in the team folder', () => {
+test('a private lesson and a reusable lesson both land in cards', () => {
   withDirectory((directory) => {
     const app = ready(directory, () => draft({ scope: 'personal', title: 'My scratch note' }))
     app.runLearner([transcript])
-    const personal = readdirSync(join(directory, 'personal'), { withFileTypes: true })
-    assert.deepEqual(
-      personal.map((entry) => entry.name),
-      personal.filter((entry) => entry.isFile()).map((entry) => entry.name),
-    )
-    assert.equal(personal.length, 1)
-    assert.match(readFileSync(join(directory, 'personal', personal[0].name), 'utf8'), /scope: personal/)
+    assert.deepEqual(cardFiles(directory).length, 1)
+    assert.match(cardText(directory), /title: My scratch note/)
+    assert.equal(existsSync(join(directory, 'personal')), false)
     assert.equal(existsSync(join(directory, 'work')), false)
   })
   withDirectory((directory) => {
     const app = ready(directory, () => draft())
     app.runLearner([transcript, { ...transcript, text: 'read the log next' }])
-    const team = join(directory, 'work', 'platform')
-    const entries = readdirSync(team, { withFileTypes: true })
-    assert.equal(entries.length, 2)
-    assert.equal(entries.every((entry) => entry.isFile()), true)
+    const files = cardFiles(directory)
+    assert.equal(files.length, 2)
+    assert.equal(new Set(files).size, 2)
+    const texts = files.map((name) => readFileSync(join(directory, 'cards', name), 'utf8'))
+    assert.equal(texts.every((text) => text.includes('username: ada')), true)
     assert.equal(existsSync(join(directory, 'personal')), false)
-    const texts = entries.map((entry) => readFileSync(join(team, entry.name), 'utf8'))
-    assert.equal(texts.every((text) => text.includes('scope: work')), true)
+    assert.equal(existsSync(join(directory, 'work')), false)
   })
   withDirectory((directory) => {
     const app = openApp(directory, () => draft(), machineWith(directory, ['cursor', 'claude']))
     app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'reliability' })
     app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
     app.runLearner([transcript])
-    assert.deepEqual(readdirSync(join(directory, 'work')), ['reliability'])
-    assert.equal(readdirSync(join(directory, 'work', 'reliability')).length, 1)
+    assert.equal(cardFiles(directory).length, 1)
+    assert.match(cardText(directory), /team: reliability/)
   })
 })
 
@@ -128,22 +125,16 @@ test('the filename is a readable name, unique in its folder, ending with the car
       return draft({ title: call === 1 ? 'Retry failed deploys' : 'Read the lock log' })
     })
     app.runLearner([transcript, { ...transcript, source: 'claude', text: 'read the log' }])
-    const folder = join(directory, 'work', 'platform')
-    const files = readdirSync(folder)
+    const files = cardFiles(directory)
     assert.equal(files.length, 2)
     assert.equal(new Set(files).size, 2)
     for (const file of files) {
-      const id = file.match(
-        /^(.+)-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.md$/,
-      )
+      const id = file.match(/^(card_\d{8}_\d{6}(?:_\d+)?)\.md$/)
       assert.ok(id)
-      assert.match(id[1], /^[a-z0-9-]+$/)
-      const card = readFileSync(join(folder, file), 'utf8')
-      assert.match(card, new RegExp(`^id: ${id[2]}$`, 'm'))
+      const card = readFileSync(join(directory, 'cards', file), 'utf8')
+      assert.match(card, new RegExp(`^id: ${id[1]}$`, 'm'))
     }
-    assert.equal(files.some((file) => file.startsWith('retry-failed-deploys-')), true)
-    assert.equal(files.some((file) => file.startsWith('read-the-lock-log-')), true)
-    const texts = files.map((file) => readFileSync(join(folder, file), 'utf8'))
+    const texts = files.map((file) => readFileSync(join(directory, 'cards', file), 'utf8'))
     assert.equal(texts.some((text) => text.includes('title: Retry failed deploys')), true)
     assert.equal(texts.some((text) => text.includes('title: Read the lock log')), true)
     assert.equal(texts.some((text) => text.includes('- claude')), true)
@@ -156,9 +147,8 @@ test('at is the UTC time on the card', () => {
     const before = Date.now()
     app.runLearner([transcript])
     const after = Date.now()
-    const folder = join(directory, 'work', 'platform')
-    const card = readFileSync(join(folder, readdirSync(folder)[0]), 'utf8')
-    const at = card.match(/^at: (.+)$/m)?.[1]
+    const card = cardText(directory)
+    const at = card.match(/^created_at: (.+)$/m)?.[1]
     assert.ok(at)
     assert.match(at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
     const stamped = Date.parse(at)
@@ -172,17 +162,24 @@ test('author username, email, and team are copied from the saved profile', () =>
     app.saveProfile({ username: 'grace', email: 'grace@example.com', team: 'reliability' })
     app.saveKey({ provider: 'openai', secret: 'sk-proj-bbbb' })
     app.runLearner([transcript])
-    const folder = join(directory, 'work', 'reliability')
-    const card = readFileSync(join(folder, readdirSync(folder)[0]), 'utf8')
+    const card = cardText(directory)
     assert.match(card, /username: grace/)
     assert.match(card, /email: grace@example.com/)
     assert.match(card, /team: reliability/)
   })
 })
 
-function cardText(directory: string, team = 'platform') {
-  const folder = join(directory, 'work', team)
-  return readFileSync(join(folder, readdirSync(folder)[0]), 'utf8')
+function cardFiles(directory: string) {
+  const folder = join(directory, 'cards')
+  if (!existsSync(folder)) return []
+  return readdirSync(folder)
+    .filter((name) => /^card_\d{8}_\d{6}(?:_\d+)?\.md$/.test(name))
+    .sort()
+}
+
+function cardText(directory: string) {
+  const files = cardFiles(directory)
+  return readFileSync(join(directory, 'cards', files[0]), 'utf8')
 }
 
 test('when the knowledge has no matching project, project is the repo the tool recorded', () => {
@@ -195,7 +192,7 @@ test('when the knowledge has no matching project, project is the repo the tool r
       }),
     )
     app.runLearner([transcript])
-    assert.match(cardText(directory), /^project: sharlie-evolved$/m)
+    assert.match(cardText(directory), /^  framework: sharlie-evolved$/m)
   })
 })
 
@@ -210,7 +207,7 @@ test('a general technique, and a chat that is not about one product, sets projec
       }),
     )
     app.runLearner([transcript])
-    assert.match(cardText(directory), /^project: none$/m)
+    assert.match(cardText(directory), /^  framework: none$/m)
   })
   withDirectory((directory) => {
     const app = ready(directory, () =>
@@ -221,7 +218,7 @@ test('a general technique, and a chat that is not about one product, sets projec
       }),
     )
     app.runLearner([{ source: 'cursor', text: 'how do I name a test' }])
-    assert.match(cardText(directory), /^project: none$/m)
+    assert.match(cardText(directory), /^  framework: none$/m)
   })
 })
 
@@ -240,9 +237,9 @@ test('when the tool recorded no repo, a clear subject becomes the project and th
     })
     app.runLearner([{ source: 'cursor', text: 'the ledger export failed' }])
     app.runLearner([{ source: 'cursor', text: 'the ledger export needs a header' }])
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const cards = readdirSync(folder).map((file) => readFileSync(join(folder, file), 'utf8'))
-    assert.equal(cards.filter((card) => /^project: ledger$/m.test(card)).length, 2)
+    assert.equal(cards.filter((card) => /^  framework: ledger$/m.test(card)).length, 2)
   })
 })
 
@@ -264,9 +261,9 @@ test('project reuses an existing knowledge project when the lesson belongs to it
     app.runLearner([transcript])
     app.runLearner([{ source: 'cursor', text: 'read the log' }])
     assert.deepEqual(seen[1], ['sharlie-evolved'])
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const cards = readdirSync(folder).map((file) => readFileSync(join(folder, file), 'utf8'))
-    assert.equal(cards.filter((card) => /^project: sharlie-evolved$/m.test(card)).length, 2)
+    assert.equal(cards.filter((card) => /^  framework: sharlie-evolved$/m.test(card)).length, 2)
   })
 })
 
@@ -285,16 +282,12 @@ test('the summary and the lesson stay in the language of the source chat', () =>
       }),
     )
     app.runLearner([{ ...transcript, text: 'Deploy-ul a eșuat după ce lacătul a expirat.' }])
-    const folder = join(directory, 'work', 'platform')
-    const card = readFileSync(join(folder, readdirSync(folder)[0]), 'utf8')
-    assert.match(card, /summary: Reîncearcă o dată deploy-ul eșuat\./)
-    assert.match(card, /## Situation\n\nDeploy-ul a eșuat după ce lacătul a expirat\./)
-    assert.match(card, /## What to do\n\nReîncearcă deploy-ul o dată, apoi citește jurnalul\./)
-    assert.match(card, /## Why\n\nLacătul se eliberează singur într-un minut\./)
-    assert.match(
-      card,
-      /## How someone who was not in the chat applies it\n\nCând un deploy eșuează pe lacăt, reîncearcă o dată înainte să schimbi configurația\./,
-    )
+    const card = cardText(directory)
+    assert.match(card, /title: Reîncearcă deploy-ul/)
+    assert.match(card, /## Solution\n\nReîncearcă deploy-ul o dată, apoi citește jurnalul\./)
+    assert.match(card, /## Failure modes\n\nDeploy-ul a eșuat după ce lacătul a expirat\./)
+    assert.match(card, /Lacătul se eliberează singur într-un minut\./)
+    assert.match(card, /Când un deploy eșuează pe lacăt, reîncearcă o dată înainte să schimbi configurația\./)
   })
 })
 
@@ -303,7 +296,7 @@ test('each of the four lesson parts stays within 120 words', () => {
     withDirectory((directory) => {
       const app = ready(directory, () => draft({ [part]: words(121) }))
       app.runLearner([transcript])
-      assert.equal(existsSync(join(directory, 'work')), false)
+      assert.equal(cardFiles(directory).length, 0)
     })
   }
   withDirectory((directory) => {
@@ -312,8 +305,7 @@ test('each of the four lesson parts stays within 120 words', () => {
       draft({ situation: text, whatToDo: text, why: text, apply: text }),
     )
     app.runLearner([transcript])
-    const folder = join(directory, 'work', 'platform')
-    const card = readFileSync(join(folder, readdirSync(folder)[0]), 'utf8')
+    const card = cardText(directory)
     const body = card.split('---').at(-1) ?? ''
     assert.equal(body.split('word').length - 1, 480)
   })
@@ -323,14 +315,14 @@ test('the summary is one or two sentences', () => {
   withDirectory((directory) => {
     const app = ready(directory, () => draft({ summary: 'One. Two. Three.' }))
     app.runLearner([transcript])
-    assert.equal(existsSync(join(directory, 'work')), false)
+    assert.equal(cardFiles(directory).length, 0)
   })
   for (const summary of ['Retry a failed deploy once.', 'Retry once. Then read the log.']) {
     withDirectory((directory) => {
       const app = ready(directory, () => draft({ summary }))
       app.runLearner([transcript])
-      const text = readFileSync(join(directory, 'work', 'platform', readdirSync(join(directory, 'work', 'platform'))[0]), 'utf8')
-      assert.match(text, new RegExp(`summary: ${summary.replace(/[.]/g, '\\.')}`))
+      assert.equal(cardFiles(directory).length, 1)
+      assert.match(cardText(directory), /## Solution\n\nRetry the deploy once, then read the log\./)
     })
   }
 })
@@ -350,16 +342,14 @@ test('the stored card has other names removed and secrets redacted', () => {
       }),
     )
     app.runLearner([transcript])
-    const folder = join(directory, 'work', 'platform')
-    const card = readFileSync(join(folder, readdirSync(folder)[0]), 'utf8')
+    const card = cardText(directory)
     assert.equal(card.includes('Grace Hopper'), false)
     assert.equal(card.includes('sk-ant-api03-supersecret'), false)
     assert.equal(card.includes('hunter2'), false)
     assert.equal(card.includes('ghp_'), false)
     assert.match(card, /A teammate retries without \[redacted\]\./)
     assert.match(card, /title: "left \[redacted\] in sharlie-evolved"/)
-    assert.match(card, /- deploys/)
-    assert.equal(card.includes('- Grace'), false)
+    assert.equal(card.includes('Grace'), false)
     assert.match(card, /pasted password: \[redacted\] beside ada@example.com\./)
     assert.match(card, /Keep the project sharlie-evolved and run if \(ready\) retry\(build\)\./)
     assert.match(card, /The lock belongs to platform and ada\./)
@@ -386,20 +376,18 @@ test('a card missing any required field is left unwritten', () => {
       const app = ready(directory, () => draft(overrides))
       const learned = app.runLearner([transcript])
       assert.equal(learned.ran, true)
-      assert.equal(existsSync(join(directory, 'work')), false)
-      assert.equal(existsSync(join(directory, 'personal')), false)
+      assert.equal(cardFiles(directory).length, 0)
     })
   }
   withDirectory((directory) => {
     const app = ready(directory, () => draft())
     app.runLearner([{ ...transcript, source: '' }])
-    assert.equal(existsSync(join(directory, 'work')), false)
+    assert.equal(cardFiles(directory).length, 0)
   })
   withDirectory((directory) => {
     const app = ready(directory, () => ({ ...draft(), title: undefined as unknown as string }))
     app.runLearner([transcript])
-    assert.equal(existsSync(join(directory, 'work')), false)
-    assert.equal(existsSync(join(directory, 'personal')), false)
+    assert.equal(cardFiles(directory).length, 0)
   })
 })
 
@@ -418,11 +406,11 @@ test('the learner writes nothing until a profile and an active key are saved', (
     app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
     assert.equal(app.runLearner([transcript]).ran, false)
     assert.equal(calls, 0)
-    assert.equal(existsSync(join(directory, 'work')), false)
+    assert.equal(cardFiles(directory).length, 0)
     app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
     assert.equal(app.runLearner([transcript]).ran, true)
     assert.equal(calls, 1)
-    assert.equal(readdirSync(join(directory, 'work', 'platform')).length, 1)
+    assert.equal(cardFiles(directory).length, 1)
   })
 })
 
@@ -430,7 +418,7 @@ test('a workspace name is the project when the tool recorded no repo', () => {
   withDirectory((directory) => {
     const app = ready(directory, () => draft({ belongsToProject: null, subjectProject: null }))
     app.runLearner([{ source: 'cursor', text: 'the export failed', workspace: 'ledger' }])
-    assert.match(cardText(directory), /^project: ledger$/m)
+    assert.match(cardText(directory), /^  framework: ledger$/m)
   })
 })
 
@@ -453,8 +441,9 @@ test('the filename keeps a readable name from the lesson title', () => {
   withDirectory((directory) => {
     const app = ready(directory, () => draft({ title: 'Reîncearcă deploy-ul' }))
     app.runLearner([transcript])
-    const file = readdirSync(join(directory, 'work', 'platform'))[0]
-    assert.match(file, /^reîncearcă-deploy-ul-[0-9a-f-]{36}\.md$/)
+    const file = cardFiles(directory)[0]
+    assert.match(file, /^card_\d{8}_\d{6}(?:_\d+)?\.md$/)
+    assert.match(cardText(directory), /title: Reîncearcă deploy-ul/)
   })
 })
 
@@ -476,13 +465,12 @@ test('project names and code stay on the card', () => {
     })
     app.runLearner([{ source: 'cursor', text: 'export', repo: 'ledger' }])
     app.runLearner([{ source: 'cursor', text: 'how do I name a test' }])
-    const folder = join(directory, 'work', 'platform')
-    const note = readdirSync(folder)
-      .map((file) => readFileSync(join(folder, file), 'utf8'))
+    const note = cardFiles(directory)
+      .map((file) => readFileSync(join(directory, 'cards', file), 'utf8'))
       .find((card) => card.includes('Name a test'))
     assert.ok(note)
     assert.match(note, /Use ledger and run `retry\(build\)` once\./)
-    assert.match(note, /^project: none$/m)
+    assert.match(note, /^  framework: none$/m)
   })
 })
 
@@ -508,8 +496,8 @@ test('a title with no letters is still filed under a readable name', () => {
   withDirectory((directory) => {
     const app = ready(directory, () => draft({ title: '!!!' }))
     app.runLearner([transcript])
-    const file = readdirSync(join(directory, 'work', 'platform'))[0]
-    assert.match(file, /^lesson-[0-9a-f-]{36}\.md$/)
+    const file = cardFiles(directory)[0]
+    assert.match(file, /^card_\d{8}_\d{6}(?:_\d+)?\.md$/)
   })
 })
 
@@ -545,7 +533,7 @@ test('one learning pass reads every enabled source before it writes a card', () 
       ['cursor:the deploy failed', 'claude:read the log'],
       ['cursor:the deploy failed', 'claude:read the log'],
     ])
-    assert.equal(readdirSync(join(directory, 'work', 'platform')).length, 2)
+    assert.equal(cardFiles(directory).length, 2)
   })
 })
 
@@ -559,10 +547,9 @@ test('the same claim found in two tools becomes one card that lists both sources
       { source: 'cursor', text: 'retry the deploy once', repo: 'sharlie-evolved' },
       { source: 'claude', text: 'retry that deploy one time' },
     ])
-    const folder = join(directory, 'work', 'platform')
-    const files = readdirSync(folder)
+    const files = cardFiles(directory)
     assert.equal(files.length, 1)
-    const card = readFileSync(join(folder, files[0]), 'utf8')
+    const card = readFileSync(join(directory, 'cards', files[0]), 'utf8')
     assert.match(card, /- cursor/)
     assert.match(card, /- claude/)
   })
@@ -583,17 +570,18 @@ test('a chat that repeats a known claim rewrites that card in place', () => {
       })
     })
     app.runLearner([transcript])
-    const folder = join(directory, 'work', 'platform')
-    const before = readdirSync(folder)
-    const beforeText = readFileSync(join(folder, before[0]), 'utf8')
+    const before = cardFiles(directory)
+    const beforeText = readFileSync(join(directory, 'cards', before[0]), 'utf8')
     const id = beforeText.match(/^id: (.+)$/m)?.[1]
     app.runLearner([{ source: 'cursor', text: 'retry the same failed deploy' }])
-    const after = readdirSync(folder)
-    assert.deepEqual(after, before)
-    const card = readFileSync(join(folder, after[0]), 'utf8')
+    assert.deepEqual(cardFiles(directory), before)
+    const card = readFileSync(join(directory, 'cards', before[0]), 'utf8')
     assert.match(card, new RegExp(`^id: ${id}$`, 'm'))
-    assert.match(card, /## Situation\n\nA deploy failed, so retry it once\./)
+    assert.match(card, /## Failure modes\n\nA deploy failed, so retry it once\./)
     assert.equal(card.includes('A deploy failed after the lock timed out.'), false)
+    const archived = readdirSync(join(directory, 'archive')).filter((name) => name.endsWith('.md'))
+    assert.equal(archived.length, 1)
+    assert.match(readFileSync(join(directory, 'archive', archived[0]), 'utf8'), /A deploy failed after the lock timed out\./)
   })
 })
 
@@ -611,15 +599,14 @@ test('a rewrite stays within 120 words for each lesson part and does not append'
     })
     app.runLearner([transcript])
     app.runLearner([{ source: 'cursor', text: 'say the claim again' }])
-    const folder = join(directory, 'work', 'platform')
-    const file = readdirSync(folder)[0]
-    const replaced = readFileSync(join(folder, file), 'utf8')
-    assert.match(replaced, new RegExp(`## Situation\\n\\n${fitted}\\n`))
-    assert.equal(replaced.includes(short), false)
+    const file = cardFiles(directory)[0]
+    const replaced = readFileSync(join(directory, 'cards', file), 'utf8')
+    assert.match(replaced, new RegExp(`## Failure modes\\n\\n${fitted}\\n`))
+    assert.equal(replaced.includes(`## Failure modes\n\n${short}`), false)
     app.runLearner([{ source: 'cursor', text: 'say the claim at more length' }])
-    const kept = readFileSync(join(folder, file), 'utf8')
-    assert.equal(readdirSync(folder).length, 1)
-    assert.match(kept, new RegExp(`## Situation\\n\\n${fitted}\\n`))
+    const kept = readFileSync(join(directory, 'cards', file), 'utf8')
+    assert.equal(cardFiles(directory).length, 1)
+    assert.match(kept, new RegExp(`## Failure modes\\n\\n${fitted}\\n`))
     assert.equal(kept.includes(tooLong), false)
   })
 })
@@ -630,7 +617,7 @@ test('a different claim creates a new card that shares a topic and stays separat
     const app = ready(directory, (request) => {
       pass += 1
       if (pass === 1) return draft({ title: 'Retry failed deploys', topics: ['deploys'] })
-      assert.deepEqual(request.cards[0].topics, ['deploys'])
+      assert.equal(request.cards[0].title, 'Retry failed deploys')
       return draft({
         title: 'Read the lock log',
         topics: ['deploys', 'logs'],
@@ -639,11 +626,9 @@ test('a different claim creates a new card that shares a topic and stays separat
     })
     app.runLearner([transcript])
     app.runLearner([{ source: 'cursor', text: 'then read the log' }])
-    const folder = join(directory, 'work', 'platform')
-    const files = readdirSync(folder)
+    const files = cardFiles(directory)
     assert.equal(files.length, 2)
-    const cards = files.map((file) => readFileSync(join(folder, file), 'utf8'))
-    assert.equal(cards.filter((card) => card.includes('- deploys')).length, 2)
+    const cards = files.map((file) => readFileSync(join(directory, 'cards', file), 'utf8'))
     assert.equal(cards.some((card) => card.includes('title: Retry failed deploys')), true)
     assert.equal(cards.some((card) => card.includes('title: Read the lock log')), true)
     const ids = cards.map((card) => card.match(/^id: (.+)$/m)?.[1])
@@ -661,9 +646,8 @@ test('a repeat from a second tool adds that tool to the card sources', () => {
     })
     app.runLearner([transcript])
     app.runLearner([{ source: 'claude', text: 'retry the deploy once' }])
-    const folder = join(directory, 'work', 'platform')
-    assert.equal(readdirSync(folder).length, 1)
-    const card = readFileSync(join(folder, readdirSync(folder)[0]), 'utf8')
+    assert.equal(cardFiles(directory).length, 1)
+    const card = cardText(directory)
     assert.match(card, /- cursor/)
     assert.match(card, /- claude/)
   })

@@ -64,7 +64,7 @@ test('the first learner run imports every existing transcript from the enabled t
       },
     ])
     assert.deepEqual(seen, ['newer chat', 'older chat'])
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const cards = readdirSync(folder).map((file) => readFileSync(join(folder, file), 'utf8'))
     assert.equal(cards.some((card) => card.includes('title: newer chat')), true)
     assert.equal(cards.some((card) => card.includes('title: older chat')), true)
@@ -98,7 +98,7 @@ test('a long history is imported in batches, back to back, and not as one model 
       true,
     )
     assert.deepEqual(batches.flat(), newestFirst)
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const titles = readdirSync(folder).map((file) => readFileSync(join(folder, file), 'utf8'))
     for (const item of history) {
       assert.equal(
@@ -336,8 +336,8 @@ test('start learning reads installed transcript files, including an old Cursor c
       'cursor:retry the deploy\nRead the log.',
     ])
     assert.equal(
-      readdirSync(join(directory, 'work', 'platform')).some((file) =>
-        readFileSync(join(directory, 'work', 'platform', file), 'utf8').includes('retry the deploy'),
+      readdirSync(join(directory, 'cards')).some((file) =>
+        file.endsWith('.md') && readFileSync(join(directory, 'cards', file), 'utf8').includes('retry the deploy'),
       ),
       true,
     )
@@ -412,7 +412,7 @@ test('a transcript from an installed tool is imported even when that tool was tu
       },
     ])
     assert.deepEqual(seen, ['cursor follow-up', 'claude history edited'])
-    const folder = join(directory, 'work', 'platform')
+    const folder = join(directory, 'cards')
     const cards = readdirSync(folder).map((file) => readFileSync(join(folder, file), 'utf8'))
     assert.equal(cards.some((card) => card.includes('claude history')), true)
   })
