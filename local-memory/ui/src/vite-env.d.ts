@@ -6,7 +6,7 @@ interface SharlieBridge {
   state: () => Promise<PageState>
   action: (body: Record<string, unknown>) => Promise<PageState>
   lookup: (query: string) => Promise<LookupResult>
-  revealKey: () => Promise<{ secret: string }>
+  onLearning: (callback: (state: PageState) => void) => () => void
 }
 
 declare global {

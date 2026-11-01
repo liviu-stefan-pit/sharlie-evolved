@@ -1,4 +1,31 @@
-import type { GraphData, GraphLink, GraphNode } from './types'
+import type { GraphData, GraphLink, GraphNode } from './types.ts'
+
+const GRAY = [0x9d, 0x9d, 0x9d] as const
+const ORANGE = [0xd4, 0x89, 0x4a] as const
+
+function finiteDegree(degree: number | undefined) {
+  return typeof degree === 'number' && Number.isFinite(degree) ? degree : 0
+}
+
+function fade(degree: number | undefined) {
+  return Math.min(1, Math.max(0, (finiteDegree(degree) - 3) / 13))
+}
+
+function hexChannel(value: number) {
+  return value.toString(16).padStart(2, '0')
+}
+
+export function displayColor(degree?: number) {
+  const t = fade(degree)
+  const r = Math.round(GRAY[0] + (ORANGE[0] - GRAY[0]) * t)
+  const g = Math.round(GRAY[1] + (ORANGE[1] - GRAY[1]) * t)
+  const b = Math.round(GRAY[2] + (ORANGE[2] - GRAY[2]) * t)
+  return `#${hexChannel(r)}${hexChannel(g)}${hexChannel(b)}`
+}
+
+export function displayRadius(degree?: number) {
+  return Math.min(16, Math.max(4, 4 + 12 * fade(degree)))
+}
 
 export function linkEnd(value: GraphLink['source']) {
   return typeof value === 'string' ? value : value.id

@@ -1,3 +1,4 @@
+import { catalogParameters, catalogVariants, type ModelParameterValue } from './catalog.ts'
 import type { ListedModel, ModelRequest } from './app.ts'
 
 type Post = (
@@ -5,8 +6,13 @@ type Post = (
   init: { method?: string; headers?: Record<string, string>; body?: string },
 ) => Promise<Response>
 
+export type ModelReply = {
+  text: string
+  tokens: number | null
+}
+
 export type ExchangeDeps = {
-  cursorPrompt?: (request: ModelRequest) => Promise<string>
+  cursorPrompt?: (request: ModelRequest) => Promise<string | ModelReply>
 }
 
 const copilotIntegration = 'copilot-developer-cli'
@@ -76,6 +82,35 @@ function chatCompletionsAvailable(item: Record<string, unknown>) {
   return true
 }
 
+export async function listCursorCatalog(secret: string): Promise<ListedModel[]> {
+  const sdk = (await import('@cursor/sdk')) as {
+    Cursor?: { models?: { list?: (options: { apiKey: string }) => Promise<unknown[]> } }
+  }
+  const listed = await sdk.Cursor?.models?.list?.({ apiKey: secret })
+  if (!Array.isArray(listed)) return []
+  return listed.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const record = item as {
+      id?: unknown
+      displayName?: unknown
+      parameters?: unknown
+      variants?: unknown
+    }
+    if (typeof record.id !== 'string' || record.id === '') return []
+    const displayName = typeof record.displayName === 'string' && record.displayName !== '' ? record.displayName : record.id
+    const parameters = catalogParameters(record.parameters)
+    const variants = catalogVariants(record.variants)
+    return [
+      {
+        id: record.id,
+        displayName,
+        ...(parameters.length > 0 ? { parameters } : {}),
+        ...(variants.length > 0 ? { variants } : {}),
+      },
+    ]
+  })
+}
+
 export async function listCopilotModels(secret: string, fetchImpl: Post = fetch as unknown as Post): Promise<ListedModel[]> {
   const response = await fetchImpl('https://api.githubcopilot.com/models', {
     headers: {
@@ -102,37 +137,71 @@ export async function listCopilotModels(secret: string, fetchImpl: Post = fetch 
   })
 }
 
+function asFiniteNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function chatUsageTokens(usage: unknown) {
+  if (!usage || typeof usage !== 'object') return null
+  return asFiniteNumber((usage as { total_tokens?: unknown }).total_tokens)
+}
+
+function usageTokens(usage: unknown) {
+  if (!usage || typeof usage !== 'object') return null
+  const record = usage as Record<string, unknown>
+  const total = asFiniteNumber(record.total_tokens) ?? asFiniteNumber(record.totalTokens)
+  if (total != null) return total
+  const input = asFiniteNumber(record.input_tokens) ?? asFiniteNumber(record.inputTokens)
+  const output = asFiniteNumber(record.output_tokens) ?? asFiniteNumber(record.outputTokens)
+  if (input == null && output == null) return null
+  const cacheRead =
+    asFiniteNumber(record.cache_read_input_tokens) ??
+    asFiniteNumber(record.cacheReadTokens) ??
+    asFiniteNumber(record.cache_read_tokens)
+  const cacheWrite =
+    asFiniteNumber(record.cache_creation_input_tokens) ??
+    asFiniteNumber(record.cacheWriteTokens) ??
+    asFiniteNumber(record.cache_write_tokens)
+  return (input ?? 0) + (output ?? 0) + (cacheRead ?? 0) + (cacheWrite ?? 0)
+}
+
+function asModelReply(result: string | ModelReply): ModelReply {
+  if (typeof result === 'string') return { text: result, tokens: null }
+  return { text: result.text, tokens: typeof result.tokens === 'number' || result.tokens === null ? result.tokens : null }
+}
+
 function cursorPromptText(prompt: string) {
   if (prompt.includes('Do not edit any files.')) return prompt
   return `Do not edit any files.\n${prompt}`
 }
 
-async function cursorPrompt(request: ModelRequest, deps: ExchangeDeps) {
+async function cursorPrompt(request: ModelRequest, deps: ExchangeDeps): Promise<ModelReply> {
   const prompt = cursorPromptText(request.prompt)
   const asked = { ...request, prompt }
-  if (deps.cursorPrompt) return deps.cursorPrompt(asked)
+  if (deps.cursorPrompt) return asModelReply(await deps.cursorPrompt(asked))
   const sdk = (await import('@cursor/sdk')) as {
     Agent?: {
       prompt?: (
         text: string,
-        options: { apiKey: string; model: { id: string }; local: { cwd: string } },
+        options: { apiKey: string; model: { id: string; params?: ModelParameterValue[] }; local: { cwd: string } },
       ) => Promise<unknown>
     }
   }
   if (!sdk.Agent?.prompt) throw new Error('Cursor SDK has no Agent.prompt')
+  const params = request.params ?? []
   const result = await sdk.Agent.prompt(prompt, {
     apiKey: request.secret,
-    model: { id: request.model },
+    model: { id: request.model, ...(params.length > 0 ? { params } : {}) },
     local: { cwd: request.cwd || process.cwd() },
   })
-  if (typeof result === 'string') return result
+  if (typeof result === 'string') return { text: result, tokens: null }
   if (result && typeof result === 'object') {
-    const record = result as { status?: unknown; result?: unknown; text?: unknown }
+    const record = result as { status?: unknown; result?: unknown; text?: unknown; usage?: unknown }
     if (record.status === 'error') throw new Error('Cursor agent failed')
-    if (typeof record.result === 'string') return record.result
-    if (typeof record.text === 'string') return record.text
+    const text = typeof record.result === 'string' ? record.result : typeof record.text === 'string' ? record.text : ''
+    return { text, tokens: usageTokens(record.usage) }
   }
-  return ''
+  return { text: '', tokens: null }
 }
 
 async function modelJson<T>(response: Response, label: string): Promise<T> {
@@ -153,7 +222,7 @@ export async function callModel(
   request: ModelRequest,
   fetchImpl: Post = fetch as unknown as Post,
   deps: ExchangeDeps = {},
-) {
+): Promise<ModelReply> {
   if (request.provider === 'cursor') return cursorPrompt(request, deps)
   if (request.provider === 'copilot') {
     const chat = request.chatCompletions !== false
@@ -177,9 +246,10 @@ export async function callModel(
       choices?: { message?: { content?: unknown } }[]
       output_text?: unknown
       output?: unknown
+      usage?: unknown
     }>(response, 'Copilot')
-    if (!chat) return responsesText(body)
-    return openaiText(body.choices?.[0]?.message?.content)
+    if (!chat) return { text: responsesText(body), tokens: usageTokens(body.usage) }
+    return { text: openaiText(body.choices?.[0]?.message?.content), tokens: chatUsageTokens(body.usage) }
   }
   if (request.provider === 'custom') {
     const base = (request.baseUrl ?? '').replace(/\/$/, '')
@@ -196,8 +266,11 @@ export async function callModel(
         messages: [{ role: 'user', content: request.prompt }],
       }),
     })
-    const body = await modelJson<{ choices?: { message?: { content?: unknown } }[] }>(response, 'Custom')
-    return openaiText(body.choices?.[0]?.message?.content)
+    const body = await modelJson<{ choices?: { message?: { content?: unknown } }[]; usage?: unknown }>(
+      response,
+      'Custom',
+    )
+    return { text: openaiText(body.choices?.[0]?.message?.content), tokens: chatUsageTokens(body.usage) }
   }
   if (request.provider === 'openai') {
     const response = await fetchImpl('https://api.openai.com/v1/chat/completions', {
@@ -212,8 +285,11 @@ export async function callModel(
         messages: [{ role: 'user', content: request.prompt }],
       }),
     })
-    const body = await modelJson<{ choices?: { message?: { content?: unknown } }[] }>(response, 'OpenAI')
-    return openaiText(body.choices?.[0]?.message?.content)
+    const body = await modelJson<{ choices?: { message?: { content?: unknown } }[]; usage?: unknown }>(
+      response,
+      'OpenAI',
+    )
+    return { text: openaiText(body.choices?.[0]?.message?.content), tokens: chatUsageTokens(body.usage) }
   }
   const response = await fetchImpl('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -228,6 +304,9 @@ export async function callModel(
       messages: [{ role: 'user', content: request.prompt }],
     }),
   })
-  const body = await modelJson<{ content?: { type?: string; text?: string }[] }>(response, 'Anthropic')
-  return anthropicText(body.content)
+  const body = await modelJson<{ content?: { type?: string; text?: string }[]; usage?: unknown }>(
+    response,
+    'Anthropic',
+  )
+  return { text: anthropicText(body.content), tokens: usageTokens(body.usage) }
 }

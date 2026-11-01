@@ -1,5 +1,5 @@
-import { openUserSession, type Provider } from './app.ts'
-import { listCopilotModels } from './exchange.ts'
+import { learningProgress, openUserSession, type Provider } from './app.ts'
+import { listCopilotModels, listCursorCatalog } from './exchange.ts'
 import { runningUnderTest } from './login-item.ts'
 import { localGraph } from './synapse.ts'
 
@@ -41,6 +41,15 @@ async function saveKey(app: WindowApp, params: URLSearchParams) {
     } catch (error) {
       account = { models: [], error: error instanceof Error ? error.message : 'Cursor model list failed' }
     }
+    if (!runningUnderTest()) {
+      try {
+        const catalog = await listCursorCatalog(secret)
+        if (catalog.length > 0) account = { ...account, models: catalog, error: '' }
+      } catch {
+        // The REST model list remains when the SDK catalog is unavailable.
+      }
+    }
+    if (account.models.length === 0) return account.error || 'Cursor model list failed'
     app.saveKey({ provider, secret, account })
     return ''
   }
@@ -88,6 +97,7 @@ function applyWindow(app: WindowApp, params: URLSearchParams): string | Promise<
       app.activateProvider(provider)
     }
   }
+  if (action === 'clear-provider') app.clearProvider()
   if (action === 'set-cadence') {
     const cadence = params.get('cadence')
     if (cadence === '15m' || cadence === '30m' || cadence === '1h' || cadence === 'manual') app.setCadence(cadence)
@@ -118,11 +128,18 @@ function applyWindow(app: WindowApp, params: URLSearchParams): string | Promise<
   if (action === 'start-learning') return app.startLearning()
   if (action === 'select-model') {
     const model = params.get('model') ?? ''
-    if (model === '') return ''
     try {
-      app.selectModel(model)
+      if (model === '') app.clearModel()
+      else app.selectModel(model)
     } catch (error) {
       return error instanceof Error ? error.message : 'not offered'
+    }
+  }
+  if (action === 'set-model-param') {
+    try {
+      app.setModelParam(params.get('id') ?? '', params.get('value') ?? '')
+    } catch (error) {
+      return error instanceof Error ? error.message : 'No model'
     }
   }
   return ''
@@ -145,18 +162,7 @@ async function commitWindow(
   return applyWindow(holder.app, params)
 }
 
-function maskKey(secret: string) {
-  if (secret === '') return ''
-  return `••••${secret.slice(-4)}`
-}
-
 async function pageState(app: WindowApp, session: Session) {
-  let secret = ''
-  try {
-    secret = app.activeKey().secret
-  } catch {
-    secret = ''
-  }
   let model = ''
   try {
     model = app.chosenModel()
@@ -164,23 +170,35 @@ async function pageState(app: WindowApp, session: Session) {
     model = ''
   }
   const provider = app.activeProvider()
+  const savedProviders = [...new Set(app.keys().map((key) => key.provider))]
+  const expiresAt = app.cursorKey().expiresAt
+  const graph = localGraph(app.knowledgePath(), app.drivePath(), app.autoDrop())
+  const tokens = app.learningTokens()
+  const unreported = app.learningTokensUnreported()
+  const snapshot = learningProgress()
   return {
     title: 'Sharlie',
     paused: session.harvestPaused(),
     profile: app.profile(),
     provider,
     providers: keyProviders.map((item) => item.id),
+    savedProviders,
     model,
+    modelParams: app.modelParams(),
     models: provider ? app.modelChoices(provider) : [],
-    keyMask: maskKey(secret),
-    hasKey: secret !== '',
+    hasKey: savedProviders.length > 0,
+    keyExpiresAt: expiresAt,
     vaultPath: app.knowledgePath(),
     drivePath: app.drivePath(),
     autoDrop: app.autoDrop(),
     cadence: app.cadence(),
     customBaseUrl: app.customBaseUrl(),
     sources: session.sourceFolders(),
-    graph: localGraph(app.knowledgePath(), app.drivePath(), app.autoDrop()),
+    graph,
+    learning: snapshot ? { ...snapshot, tokens, unreported } : null,
+    learningTokens: tokens,
+    learningTokensUnreported: unreported,
+    ingest: app.ingestView(graph.nodes.length, app.recentTranscripts()),
   }
 }
 
@@ -209,16 +227,12 @@ export async function openDesktopHost(options: { directory: string; session: Ses
         else options.session.pauseHarvest()
         return JSON.stringify(await pageState(holder.app, options.session))
       }
+      if (message.cmd === 'learning-view') {
+        return JSON.stringify(await pageState(holder.app, options.session))
+      }
       if (message.cmd === 'lookup') {
         const result = await holder.app.lookup(message.query ?? '')
         return JSON.stringify(result)
-      }
-      if (message.cmd === 'reveal-key') {
-        try {
-          return JSON.stringify({ secret: holder.app.activeKey().secret })
-        } catch {
-          return JSON.stringify({ secret: '' })
-        }
       }
       if (message.cmd === 'action') {
         const params = new URLSearchParams()
@@ -238,7 +252,19 @@ async function loadCursorAccount(app: WindowApp) {
   const secret = app.cursorSecret()
   if (secret === '') return
   try {
-    app.rememberCursor(await app.lookupCursor(secret))
+    const account = await app.lookupCursor(secret)
+    if (!runningUnderTest()) {
+      try {
+        const catalog = await listCursorCatalog(secret)
+        if (catalog.length > 0) {
+          app.rememberCursor({ ...account, models: catalog, error: '' })
+          return
+        }
+      } catch {
+        // The REST model list remains when the SDK catalog is unavailable.
+      }
+    }
+    app.rememberCursor(account)
   } catch (error) {
     app.rememberCursor({
       models: [],

@@ -36,3 +36,13 @@ test('an empty source list stays open as an empty message', async ({ page }) => 
   await expect(page.getByRole('menu', { name: 'Sources' })).toBeVisible()
   await expect(page.getByText('No source folders')).toBeVisible()
 })
+
+test('source rows are not buttons', async ({ page }) => {
+  await openApp(page, pageState())
+  await page.getByRole('button', { name: 'Sources' }).click()
+  const menu = page.getByRole('menu', { name: 'Sources' })
+  await expect(menu).toBeVisible()
+  await expect(menu.getByText('Cursor', { exact: true })).toBeVisible()
+  await expect(menu.getByRole('button')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Sources' })).toHaveCount(1)
+})

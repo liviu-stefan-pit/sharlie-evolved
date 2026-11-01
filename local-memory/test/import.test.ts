@@ -2,8 +2,17 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { test } from 'node:test'
-import { discardVault, openApp, openUserSession, readInstalledTranscripts, type LessonDraft, type Transcript } from '../src/app.ts'
+import {
+  discardVault,
+  openApp,
+  openUserSession,
+  readInstalledTranscripts,
+  sourceFolders,
+  type LessonDraft,
+  type Transcript,
+} from '../src/app.ts'
 import { machineWith } from './machine.ts'
 
 function withDirectory(run: (directory: string) => void) {
@@ -275,6 +284,24 @@ function jsonl(lines: { role: 'user' | 'assistant'; text: string }[]) {
     .join('\n')
 }
 
+function writeStore(file: string, rows: { id: string; data: string }[]) {
+  mkdirSync(join(file, '..'), { recursive: true })
+  const db = new DatabaseSync(file)
+  try {
+    db.exec('CREATE TABLE blobs (id TEXT PRIMARY KEY, data BLOB)')
+    const insert = db.prepare('INSERT INTO blobs (id, data) VALUES (?, ?)')
+    for (const row of rows) insert.run(row.id, row.data)
+  } finally {
+    db.close()
+  }
+}
+
+function cliBlob(role: 'user' | 'assistant', text: string, wrapped = true) {
+  return wrapped
+    ? JSON.stringify({ role, message: { content: [{ type: 'text', text }] } })
+    : JSON.stringify({ role, content: text })
+}
+
 test('start learning reads installed transcript files, including an old Cursor chat, and the next run skips them', () => {
   const root = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const directory = join(root, 'knowledge')
@@ -288,20 +315,32 @@ test('start learning reads installed transcript files, including an old Cursor c
     'chat',
     'chat.jsonl',
   )
-  const cliFile = join(machine.home, '.cursor', 'chats', 'cli-session', 'session.jsonl')
+  const sessionId = 'cli-session'
+  const sessionDir = join(machine.home, '.cursor', 'chats', 'a1b2c3', sessionId)
+  const storeFile = join(sessionDir, 'store.db')
   const claudeFile = join(machine.home, '.claude', 'projects', 'ledger', 'session.jsonl')
   mkdirSync(join(cursorFile, '..'), { recursive: true })
-  mkdirSync(join(cliFile, '..'), { recursive: true })
+  mkdirSync(sessionDir, { recursive: true })
   mkdirSync(join(claudeFile, '..'), { recursive: true })
   writeFileSync(cursorFile, jsonl([
     { role: 'user', text: 'retry the deploy' },
     { role: 'assistant', text: 'Read the log.' },
   ]))
-  writeFileSync(cliFile, jsonl([{ role: 'user', text: 'the cli fixed the lock' }]))
+  writeFileSync(
+    join(sessionDir, 'meta.json'),
+    JSON.stringify({
+      cwd: 'C:\\prod\\Projects\\sharlie-evolved',
+      hasConversation: true,
+      updatedAtMs: Date.parse('2024-06-01T12:00:00.000Z'),
+    }),
+  )
+  writeStore(storeFile, [
+    { id: 'user', data: cliBlob('user', 'the cli fixed the lock') },
+    { id: 'assistant', data: cliBlob('assistant', 'Cleared the lock.', false) },
+  ])
   writeFileSync(claudeFile, jsonl([{ role: 'user', text: 'name the export header' }]))
   const old = new Date('2024-01-15T12:00:00.000Z')
   utimesSync(cursorFile, old, old)
-  utimesSync(cliFile, new Date('2024-06-01T12:00:00.000Z'), new Date('2024-06-01T12:00:00.000Z'))
   utimesSync(claudeFile, new Date('2025-01-01T12:00:00.000Z'), new Date('2025-01-01T12:00:00.000Z'))
 
   const seen: string[] = []
@@ -323,7 +362,11 @@ test('start learning reads installed transcript files, including an old Cursor c
     assert.equal(cursor.text, 'retry the deploy\nRead the log.')
     assert.ok(Date.parse(cursor.changedAt ?? '') < Date.parse('2024-06-01T00:00:00.000Z'))
     assert.equal(found.filter((transcript) => transcript.id === cursorFile).length, 1)
-    assert.equal(found.some((transcript) => transcript.source === 'cursor-cli' && transcript.text === 'the cli fixed the lock'), true)
+    const cli = found.find((transcript) => transcript.source === 'cursor-cli')
+    assert.ok(cli)
+    assert.equal(cli.id, storeFile)
+    assert.equal(cli.repo, 'sharlie-evolved')
+    assert.equal(cli.text, 'the cli fixed the lock\nCleared the lock.')
     assert.equal(found.some((transcript) => transcript.source === 'claude-cli' && transcript.repo === 'ledger'), true)
 
     const window = session.openWindow(directory)
@@ -332,7 +375,7 @@ test('start learning reads installed transcript files, including an old Cursor c
     assert.equal(window.startLearning(), '')
     assert.deepEqual(seen, [
       'claude-cli:name the export header',
-      'cursor-cli:the cli fixed the lock',
+      'cursor-cli:the cli fixed the lock\nCleared the lock.',
       'cursor:retry the deploy\nRead the log.',
     ])
     assert.equal(
@@ -356,6 +399,171 @@ test('start learning reads installed transcript files, including an old Cursor c
     assert.deepEqual(seen, ['cursor:read the lock log'])
   } finally {
     discardVault(directory)
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('a Cursor plan file is learned without a repo', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(root, ['cursor'])
+  const plan = join(machine.home, '.cursor', 'plans', '7f3a9c2e.plan.md')
+  mkdirSync(join(plan, '..'), { recursive: true })
+  writeFileSync(plan, '  Retry the lock once, then read the log.  \n')
+  try {
+    const found = readInstalledTranscripts(machine)
+    const transcript = found.find((item) => item.id === plan)
+    assert.ok(transcript)
+    assert.equal(transcript.source, 'cursor')
+    assert.equal(transcript.repo, undefined)
+    assert.equal(transcript.text, 'Retry the lock once, then read the log.')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('Cursor CLI claims the parent transcript, imports subagents, and ignores empty sessions and junk blobs', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(root, ['cursor', 'cursor-cli'])
+  const sessionId = 'sess-claim'
+  const sessionDir = join(machine.home, '.cursor', 'chats', 'hash1', sessionId)
+  const storeFile = join(sessionDir, 'store.db')
+  const parent = join(
+    machine.home,
+    '.cursor',
+    'projects',
+    'sharlie-evolved',
+    'agent-transcripts',
+    sessionId,
+    `${sessionId}.jsonl`,
+  )
+  const subagent = join(
+    machine.home,
+    '.cursor',
+    'projects',
+    'sharlie-evolved',
+    'agent-transcripts',
+    sessionId,
+    'subagents',
+    'worker.jsonl',
+  )
+  const emptyDir = join(machine.home, '.cursor', 'chats', 'hash2', 'empty-session')
+  mkdirSync(sessionDir, { recursive: true })
+  mkdirSync(join(parent, '..'), { recursive: true })
+  mkdirSync(join(subagent, '..'), { recursive: true })
+  mkdirSync(emptyDir, { recursive: true })
+  writeFileSync(
+    join(sessionDir, 'meta.json'),
+    JSON.stringify({
+      cwd: 'C:\\prod\\Projects\\sharlie-evolved',
+      hasConversation: true,
+      updatedAtMs: Date.parse('2024-06-01T12:00:00.000Z'),
+    }),
+  )
+  writeStore(storeFile, [
+    { id: 'user', data: cliBlob('user', 'the cli fixed the lock') },
+    { id: 'assistant', data: cliBlob('assistant', 'Cleared the lock.', false) },
+    { id: 'junk', data: 'this is not json' },
+  ])
+  writeFileSync(parent, jsonl([{ role: 'user', text: 'parent only text' }]))
+  writeFileSync(subagent, jsonl([{ role: 'user', text: 'subagent ran the check' }]))
+  writeFileSync(
+    join(emptyDir, 'meta.json'),
+    JSON.stringify({
+      cwd: 'C:\\prod\\Projects\\other',
+      hasConversation: false,
+    }),
+  )
+  try {
+    const found = readInstalledTranscripts(machine)
+    assert.equal(found.some((item) => item.source === 'cursor' && item.text.includes('parent only text')), false)
+    assert.equal(found.some((item) => item.text.includes('parent only text')), false)
+    assert.equal(
+      found.some((item) => item.source === 'cursor-cli' && item.text.includes('subagent ran the check')),
+      true,
+    )
+    assert.equal(found.some((item) => item.text.includes('this is not json')), false)
+    const cli = found.find((item) => item.id === storeFile)
+    assert.ok(cli)
+    assert.equal(cli.source, 'cursor-cli')
+    assert.equal(cli.text, 'the cli fixed the lock\nCleared the lock.')
+    assert.equal(found.some((item) => item.id?.includes('empty-session')), false)
+    const folders = sourceFolders(machine)
+    assert.deepEqual(
+      folders.filter((folder) => folder.tool === 'Cursor CLI'),
+      [{ tool: 'Cursor CLI', path: join(machine.home, '.cursor', 'chats') }],
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('sourceFolders lists each Cursor store root once', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(root, ['cursor', 'cursor-cli'])
+  const first = join(
+    machine.home,
+    '.cursor',
+    'projects',
+    'sharlie-evolved',
+    'agent-transcripts',
+    'chat-a',
+    'chat-a.jsonl',
+  )
+  const second = join(machine.home, '.cursor', 'projects', 'ledger', 'agent-transcripts', 'chat-b', 'chat-b.jsonl')
+  const plan = join(machine.home, '.cursor', 'plans', '7f3a9c2e.plan.md')
+  const sessionDir = join(machine.home, '.cursor', 'chats', 'hash1', 'sess1')
+  const emptyDir = join(machine.home, '.cursor', 'chats', 'hash2', 'empty-session')
+  const notes = join(root, 'notes-repo')
+  mkdirSync(join(first, '..'), { recursive: true })
+  mkdirSync(join(second, '..'), { recursive: true })
+  mkdirSync(join(plan, '..'), { recursive: true })
+  mkdirSync(sessionDir, { recursive: true })
+  mkdirSync(emptyDir, { recursive: true })
+  mkdirSync(join(notes, 'docs', 'adr'), { recursive: true })
+  writeFileSync(first, jsonl([{ role: 'user', text: 'retry the deploy' }]))
+  writeFileSync(second, jsonl([{ role: 'user', text: 'name the export header' }]))
+  writeFileSync(plan, 'Retry the lock once.')
+  writeFileSync(
+    join(machine.home, '.cursor', 'projects', 'sharlie-evolved', '.workspace-trusted'),
+    JSON.stringify({ workspacePath: notes }),
+  )
+  writeFileSync(join(notes, 'README.md'), 'Workspace notes stay off the Sources menu.')
+  writeFileSync(
+    join(sessionDir, 'meta.json'),
+    JSON.stringify({
+      cwd: 'C:\\prod\\Projects\\sharlie-evolved',
+      hasConversation: true,
+      updatedAtMs: Date.parse('2024-06-01T12:00:00.000Z'),
+    }),
+  )
+  writeStore(join(sessionDir, 'store.db'), [
+    { id: 'user', data: cliBlob('user', 'the cli fixed the lock') },
+    { id: 'assistant', data: cliBlob('assistant', 'Cleared the lock.', false) },
+  ])
+  writeFileSync(
+    join(emptyDir, 'meta.json'),
+    JSON.stringify({ cwd: 'C:\\prod\\Projects\\other', hasConversation: false }),
+  )
+  try {
+    const found = readInstalledTranscripts(machine)
+    const planTranscript = found.find((item) => item.id === plan)
+    assert.ok(planTranscript)
+    assert.equal(planTranscript.source, 'cursor')
+    assert.equal(planTranscript.repo, undefined)
+    assert.equal(planTranscript.text, 'Retry the lock once.')
+    assert.equal(found.some((item) => item.source === 'workspace'), true)
+    const folders = sourceFolders(machine)
+    assert.deepEqual(folders, [
+      { tool: 'Cursor', path: join(machine.home, '.cursor', 'projects') },
+      { tool: 'Cursor', path: join(machine.home, '.cursor', 'plans') },
+      { tool: 'Cursor CLI', path: join(machine.home, '.cursor', 'chats') },
+    ])
+    assert.equal(folders.filter((folder) => folder.tool === 'Cursor').length, 2)
+    assert.equal(folders.some((folder) => folder.path.includes('agent-transcripts')), false)
+    assert.equal(folders.some((folder) => folder.path.includes('sess1')), false)
+    assert.equal(folders.some((folder) => folder.tool === 'Cursor CLI' && folder.path.includes('projects')), false)
+    assert.equal(folders.some((folder) => folder.path === notes), false)
+  } finally {
     rmSync(root, { recursive: true, force: true })
   }
 })

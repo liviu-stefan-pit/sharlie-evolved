@@ -59,6 +59,15 @@ export function Drawer({
       </div>
       <div className="min-h-0 flex-1 overflow-auto px-3 py-3 text-[13px]">
         <p className="mb-3 text-xs text-faint">{stamp(node.created_at)}</p>
+        {node.kind === 'card' ? (
+          <p className="mb-3 flex items-center gap-1.5 text-xs text-muted">
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: node.synced === true ? '#6f8f78' : '#b89a6a' }}
+            />
+            {node.synced === true ? 'On Drive' : 'Only on this machine'}
+          </p>
+        ) : null}
         <h3 className="mb-1 text-xs text-muted">What worked</h3>
         <p className="mb-3 whitespace-pre-wrap">{node.solution ?? ''}</p>
         <h3 className="mb-1 text-xs text-muted">What failed</h3>

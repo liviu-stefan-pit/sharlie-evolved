@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { isFileMention, isLearningSource } from './graph-rules.ts'
 
 export type CardRelation = {
   entity: string
@@ -16,6 +17,7 @@ export type CardAuthor = {
 export type SynapseCard = {
   id: string
   title: string
+  topics: string[]
   context: { os: string; tool_version: string; framework: string }
   solution: string
   failure_modes: string[]
@@ -82,13 +84,28 @@ function writeClaims(directory: string, claims: Record<string, string>) {
   writeFileSync(claimsPath(directory), JSON.stringify(claims))
 }
 
+function topicLines(topics: string[]) {
+  if (topics.length === 0) return ['topics: []']
+  return ['topics:', ...topics.map((topic) => `  - ${yaml(topic)}`)]
+}
+
+function withTopics(card: SynapseCard): SynapseCard {
+  const topics = (card as { topics?: unknown }).topics
+  return {
+    ...card,
+    topics: Array.isArray(topics) ? topics.filter((topic): topic is string => typeof topic === 'string') : [],
+  }
+}
+
 export function renderCardMarkdown(card: SynapseCard) {
   const modes = card.failure_modes.length > 0 ? card.failure_modes : ['']
   const relations = card.relations.length > 0 ? card.relations : []
+  const topics = card.topics ?? []
   return [
     '---',
     `id: ${card.id}`,
     `title: ${yaml(card.title)}`,
+    ...topicLines(topics),
     'context:',
     `  os: ${yaml(card.context.os)}`,
     `  tool_version: ${yaml(card.context.tool_version)}`,
@@ -175,6 +192,7 @@ export function publishCard(options: {
   if (existing) archivePrevious(options.directory, id)
   const card: SynapseCard = {
     ...options.card,
+    topics: options.card.topics ?? [],
     id,
     created_at: existing?.created_at ?? options.card.created_at ?? new Date().toISOString(),
   }
@@ -189,7 +207,7 @@ export function publishCard(options: {
 
 export function readCard(directory: string, id: string): SynapseCard | null {
   try {
-    return JSON.parse(readFileSync(join(directory, 'cards', `${id}.json`), 'utf8')) as SynapseCard
+    return withTopics(JSON.parse(readFileSync(join(directory, 'cards', `${id}.json`), 'utf8')) as SynapseCard)
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
     throw error
@@ -203,7 +221,7 @@ export function readCards(directory: string): SynapseCard[] {
   for (const name of readdirSync(folder)) {
     if (!name.startsWith('card_') || !name.endsWith('.json')) continue
     try {
-      cards.push(JSON.parse(readFileSync(join(folder, name), 'utf8')) as SynapseCard)
+      cards.push(withTopics(JSON.parse(readFileSync(join(folder, name), 'utf8')) as SynapseCard))
     } catch {
       continue
     }
@@ -216,6 +234,7 @@ export type GraphNode = {
   kind: string
   label: string
   color: string
+  degree?: number
   synced?: boolean
   title?: string
   created_at?: string
@@ -231,10 +250,31 @@ export function localGraph(directory: string, drivePath = '', autoDrop = false) 
   const neutral = '#9d9d9d'
   const nodes = new Map<string, GraphNode>()
   const links: { source: string; target: string }[] = []
+  const neighbors = new Map<string, Set<string>>()
   function ensure(kind: string, key: string, label: string) {
     const id = `${kind}:${key}`
-    if (!nodes.has(id)) nodes.set(id, { id, kind, label, color: neutral })
+    if (!nodes.has(id)) nodes.set(id, { id, kind, label, color: neutral, degree: 0 })
     return id
+  }
+  function touch(from: string, to: string) {
+    let set = neighbors.get(from)
+    if (!set) {
+      set = new Set()
+      neighbors.set(from, set)
+    }
+    set.add(to)
+  }
+  function connect(source: string, target: string) {
+    if (source === target) return
+    if (neighbors.get(source)?.has(target)) return
+    touch(source, target)
+    touch(target, source)
+    links.push({ source, target })
+  }
+  function projectName(value: string | undefined) {
+    const name = (value ?? '').trim()
+    if (name === '' || name === 'none' || isFileMention(name)) return ''
+    return name
   }
   for (const card of readCards(directory)) {
     const copied =
@@ -249,25 +289,25 @@ export function localGraph(directory: string, drivePath = '', autoDrop = false) 
     node.created_at = card.created_at
     node.solution = card.solution
     node.failure_modes = card.failure_modes
-    node.relations = card.relations
     const author = ensure('developer', card.author.email || card.author.username, card.author.username)
-    links.push({ source: author, target: cardId })
-    for (const relation of card.relations) {
-      const kind =
-        relation.relation === 'APPLIES_TO' || relation.relation === 'OCCURS_IN' || relation.relation === 'INCOMPATIBLE_WITH'
-          ? 'tool'
-          : relation.relation === 'WARNS_AGAINST'
-            ? 'antipattern'
-            : 'issue'
-      const target = ensure(kind, relation.target_entity, relation.target_entity)
-      links.push({ source: cardId, target })
+    connect(author, cardId)
+    const team = (card.author.team ?? '').trim()
+    if (team !== '' && !isFileMention(team)) connect(ensure('team', team, team), cardId)
+    for (const topic of card.topics) {
+      const name = topic.trim()
+      if (name === '' || isFileMention(name)) continue
+      connect(cardId, ensure('topic', name, name))
     }
     for (const source of card.sources) {
-      const tool = ensure('tool', source, source)
-      if (!links.some((link) => link.source === cardId && link.target === tool)) {
-        links.push({ source: cardId, target: tool })
-      }
+      const name = source.trim()
+      if (!isLearningSource(name)) continue
+      connect(cardId, ensure('tool', name, name))
     }
+    const framework = projectName(card.context.framework)
+    if (framework !== '') connect(cardId, ensure('issue', framework, framework))
+  }
+  for (const node of nodes.values()) {
+    node.degree = neighbors.get(node.id)?.size ?? 0
   }
   return {
     canvas: '#1f1f1f',

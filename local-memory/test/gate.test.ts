@@ -98,38 +98,41 @@ test('keys are stored in the operating system vault, and they are not written in
   })
 })
 
-test('an unpinned key follows Cursor, then Copilot, then Anthropic, then OpenAI, and Use keeps that pin', () => {
+test('the first saved key stays on until the person chooses another, and clearing it leaves none active', () => {
   withDirectory((directory) => {
     const app = open(directory)
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
     app.saveKey({ provider: 'openai', secret: 'sk-proj-bbbb' })
     assert.equal(app.keys().find((key) => key.active)?.provider, 'openai')
 
     app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
-    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'anthropic')
-
-    app.saveKey({ provider: 'openai', secret: 'sk-proj-cccc' })
-    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'anthropic')
+    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'openai')
 
     app.saveKey({ provider: 'copilot', secret: 'sk-copilot-dddd' })
-    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'copilot')
-
-    app.saveKey({ provider: 'cursor', secret: 'sk-cursor-eeee' })
-    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'cursor')
+    assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'openai')
 
     const copilot = app.keys().find((key) => key.provider === 'copilot')
     assert.ok(copilot)
     app.activateKey(copilot.id)
-    app.saveKey({ provider: 'cursor', secret: 'sk-cursor-ffff' })
+    app.saveKey({ provider: 'cursor', secret: 'sk-cursor-eeee' })
     assert.equal(app.keys().filter((key) => key.active).map((key) => key.provider).join(), 'copilot')
 
+    app.clearProvider()
+    assert.equal(app.keys().filter((key) => key.active).length, 0)
+    assert.equal(app.activeProvider(), '')
+    app.saveKey({ provider: 'cursor', secret: 'sk-cursor-ffff' })
+    assert.equal(app.keys().filter((key) => key.active).length, 0)
+
     const reopened = open(directory)
-    reopened.saveKey({ provider: 'cursor', secret: 'sk-cursor-gggg' })
-    assert.equal(reopened.keys().filter((key) => key.active).map((key) => key.provider).join(), 'copilot')
+    assert.equal(reopened.keys().filter((key) => key.active).length, 0)
+    assert.equal(reopened.beginLearning(), 'Turn on a provider before learning can write cards.')
+    assert.equal(reopened.runLearner().ran, false)
 
     const settings = readFileSync(join(directory, 'settings.json'), 'utf8')
     assert.equal(settings.includes('sk-proj-bbbb'), false)
     assert.equal(settings.includes('sk-cursor-eeee'), false)
     assert.equal(settings.includes('sk-copilot-dddd'), false)
+    assert.equal(settings.includes('createdAt'), false)
   })
 })
 
@@ -200,12 +203,76 @@ test('a Cursor key offers the models Cursor returned and the learner uses the fi
       },
     })
     assert.deepEqual(app.models(), ['composer-2.5', 'auto-smart'])
+    assert.equal(app.chosenModel(), '')
+    assert.equal(app.beginLearning(), 'Choose a model before learning can write cards.')
+    assert.equal(app.runLearner().ran, false)
+    app.selectModel('composer-2.5')
     assert.equal(app.chosenModel(), 'composer-2.5')
     const ran = app.runLearner([{ source: 'cursor', text: 'retry the deploy', repo: 'sharlie-evolved' }])
     assert.equal(ran.ran, true)
     assert.equal(ran.model, 'composer-2.5')
     assert.equal(calls, 1)
     assert.equal(readFileSync(join(directory, 'settings.json'), 'utf8').includes('sk-secret-value'), false)
+  })
+})
+
+test('a Cursor model keeps effort and fast from its default variant until the person changes them', () => {
+  withDirectory((directory) => {
+    const app = open(directory)
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({
+      provider: 'cursor',
+      secret: 'sk-secret-value',
+      account: {
+        models: [
+          {
+            id: 'effort-model',
+            displayName: 'Effort Model',
+            parameters: [
+              {
+                id: 'effort',
+                displayName: 'Effort',
+                values: [
+                  { value: 'low', displayName: 'Low' },
+                  { value: 'high', displayName: 'High' },
+                ],
+              },
+              {
+                id: 'fast',
+                displayName: 'Fast',
+                values: [
+                  { value: 'false' },
+                  { value: 'true' },
+                ],
+              },
+            ],
+            variants: [
+              {
+                params: [
+                  { id: 'effort', value: 'high' },
+                  { id: 'fast', value: 'true' },
+                ],
+                displayName: 'High',
+                isDefault: true,
+              },
+            ],
+          },
+        ],
+      },
+    })
+    assert.equal(app.beginLearning(), 'Choose a model before learning can write cards.')
+    app.selectModel('effort-model')
+    assert.deepEqual(app.modelParams(), [
+      { id: 'effort', value: 'high' },
+      { id: 'fast', value: 'true' },
+    ])
+    app.setModelParam('effort', 'low')
+    app.setModelParam('fast', 'false')
+    assert.deepEqual(app.modelParams(), [
+      { id: 'effort', value: 'low' },
+      { id: 'fast', value: 'false' },
+    ])
+    assert.equal(app.beginLearning(), '')
   })
 })
 

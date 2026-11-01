@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { fail, installHost, openApp, pageState, reply } from './support'
+import { clickNode, fail, graphWithNodes, installHost, openApp, pageState, reply } from './support'
 
 test('the header stays up while the page loads, errors, and switches views', async ({ page }) => {
   await installHost(page)
@@ -44,4 +44,30 @@ test('settings opens over a loaded graph without a blank frame', async ({ page }
   await page.getByRole('button', { name: 'Settings' }).click()
   await expect(page.getByLabel('Username')).toHaveCount(0)
   await expect(page.locator('[data-graph]')).toBeVisible()
+})
+
+test('a running harvest mark uses the synced color', async ({ page }) => {
+  await openApp(page, pageState({ paused: false }))
+  const mark = page.getByLabel('Harvest running')
+  await expect(mark).toBeVisible()
+  await expect(mark).toHaveCSS('background-color', 'rgb(111, 143, 120)')
+})
+
+test('a paused harvest mark uses the pending color', async ({ page }) => {
+  await openApp(page, pageState({ paused: true }))
+  const mark = page.getByLabel('Harvest paused')
+  await expect(mark).toBeVisible()
+  await expect(mark).toHaveCSS('background-color', 'rgb(184, 154, 106)')
+})
+
+test('the open drawer is 280 wide and stays inside the window', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await clickNode(page, 'card:retry')
+  const box = await page.locator('aside').boundingBox()
+  if (!box) throw new Error('drawer is missing')
+  expect(Math.abs(box.width - 280)).toBeLessThanOrEqual(1)
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.y).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(680)
+  expect(box.y + box.height).toBeLessThanOrEqual(520)
 })

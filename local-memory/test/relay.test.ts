@@ -60,6 +60,25 @@ test('a fixture card becomes idempotent MERGE statements and drops transcript te
   assert.equal(packed.includes('A deploy failed after the lock timed out.'), false)
 })
 
+test('card cypher skips tool-call sources and still links the learning source', () => {
+  const card = fixture()
+  card.sources = ['Read', 'Shell', 'cursor']
+  card.relations = [
+    ...(card.relations ?? []),
+    { entity: 'Retry failed deploys', relation: 'APPLIES_TO', target_entity: 'App.tsx' },
+    { entity: 'Retry failed deploys', relation: 'RESOLVES', target_entity: 'src/index.ts' },
+  ]
+  const statements = cardCypher(card)
+  const parameters = statements.flatMap((statement) => Object.values(statement.parameters))
+  assert.equal(parameters.includes('Read'), false)
+  assert.equal(parameters.includes('Shell'), false)
+  assert.equal(parameters.includes('App.tsx'), false)
+  assert.equal(parameters.includes('src/index.ts'), false)
+  assert.equal(parameters.includes('cursor'), true)
+  assert.equal(parameters.includes('tool:cursor'), true)
+  assert.match(statements.map((statement) => statement.statement).join('\n'), /MERGE \(card\)-\[:APPLIES_TO\]->\(tool\)/)
+})
+
 test('the dropzone runner writes Cypher for username card JSON and moves that file', async () => {
   const reads: string[] = []
   const moves: { fileId: string; fromId: string; toId: string }[] = []

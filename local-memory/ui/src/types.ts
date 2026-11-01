@@ -11,6 +11,7 @@ export type GraphNode = {
   kind: string
   label: string
   color: string
+  degree?: number
   synced?: boolean
   title?: string
   created_at?: string
@@ -19,6 +20,8 @@ export type GraphNode = {
   relations?: CardRelation[]
   x?: number
   y?: number
+  vx?: number
+  vy?: number
   fx?: number
   fy?: number
 }
@@ -41,16 +44,39 @@ export type GraphData = {
   links: GraphLink[]
 }
 
+export type ModelParameterValue = { id: string; value: string }
+
+export type CatalogParameter = {
+  id: string
+  displayName?: string
+  values: { value: string; displayName?: string }[]
+}
+
+export type CatalogModel = {
+  id: string
+  displayName: string
+  parameters?: CatalogParameter[]
+}
+
+export type IngestState = {
+  visible: true
+  lines: string[]
+  tokens: number
+  unreported: number
+}
+
 export type PageState = {
   title: string
   paused: boolean
   profile: { username: string; email: string; team: string }
   provider: string
   providers: string[]
+  savedProviders: string[]
   model: string
-  models: { id: string; displayName: string }[]
-  keyMask: string
+  modelParams: ModelParameterValue[]
+  models: CatalogModel[]
   hasKey: boolean
+  keyExpiresAt: string
   vaultPath: string
   drivePath: string
   autoDrop: boolean
@@ -58,7 +84,21 @@ export type PageState = {
   customBaseUrl: string
   sources: SourceFolder[]
   graph: GraphData
+  learning: { active: boolean; done: number; total: number; error?: string; tokens?: number; unreported?: number } | null
+  learningTokens: number
+  learningTokensUnreported: number
+  ingest: IngestState | null
   notice?: string
+}
+
+export function formatTokenTotal(tokens: number, unreported: number) {
+  const count = tokens.toLocaleString('en-US')
+  const suffix = unreported > 0 ? ` · ${unreported} call${unreported === 1 ? '' : 's'} unreported` : ''
+  return `${count} tokens${suffix}`
+}
+
+export function formatLearningCount(done: number, total: number, tokens: number, unreported: number) {
+  return `Learning ${done} of ${total} · ${formatTokenTotal(tokens, unreported)}`
 }
 
 export type LookupResult = {

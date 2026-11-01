@@ -93,6 +93,41 @@ test('the window host renders Sharlie and applies a form without listening', asy
   }
 })
 
+test('an empty cursor expiry adds no date and the secret stays out of the window', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession(
+    'ada',
+    (request) => draft(request.transcript.text),
+    machineWith(machineRoot(directory), ['cursor']),
+    () => [],
+    async () => ({ models: [{ id: 'composer-2.5', displayName: 'Composer 2.5' }], expiresAt: '' }),
+  )
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const saved = JSON.parse(
+      await host.line(
+        JSON.stringify({
+          cmd: 'action',
+          action: 'save-key',
+          provider: 'cursor',
+          secret: 'cursor-secret-value',
+        }),
+      ),
+    ) as { keyExpiresAt?: string; notice?: string }
+    assert.equal(saved.notice, '')
+    assert.equal(saved.keyExpiresAt, '')
+    const text = JSON.stringify(saved)
+    assert.equal(text.includes('cursor-secret-value'), false)
+    assert.equal(text.includes('createdAt'), false)
+    assert.equal(text.includes('keyMask'), false)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
 test('the desktop window is an Electron shell titled Sharlie', () => {
   const main = readFileSync(new URL('../electron/main.ts', import.meta.url), 'utf8')
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {

@@ -17,6 +17,8 @@ const background = process.argv.includes('--background')
 let quitting = false
 let window: BrowserWindow | null = null
 let running: Awaited<ReturnType<typeof openRunningDesktopHost>> | null = null
+let learningInFlight = false
+let learningAgain = false
 
 function showWindow() {
   if (!window) return
@@ -28,6 +30,29 @@ function showWindow() {
 async function ask(message: Record<string, unknown>) {
   if (!running) throw new Error('Sharlie host is not available')
   return JSON.parse(await running.line(JSON.stringify(message))) as unknown
+}
+
+function sendLearningSnapshot() {
+  if (!window || window.isDestroyed()) return
+  if (learningInFlight) {
+    learningAgain = true
+    return
+  }
+  learningInFlight = true
+  void ask({ cmd: 'learning-view' })
+    .then((pageState) => {
+      if (window && !window.isDestroyed()) {
+        window.webContents.send('learning', pageState)
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      learningInFlight = false
+      if (learningAgain) {
+        learningAgain = false
+        sendLearningSnapshot()
+      }
+    })
 }
 
 function createWindow() {
@@ -95,11 +120,10 @@ if (registerFlag || unregisterFlag) {
       showWindow()
     })
     app.whenReady().then(async () => {
-      running = await openRunningDesktopHost()
+      running = await openRunningDesktopHost({ onLearning: sendLearningSnapshot })
       ipcMain.handle('state', () => ask({ cmd: 'state' }))
       ipcMain.handle('action', (_event, body: Record<string, unknown>) => ask({ ...body, cmd: 'action' }))
       ipcMain.handle('lookup', (_event, query: string) => ask({ cmd: 'lookup', query }))
-      ipcMain.handle('reveal-key', () => ask({ cmd: 'reveal-key' }))
       createWindow()
       createTray()
     })

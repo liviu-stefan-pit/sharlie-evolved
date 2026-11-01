@@ -18,8 +18,10 @@ export function runLookup(query: string) {
   return bridge().lookup(query)
 }
 
-export function revealKey() {
-  return bridge().revealKey()
+export function onLearning(callback: (state: PageState) => void) {
+  const sharlie = window.sharlie
+  if (!sharlie?.onLearning) return () => {}
+  return sharlie.onLearning(callback)
 }
 
 export type { LookupResult, PageState }

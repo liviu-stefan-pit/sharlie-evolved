@@ -2,10 +2,22 @@ import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, posix, relative, win32 } from 'node:path'
+import { basename, join, posix, relative, win32 } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import { registerLoginItem, unregisterLoginItem } from './login-item.ts'
+import { isFileMention, isLearningSource } from './graph-rules.ts'
 import { localGraph, publishCard, readCards, type CardRelation } from './synapse.ts'
+import {
+  catalogParameters,
+  catalogVariants,
+  defaultParams,
+  parseSavedParams,
+  resolveParams,
+  type CatalogParameter,
+  type CatalogVariant,
+  type ModelParameterValue,
+} from './catalog.ts'
 import { deleteSecret, deleteVault, readSecret, writeSecret } from './vault.ts'
 
 export type Profile = {
@@ -83,12 +95,15 @@ export type ModelRequest = {
   secret: string
   model: string
   prompt: string
+  params?: ModelParameterValue[]
   baseUrl?: string
   chatCompletions?: boolean
   cwd?: string
 }
 
-export type ModelExchange = (request: ModelRequest) => string | Promise<string>
+export type ModelReply = { text: string; tokens: number | null }
+
+export type ModelExchange = (request: ModelRequest) => string | ModelReply | Promise<string | ModelReply>
 
 export type AnswerLookup = (
   turn: LookupTurn,
@@ -103,11 +118,12 @@ export type ListedModel = {
   id: string
   displayName: string
   chatCompletions?: boolean
+  parameters?: CatalogParameter[]
+  variants?: CatalogVariant[]
 }
 
 export type CursorAccount = {
   models: ListedModel[]
-  createdAt?: string
   expiresAt?: string
   error?: string
 }
@@ -146,15 +162,19 @@ type Settings = {
   keys: SavedKey[]
   pinnedKeyId: string
   model: string
+  modelParams: ModelParameterValue[]
   learnerIntervalMs: number
   publisherIntervalMs: number
   drivePath: string
   disabledTools: string[]
   learningStarted: boolean
+  initialIngestComplete: boolean
+  learningTokens: number
+  learningTokensUnreported: number
   importedTranscripts: Record<string, string>
   cursorModels: ListedModel[]
   copilotModels: ListedModel[]
-  cursorKey: { createdAt: string; expiresAt: string; error: string }
+  cursorKey: { expiresAt: string; error: string }
   selectedProvider: Provider | ''
   customBaseUrl: string
   customModel: string
@@ -167,20 +187,91 @@ const hourMs = 60 * 60 * 1000
 const thirtyMin = 30 * 60 * 1000
 const importBatchSize = 10
 
+export type LearningProgress = {
+  active: boolean
+  done: number
+  total: number
+  error?: string
+}
+
+export type IngestLog = {
+  lines: string[]
+  tokens: number
+  unreported: number
+}
+
+export type IngestView = {
+  visible: true
+  lines: string[]
+  tokens: number
+  unreported: number
+}
+
+let learningSnapshot: LearningProgress | null = null
+let learningGeneration = 0
+const learningListeners = new Set<(progress: LearningProgress) => void>()
+let lessonWriteQueue: Promise<void> = Promise.resolve()
+
+export function learningProgress(): LearningProgress | null {
+  return learningSnapshot
+}
+
+export function onLearning(listener: (progress: LearningProgress) => void): () => void {
+  learningListeners.add(listener)
+  return () => {
+    learningListeners.delete(listener)
+  }
+}
+
+function emitLearning(progress: LearningProgress) {
+  learningSnapshot = progress
+  for (const listener of [...learningListeners]) listener(progress)
+}
+
+function startForeground(total: number) {
+  learningGeneration += 1
+  learningSnapshot = { active: true, done: 0, total }
+  return learningGeneration
+}
+
+function finishEmptyForeground() {
+  startForeground(0)
+  emitLearning({ active: false, done: 0, total: 0 })
+}
+
+function learningErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function noteForeground(generation: number, error?: string) {
+  if (generation !== learningGeneration || !learningSnapshot || !learningSnapshot.active) return
+  const done = learningSnapshot.done + 1
+  const total = learningSnapshot.total
+  const message = error ?? learningSnapshot.error
+  const next: LearningProgress = { active: true, done, total }
+  if (message) next.error = message
+  learningSnapshot = next
+}
+
+function isMissingKeySecret(error: unknown) {
+  return error instanceof Error && error.message.startsWith('No secret stored for key ')
+}
+
+function enqueueLessonWrite(write: () => void): Promise<void> {
+  const finished = lessonWriteQueue.then(write)
+  lessonWriteQueue = finished.then(
+    () => undefined,
+    () => undefined,
+  )
+  return finished
+}
+
 const fifteenMin = 15 * 60 * 1000
 
 function requireInterval(intervalMs: number, job: string) {
   if (intervalMs !== 0 && intervalMs !== fifteenMin && intervalMs !== thirtyMin && intervalMs !== hourMs) {
     throw new Error(`${job} interval must be 15 minutes, 30 minutes, 1 hour, or manual`)
   }
-}
-
-const keyOrder: Record<Provider, number> = {
-  cursor: 0,
-  copilot: 1,
-  anthropic: 2,
-  openai: 3,
-  custom: 4,
 }
 
 const modelCatalog: Record<Provider, { models: string[]; defaultModel: string }> = {
@@ -219,10 +310,10 @@ function cursorExpiry(value: unknown) {
   return ''
 }
 
-function cursorKeyInfo(value: unknown): { createdAt: string; expiresAt: string; error: string } {
-  const record = value && typeof value === 'object' ? (value as { createdAt?: unknown; expiresAt?: unknown; error?: unknown }) : {}
+function cursorKeyInfo(value: unknown): { expiresAt: string; error: string } {
+  const record = value && typeof value === 'object' ? (value as { expiresAt?: unknown; error?: unknown }) : {}
   const text = (item: unknown) => (typeof item === 'string' ? item : '')
-  return { createdAt: text(record.createdAt), expiresAt: text(record.expiresAt), error: text(record.error) }
+  return { expiresAt: text(record.expiresAt), error: text(record.error) }
 }
 
 function listedModels(value: unknown): ListedModel[] {
@@ -233,7 +324,17 @@ function listedModels(value: unknown): ListedModel[] {
     if (typeof record.id !== 'string' || record.id === '') return []
     const displayName = typeof record.displayName === 'string' && record.displayName !== '' ? record.displayName : record.id
     const chatCompletions = (record as { chatCompletions?: unknown }).chatCompletions
-    return [{ id: record.id, displayName, ...(chatCompletions === false ? { chatCompletions: false as const } : {}) }]
+    const parameters = catalogParameters((record as { parameters?: unknown }).parameters)
+    const variants = catalogVariants((record as { variants?: unknown }).variants)
+    return [
+      {
+        id: record.id,
+        displayName,
+        ...(chatCompletions === false ? { chatCompletions: false as const } : {}),
+        ...(parameters.length > 0 ? { parameters } : {}),
+        ...(variants.length > 0 ? { variants } : {}),
+      },
+    ]
   })
 }
 
@@ -261,18 +362,15 @@ export async function lookupCursorAccount(secret: string, fetchImpl: typeof fetc
       error = fallback instanceof Error ? fallback.message : 'Cursor model list failed'
     }
   }
-  let createdAt = ''
   let expiresAt = ''
   try {
     const response = await fetchImpl('https://api.cursor.com/v1/me', { headers })
     if (response.ok) {
       const body = (await response.json()) as {
-        createdAt?: unknown
         expiresAt?: unknown
         apiKeyExpiresAt?: unknown
         apiKeyExpiresAtMs?: unknown
       }
-      createdAt = typeof body.createdAt === 'string' ? body.createdAt : ''
       expiresAt = cursorExpiry(body.apiKeyExpiresAtMs ?? body.apiKeyExpiresAt ?? body.expiresAt)
     }
   } catch {
@@ -285,7 +383,7 @@ export async function lookupCursorAccount(secret: string, fetchImpl: typeof fetc
       expiresAt = ''
     }
   }
-  return { models, createdAt, expiresAt, error }
+  return { models, expiresAt, error }
 }
 
 async function listedCursorKeyExpiry(secret: string, fetchImpl: typeof fetch) {
@@ -330,20 +428,34 @@ function emptySettings(): Settings {
     keys: [],
     pinnedKeyId: '',
     model: '',
+    modelParams: [],
     learnerIntervalMs: thirtyMin,
     publisherIntervalMs: thirtyMin,
     drivePath: '',
     disabledTools: [],
     learningStarted: false,
+    initialIngestComplete: false,
+    learningTokens: 0,
+    learningTokensUnreported: 0,
     importedTranscripts: {},
     cursorModels: [],
     copilotModels: [],
-    cursorKey: { createdAt: '', expiresAt: '', error: '' },
+    cursorKey: { expiresAt: '', error: '' },
     selectedProvider: '',
     customBaseUrl: '',
     customModel: '',
     autoDrop: false,
   }
+}
+
+function hasPublishedCards(directory: string) {
+  const folder = join(directory, 'cards')
+  if (!existsSync(folder)) return false
+  return readdirSync(folder).some((name) => name.startsWith('card_') && name.endsWith('.json'))
+}
+
+function countOrZero(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
 function readSettings(directory: string): Settings {
@@ -356,11 +468,18 @@ function readSettings(directory: string): Settings {
       keys: parsed.keys ?? defaults.keys,
       pinnedKeyId: parsed.pinnedKeyId ?? defaults.pinnedKeyId,
       model: parsed.model ?? defaults.model,
+      modelParams: parseSavedParams(parsed.modelParams),
       learnerIntervalMs: parsed.learnerIntervalMs ?? defaults.learnerIntervalMs,
       publisherIntervalMs: parsed.publisherIntervalMs ?? defaults.publisherIntervalMs,
       drivePath: parsed.drivePath ?? defaults.drivePath,
       disabledTools: parsed.disabledTools ?? defaults.disabledTools,
       learningStarted: parsed.learningStarted ?? defaults.learningStarted,
+      initialIngestComplete:
+        typeof parsed.initialIngestComplete === 'boolean'
+          ? parsed.initialIngestComplete
+          : hasPublishedCards(directory),
+      learningTokens: countOrZero(parsed.learningTokens),
+      learningTokensUnreported: countOrZero(parsed.learningTokensUnreported),
       importedTranscripts: parsed.importedTranscripts ?? defaults.importedTranscripts,
       cursorModels: listedModels(parsed.cursorModels),
       copilotModels: listedModels(parsed.copilotModels),
@@ -376,14 +495,85 @@ function readSettings(directory: string): Settings {
   }
 }
 
-function writeSettings(directory: string, settings: Settings) {
+function writeSettings(
+  directory: string,
+  settings: Settings,
+  options?: { replaceImported?: boolean; tokens?: boolean },
+) {
   const current = readSettings(directory)
   const merged: Settings = {
     ...settings,
-    importedTranscripts: { ...current.importedTranscripts, ...settings.importedTranscripts },
+    importedTranscripts: options?.replaceImported
+      ? { ...settings.importedTranscripts }
+      : { ...current.importedTranscripts, ...settings.importedTranscripts },
+    learningTokens: options?.tokens ? settings.learningTokens : current.learningTokens,
+    learningTokensUnreported: options?.tokens ? settings.learningTokensUnreported : current.learningTokensUnreported,
   }
   mkdirSync(directory, { recursive: true })
   writeFileSync(settingsPath(directory), JSON.stringify(merged))
+}
+
+function ingestLogPath(directory: string) {
+  return join(directory, 'ingest-log.json')
+}
+
+const ingestLogLines = 300
+
+function emptyIngestLog(): IngestLog {
+  return { lines: [], tokens: 0, unreported: 0 }
+}
+
+function readIngestLog(directory: string): IngestLog {
+  try {
+    const parsed = JSON.parse(readFileSync(ingestLogPath(directory), 'utf8')) as {
+      lines?: unknown
+      tokens?: unknown
+      unreported?: unknown
+    }
+    const lines = Array.isArray(parsed.lines)
+      ? parsed.lines.filter((line): line is string => typeof line === 'string')
+      : []
+    return {
+      lines,
+      tokens: countOrZero(parsed.tokens),
+      unreported: countOrZero(parsed.unreported),
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptyIngestLog()
+    throw error
+  }
+}
+
+function writeIngestLog(directory: string, log: IngestLog) {
+  mkdirSync(directory, { recursive: true })
+  writeFileSync(ingestLogPath(directory), JSON.stringify(log))
+}
+
+function appendIngestLines(
+  directory: string,
+  lines: string[],
+  totals?: { tokens: number; unreported: number },
+) {
+  if (lines.length === 0 && !totals) return
+  const log = readIngestLog(directory)
+  log.lines = [...log.lines, ...lines].slice(-ingestLogLines)
+  if (totals) {
+    log.tokens = totals.tokens
+    log.unreported = totals.unreported
+  }
+  writeIngestLog(directory, log)
+}
+
+function appendIngestLine(
+  directory: string,
+  line: string,
+  totals?: { tokens: number; unreported: number },
+) {
+  appendIngestLines(directory, [line], totals)
+}
+
+function ingestChatLine(transcript: Transcript, suffix: string) {
+  return `${transcript.source} · ${transcriptLabel(transcript)} · ${suffix}`
 }
 
 export function discardVault(directory: string) {
@@ -410,11 +600,20 @@ function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length
 }
 
+const closedRelations = new Set([
+  'APPLIES_TO',
+  'OCCURS_IN',
+  'INCOMPATIBLE_WITH',
+  'WARNS_AGAINST',
+  'RESOLVES',
+])
+
 function lessonIsComplete(lesson: LessonDraft, source: string) {
   return (
     (lesson.scope === 'personal' || lesson.scope === 'work') &&
     filled(source) &&
     filled(lesson.title) &&
+    !isFileMention(lesson.title) &&
     lesson.topics.length > 0 &&
     lesson.topics.every(filled) &&
     filled(lesson.summary) &&
@@ -516,7 +715,7 @@ function readStoredCards(directory: string): StoredCard[] {
     sources: card.sources,
     project: card.context.framework || 'none',
     title: card.title,
-    topics: card.relations.map((relation) => relation.target_entity),
+    topics: card.topics.map((topic) => topic.trim()).filter((topic) => topic !== '' && !isFileMention(topic)),
     summary: card.title,
     situation: card.failure_modes[0] ?? '',
     whatToDo: card.solution,
@@ -530,6 +729,12 @@ function transcriptKey(transcript: Transcript) {
   return createHash('sha256')
     .update(`${transcript.source}\0${transcript.text}\0${transcript.repo ?? ''}\0${transcript.workspace ?? ''}`)
     .digest('hex')
+}
+
+function transcriptLabel(transcript: Transcript) {
+  const id = transcript.id?.trim() ?? ''
+  if (id === '') return transcriptKey(transcript)
+  return basename(id)
 }
 
 function transcriptRevision(transcript: Transcript) {
@@ -1129,72 +1334,278 @@ function copilotCliFiles(root: string) {
   return found
 }
 
+function blobUtf8(data: unknown) {
+  if (typeof data === 'string') return data
+  if (data instanceof Uint8Array) return new TextDecoder().decode(data)
+  return ''
+}
+
+function textsFromCliStore(file: string) {
+  let db: DatabaseSync | undefined
+  try {
+    db = new DatabaseSync(file, { readOnly: true })
+    const rows = db.prepare('SELECT data FROM blobs ORDER BY rowid').all() as { data?: unknown }[]
+    const parts: string[] = []
+    for (const row of rows) {
+      try {
+        const text = lineText(JSON.parse(blobUtf8(row.data)) as unknown)
+        if (text) parts.push(text)
+      } catch {
+        continue
+      }
+    }
+    return parts.join('\n')
+  } catch {
+    return ''
+  } finally {
+    try {
+      db?.close()
+    } catch {
+      /* keep Windows from holding the temp file */
+    }
+  }
+}
+
+function readCliMeta(file: string) {
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as {
+      cwd?: unknown
+      hasConversation?: unknown
+      updatedAtMs?: unknown
+    }
+    return {
+      cwd: typeof parsed.cwd === 'string' ? parsed.cwd : '',
+      hasConversation: parsed.hasConversation === true,
+      updatedAtMs: typeof parsed.updatedAtMs === 'number' ? parsed.updatedAtMs : Number.NaN,
+    }
+  } catch {
+    return { cwd: '', hasConversation: false, updatedAtMs: Number.NaN }
+  }
+}
+
+function listCursorCliSessions(chats: string) {
+  const sessions: { id: string; dir: string }[] = []
+  for (const hash of directoryNames(chats)) {
+    for (const id of directoryNames(join(chats, hash))) {
+      sessions.push({ id, dir: join(chats, hash, id) })
+    }
+  }
+  return sessions
+}
+
+function agentSessionFiles(projects: string, sessionId: string) {
+  const parent: string[] = []
+  const subagents: string[] = []
+  for (const project of directoryNames(projects)) {
+    const sessionDir = join(projects, project, 'agent-transcripts', sessionId)
+    const parentFile = join(sessionDir, `${sessionId}.jsonl`)
+    if (isFile(parentFile)) parent.push(parentFile)
+    const nested = join(sessionDir, 'subagents')
+    if (!isDirectory(nested)) continue
+    try {
+      for (const entry of readdirSync(nested, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith('.jsonl')) subagents.push(join(nested, entry.name))
+      }
+    } catch {
+      continue
+    }
+  }
+  return { parent, subagents }
+}
+
+function cursorProjectRepo(machine: Machine, projectDir: string) {
+  const decoded = decodeCursorSlug(machine, projectDir)
+  return decoded ? baseName(decoded) : projectDir || undefined
+}
+
+function transcriptFromCursorAgent(machine: Machine, file: string, projects: string): Transcript | null {
+  const transcript = transcriptFromFile(file, 'cursor', projects)
+  if (!transcript) return null
+  const projectDir = relative(projects, file).split(/[/\\]/)[0]
+  if (projectDir) transcript.repo = cursorProjectRepo(machine, projectDir)
+  return transcript
+}
+
+function planFiles(root: string) {
+  if (!isDirectory(root)) return []
+  try {
+    return readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.plan.md'))
+      .map((entry) => join(root, entry.name))
+  } catch {
+    return []
+  }
+}
+
+function transcriptFromPlan(file: string): Transcript | null {
+  let text = ''
+  try {
+    text = readFileSync(file, 'utf8').trim()
+  } catch {
+    return null
+  }
+  if (!text) return null
+  return {
+    id: file,
+    source: 'cursor',
+    text,
+    changedAt: statSync(file).mtime.toISOString(),
+  }
+}
+
 function collectInstalledSources(machine: Machine) {
   const installed = new Set(scanTools(machine).map((tool) => tool.id))
   const folders: SourceFolder[] = []
+  const marked = new Set<string>()
   const seen = new Set<string>()
   const transcripts: Transcript[] = []
-  function walk(folder: string, tool: string, files: string[], read: (file: string) => Transcript | null) {
-    if (!isDirectory(folder)) return
-    folders.push({ tool, path: folder })
+  const projects = join(machine.home, '.cursor', 'projects')
+  const plans = join(machine.home, '.cursor', 'plans')
+  const chats = join(machine.home, '.cursor', 'chats')
+  const claudeProjects = join(machine.home, '.claude', 'projects')
+  const copilotUser = join(roamingAppData(machine), 'Code', 'User')
+  const copilotStorage = join(copilotUser, 'workspaceStorage')
+  const copilotEmpty = join(copilotUser, 'globalStorage', 'emptyWindowChatSessions')
+  const claudeSessions = join(roamingAppData(machine), 'Claude', 'local-agent-mode-sessions')
+  const copilotCliState = join(machine.home, '.copilot', 'session-state')
+
+  function mark(tool: string, path: string) {
+    if (isDirectory(path)) marked.add(`${tool}\0${pathKey(machine, path)}`)
+  }
+
+  function emit(tool: string, path: string) {
+    if (marked.has(`${tool}\0${pathKey(machine, path)}`)) folders.push({ tool, path })
+  }
+
+  function walk(tool: string, files: string[], read: (file: string) => Transcript | null, menu: string | null) {
+    let produced = 0
     for (const file of files) {
       if (seen.has(file)) continue
       seen.add(file)
       const transcript = read(file)
-      if (transcript) transcripts.push(transcript)
+      if (!transcript) continue
+      transcripts.push(transcript)
+      produced++
+    }
+    if (produced > 0 && menu) mark(tool, menu)
+  }
+
+  if (installed.has('cursor-cli')) {
+    for (const session of listCursorCliSessions(chats)) {
+      const meta = readCliMeta(join(session.dir, 'meta.json'))
+      const store = join(session.dir, 'store.db')
+      const hasStore = isFile(store)
+      if (!meta.hasConversation && !hasStore) continue
+      const mirrored = agentSessionFiles(projects, session.id)
+      let text = ''
+      let id = store
+      let changedAt = ''
+      if (hasStore) {
+        text = textsFromCliStore(store)
+        changedAt = statSync(store).mtime.toISOString()
+      }
+      if (!text) {
+        for (const file of mirrored.parent) {
+          const fallback = transcriptFromFile(file, 'cursor-cli', projects)
+          if (!fallback) continue
+          text = fallback.text
+          id = file
+          changedAt = fallback.changedAt ?? ''
+          break
+        }
+      }
+      if (text) {
+        for (const file of mirrored.parent) seen.add(file)
+        if (Number.isFinite(meta.updatedAtMs)) changedAt = new Date(meta.updatedAtMs).toISOString()
+        transcripts.push({
+          id,
+          source: 'cursor-cli',
+          text,
+          repo: baseName(meta.cwd),
+          changedAt: changedAt || undefined,
+        })
+        mark('Cursor CLI', chats)
+      }
+      for (const file of mirrored.subagents) {
+        if (seen.has(file)) continue
+        seen.add(file)
+        const transcript = transcriptFromFile(file, 'cursor-cli', projects)
+        if (!transcript) continue
+        if (meta.cwd) transcript.repo = baseName(meta.cwd)
+        transcripts.push(transcript)
+        mark('Cursor CLI', chats)
+      }
     }
   }
-  const projects = join(machine.home, '.cursor', 'projects')
-  const agentFiles = () => jsonlFiles(projects).filter((file) => file.split(/[/\\]/).includes('agent-transcripts'))
-  if (installed.has('cursor')) walk(projects, 'Cursor', agentFiles(), (file) => transcriptFromFile(file, 'cursor', projects))
-  if (installed.has('cursor-cli')) {
-    const chats = join(machine.home, '.cursor', 'chats')
-    walk(chats, 'Cursor CLI', jsonlFiles(chats), (file) => transcriptFromFile(file, 'cursor-cli', chats))
-    walk(projects, 'Cursor CLI', agentFiles(), (file) => transcriptFromFile(file, 'cursor-cli', projects))
+
+  if (installed.has('cursor')) {
+    const agentFiles = jsonlFiles(projects).filter((file) => file.split(/[/\\]/).includes('agent-transcripts'))
+    walk('Cursor', agentFiles, (file) => transcriptFromCursorAgent(machine, file, projects), projects)
+    walk('Cursor', planFiles(plans), transcriptFromPlan, plans)
   }
-  const claudeProjects = join(machine.home, '.claude', 'projects')
+
   if (installed.has('claude-cli')) {
-    walk(claudeProjects, 'Claude CLI', jsonlFiles(claudeProjects), (file) =>
-      transcriptFromFile(file, 'claude-cli', claudeProjects),
-    )
+    walk('Claude CLI', jsonlFiles(claudeProjects), (file) => transcriptFromFile(file, 'claude-cli', claudeProjects), claudeProjects)
   }
+
   if (installed.has('copilot')) {
-    const user = join(roamingAppData(machine), 'Code', 'User')
-    const storage = join(user, 'workspaceStorage')
     const accept = (name: string) => name.endsWith('.jsonl') || name.endsWith('.json')
-    for (const id of directoryNames(storage)) {
-      const home = join(storage, id)
+    for (const id of directoryNames(copilotStorage)) {
+      const home = join(copilotStorage, id)
       const repo = baseName(folderFromWorkspaceJson(join(home, 'workspace.json')))
       const sessions = join(home, 'chatSessions')
       const transcriptsFolder = join(home, 'GitHub.copilot-chat', 'transcripts')
-      walk(sessions, 'Copilot in VS Code', namedFiles(sessions, accept, true), (file) =>
-        transcriptFromChatFile(file, 'copilot', sessions, repo),
+      walk(
+        'Copilot in VS Code',
+        namedFiles(sessions, accept, true),
+        (file) => transcriptFromChatFile(file, 'copilot', sessions, repo),
+        copilotStorage,
       )
-      walk(transcriptsFolder, 'Copilot in VS Code', namedFiles(transcriptsFolder, accept, true), (file) =>
-        transcriptFromChatFile(file, 'copilot', transcriptsFolder, repo),
+      walk(
+        'Copilot in VS Code',
+        namedFiles(transcriptsFolder, accept, true),
+        (file) => transcriptFromChatFile(file, 'copilot', transcriptsFolder, repo),
+        copilotStorage,
       )
     }
-    const empty = join(user, 'globalStorage', 'emptyWindowChatSessions')
-    walk(empty, 'Copilot in VS Code', namedFiles(empty, accept, true), (file) =>
-      transcriptFromChatFile(file, 'copilot', empty),
+    walk(
+      'Copilot in VS Code',
+      namedFiles(copilotEmpty, accept, true),
+      (file) => transcriptFromChatFile(file, 'copilot', copilotEmpty),
+      copilotEmpty,
     )
   }
+
   if (installed.has('claude')) {
-    const sessions = join(roamingAppData(machine), 'Claude', 'local-agent-mode-sessions')
-    walk(sessions, 'Claude', sessionJsonl(sessions), (file) => transcriptFromFile(file, 'claude', sessions))
-    if (installed.has('claude-cli')) {
-      if (isDirectory(claudeProjects)) folders.push({ tool: 'Claude', path: claudeProjects })
-    } else {
-      walk(claudeProjects, 'Claude', jsonlFiles(claudeProjects), (file) => transcriptFromFile(file, 'claude', claudeProjects))
+    walk('Claude', sessionJsonl(claudeSessions), (file) => transcriptFromFile(file, 'claude', claudeSessions), claudeSessions)
+    if (!installed.has('claude-cli')) {
+      walk('Claude', jsonlFiles(claudeProjects), (file) => transcriptFromFile(file, 'claude', claudeProjects), claudeProjects)
     }
   }
+
   if (installed.has('copilot-cli')) {
-    const state = join(machine.home, '.copilot', 'session-state')
-    walk(state, 'Copilot CLI', copilotCliFiles(state), (file) => transcriptFromChatFile(file, 'copilot-cli', state))
+    walk(
+      'Copilot CLI',
+      copilotCliFiles(copilotCliState),
+      (file) => transcriptFromChatFile(file, 'copilot-cli', copilotCliState),
+      copilotCliState,
+    )
   }
+
   for (const root of workspaceNoteRoots(machine)) {
-    walk(root, 'Workspace notes', noteFiles(root), (file) => transcriptFromNote(file, root))
+    walk('Workspace notes', noteFiles(root), (file) => transcriptFromNote(file, root), null)
   }
+
+  emit('Cursor', projects)
+  emit('Cursor', plans)
+  emit('Cursor CLI', chats)
+  emit('Claude CLI', claudeProjects)
+  emit('Copilot in VS Code', copilotStorage)
+  emit('Copilot in VS Code', copilotEmpty)
+  emit('Claude', claudeSessions)
+  if (!installed.has('claude-cli')) emit('Claude', claudeProjects)
+  emit('Copilot CLI', copilotCliState)
+
   return { folders, transcripts }
 }
 
@@ -1266,7 +1677,7 @@ export async function ask(
   const key = stored.activeKey()
   const baseUrl = stored.customBaseUrl()
   const app = openApp(directory, undefined, machine, async (turn) => {
-    const text = await exchange({
+    const replied = await exchange({
       provider: key.provider,
       secret: key.secret,
       model: turn.model,
@@ -1275,6 +1686,7 @@ export async function ask(
       chatCompletions: key.provider === 'copilot' ? stored.copilotChat(turn.model) : undefined,
       cwd: directory,
     })
+    const text = typeof replied === 'string' ? replied : replied.text
     const json = text.match(/\{[\s\S]*\}/)?.[0] ?? text
     return JSON.parse(json) as { pick: string[] } | { answer: string }
   })
@@ -1308,15 +1720,10 @@ export function openApp(
     return modelCatalog[provider].models.map((id) => ({ id, displayName: id }))
   }
   function chosenKey() {
-    if (settings.selectedProvider) {
-      const matches = settings.keys.filter((key) => key.provider === settings.selectedProvider)
-      if (matches.length === 0) return undefined
-      return matches.find((key) => key.id === settings.pinnedKeyId) ?? matches[matches.length - 1]
-    }
-    const pinned = settings.keys.find((key) => key.id === settings.pinnedKeyId)
-    if (pinned) return pinned
-    if (settings.keys.length === 0) return undefined
-    return settings.keys.reduce((best, key) => (keyOrder[key.provider] < keyOrder[best.provider] ? key : best))
+    if (!settings.selectedProvider) return undefined
+    const matches = settings.keys.filter((key) => key.provider === settings.selectedProvider)
+    if (matches.length === 0) return undefined
+    return matches.find((key) => key.id === settings.pinnedKeyId) ?? matches[matches.length - 1]
   }
   function offeredModels() {
     const active = settings.keys.find((key) => key.active)
@@ -1328,16 +1735,45 @@ export function openApp(
     )
   }
   function chosenModel() {
-    const offered = offeredModels()
-    if (offered.includes(settings.model)) return settings.model
+    if (!settings.keys.some((key) => key.active)) throw new Error('No model')
+    if (offeredModels().includes(settings.model)) return settings.model
+    return ''
+  }
+  function syncModel() {
     const active = settings.keys.find((key) => key.active)
-    if (!active) throw new Error('No model')
-    if (offered.length === 0) return ''
-    return modelCatalog[active.provider].defaultModel || offered[0]
+    if (!active) {
+      settings.model = ''
+      settings.modelParams = []
+      return
+    }
+    const offered = modelChoices(active.provider)
+    const ids = offered.map((model) => model.id)
+    if (!ids.includes(settings.model)) {
+      settings.model =
+        active.provider === 'anthropic' || active.provider === 'openai' ? modelCatalog[active.provider].defaultModel : ''
+      settings.modelParams = []
+    }
+    if (active.provider === 'cursor' && settings.model !== '') {
+      const choice = offered.find((model) => model.id === settings.model)
+      settings.modelParams = choice ? resolveParams(choice, settings.modelParams) : []
+    } else if (active.provider !== 'cursor') {
+      settings.modelParams = []
+    }
+  }
+  function paramsReady() {
+    const active = settings.keys.find((key) => key.active)
+    if (active?.provider !== 'cursor') return true
+    const choice = modelChoices('cursor').find((model) => model.id === settings.model)
+    const required = (choice?.parameters ?? []).filter((parameter) => parameter.values.length > 0)
+    return required.every((parameter) =>
+      settings.modelParams.some(
+        (item) => item.id === parameter.id && parameter.values.some((value) => value.value === item.value),
+      ),
+    )
   }
   function refreshDiscovery() {
-    if (offeredModels().length === 0) return
-    writeDiscoverySkills(machine, directory, chosenModel())
+    if (!offeredModels().includes(settings.model)) return
+    writeDiscoverySkills(machine, directory, settings.model)
   }
   refreshDiscovery()
   function listedTools(): InstalledTool[] {
@@ -1361,34 +1797,46 @@ export function openApp(
     },
     saveKey(input: { provider: Provider; secret: string; account?: CursorAccount; baseUrl?: string; model?: string }) {
       if (!settings.vaultId) settings.vaultId = randomUUID()
+      const hadAnyKey = settings.keys.length > 0
       const id = randomUUID()
       writeSecret(settings.vaultId, id, input.secret)
+      const previous = settings.keys.filter((key) => key.provider === input.provider)
+      for (const key of previous) {
+        try {
+          deleteSecret(settings.vaultId, key.id)
+        } catch {
+          // The vault entry is already gone.
+        }
+      }
+      if (previous.some((key) => key.id === settings.pinnedKeyId)) settings.pinnedKeyId = ''
+      settings.keys = settings.keys.filter((key) => key.provider !== input.provider)
       settings.keys.push({ id, provider: input.provider, active: false })
+      if (!hadAnyKey) {
+        settings.selectedProvider = input.provider
+        settings.pinnedKeyId = id
+      } else if (settings.selectedProvider === input.provider) {
+        settings.pinnedKeyId = id
+      }
       const chosen = chosenKey()
       for (const key of settings.keys) key.active = chosen ? key.id === chosen.id : false
       if (input.provider === 'cursor' && input.account) {
         settings.cursorModels = input.account.models
         settings.cursorKey = {
-          createdAt: input.account.createdAt ?? '',
           expiresAt: input.account.expiresAt ?? '',
           error: input.account.error ?? '',
-        }
-        if (!settings.cursorModels.some((model) => model.id === settings.model)) {
-          settings.model = settings.cursorModels[0]?.id ?? ''
         }
       }
       if (input.provider === 'copilot' && input.account) {
         settings.copilotModels = input.account.models
-        if (!settings.copilotModels.some((model) => model.id === settings.model)) {
-          settings.model = settings.copilotModels[0]?.id ?? settings.model
-        }
       }
       if (input.provider === 'custom') {
         if (typeof input.baseUrl === 'string') settings.customBaseUrl = input.baseUrl
-        if (typeof input.model === 'string' && input.model.trim() !== '') {
-          settings.customModel = input.model.trim()
-          settings.model = settings.customModel
-        }
+        if (typeof input.model === 'string' && input.model.trim() !== '') settings.customModel = input.model.trim()
+      }
+      syncModel()
+      if (input.provider === 'custom' && typeof input.model === 'string' && input.model.trim() !== '' && settings.selectedProvider === 'custom') {
+        settings.model = input.model.trim()
+        settings.modelParams = []
       }
       writeSettings(directory, settings)
       refreshDiscovery()
@@ -1408,7 +1856,7 @@ export function openApp(
     rememberCursor(account: CursorAccount) {
       if (account.error || account.models.length === 0) {
         settings.cursorKey = {
-          ...settings.cursorKey,
+          expiresAt: settings.cursorKey.expiresAt,
           error: account.error || 'Cursor model list failed',
         }
         writeSettings(directory, settings)
@@ -1416,24 +1864,17 @@ export function openApp(
       }
       settings.cursorModels = account.models
       settings.cursorKey = {
-        createdAt: account.createdAt || settings.cursorKey.createdAt,
         expiresAt: account.expiresAt || settings.cursorKey.expiresAt,
         error: '',
       }
-      const active = settings.keys.find((item) => item.active)
-      if (active?.provider === 'cursor' && !settings.cursorModels.some((model) => model.id === settings.model)) {
-        settings.model = settings.cursorModels[0]?.id ?? ''
-      }
+      syncModel()
       writeSettings(directory, settings)
       refreshDiscovery()
     },
     rememberCopilot(account: CursorAccount) {
       if (account.models.length === 0) return
       settings.copilotModels = account.models
-      const active = settings.keys.find((item) => item.active)
-      if (active?.provider === 'copilot' && !settings.copilotModels.some((model) => model.id === settings.model)) {
-        settings.model = settings.copilotModels[0]?.id ?? ''
-      }
+      syncModel()
       writeSettings(directory, settings)
       refreshDiscovery()
     },
@@ -1474,6 +1915,7 @@ export function openApp(
       settings.selectedProvider = match.provider
       settings.pinnedKeyId = id
       for (const key of settings.keys) key.active = key.id === id
+      syncModel()
       writeSettings(directory, settings)
       refreshDiscovery()
     },
@@ -1481,13 +1923,25 @@ export function openApp(
       settings.selectedProvider = provider
       const matches = settings.keys.filter((key) => key.provider === provider)
       if (matches.length === 0) {
+        settings.selectedProvider = ''
         settings.pinnedKeyId = ''
         for (const key of settings.keys) key.active = false
+        settings.model = ''
+        settings.modelParams = []
         writeSettings(directory, settings)
         return
       }
       const chosen = matches.find((key) => key.id === settings.pinnedKeyId) ?? matches[matches.length - 1]
       this.activateKey(chosen.id)
+    },
+    clearProvider() {
+      settings.selectedProvider = ''
+      settings.pinnedKeyId = ''
+      for (const key of settings.keys) key.active = false
+      settings.model = ''
+      settings.modelParams = []
+      writeSettings(directory, settings)
+      refreshDiscovery()
     },
     activeProvider() {
       return settings.selectedProvider || settings.keys.find((key) => key.active)?.provider || ''
@@ -1512,23 +1966,23 @@ export function openApp(
       settings.keys = settings.keys.filter((key) => key.provider !== provider)
       if (provider === 'cursor') {
         settings.cursorModels = []
-        settings.cursorKey = { createdAt: '', expiresAt: '', error: '' }
+        settings.cursorKey = { expiresAt: '', error: '' }
       }
       if (provider === 'copilot') settings.copilotModels = []
       if (provider === 'custom') {
         settings.customBaseUrl = ''
         settings.customModel = ''
       }
-      if (settings.selectedProvider === provider && !settings.keys.some((key) => key.provider === provider)) {
+      if (settings.selectedProvider === provider) {
+        settings.selectedProvider = ''
+        settings.pinnedKeyId = ''
         for (const key of settings.keys) key.active = false
         settings.model = ''
+        settings.modelParams = []
       } else {
         const chosen = chosenKey()
         for (const key of settings.keys) key.active = chosen ? key.id === chosen.id : false
-        const offered = offeredModels()
-        if (!offered.includes(settings.model)) {
-          settings.model = chosen ? modelCatalog[chosen.provider].defaultModel || offered[0] || '' : ''
-        }
+        syncModel()
       }
       writeSettings(directory, settings)
       refreshDiscovery()
@@ -1551,8 +2005,35 @@ export function openApp(
     selectModel(model: string) {
       if (!offeredModels().includes(model)) throw new Error(`${model} is not offered`)
       settings.model = model
+      const active = settings.keys.find((key) => key.active)
+      if (active?.provider === 'cursor') {
+        const choice = modelChoices('cursor').find((item) => item.id === model)
+        settings.modelParams = choice ? defaultParams(choice) : []
+      } else {
+        settings.modelParams = []
+      }
       writeSettings(directory, settings)
       refreshDiscovery()
+    },
+    clearModel() {
+      settings.model = ''
+      settings.modelParams = []
+      writeSettings(directory, settings)
+      refreshDiscovery()
+    },
+    setModelParam(id: string, value: string) {
+      const active = settings.keys.find((key) => key.active)
+      if (active?.provider !== 'cursor' || settings.model === '') throw new Error('No model')
+      const choice = modelChoices('cursor').find((item) => item.id === settings.model)
+      if (!choice) throw new Error('No model')
+      settings.modelParams = resolveParams(choice, [
+        ...settings.modelParams.filter((item) => item.id !== id),
+        { id, value },
+      ])
+      writeSettings(directory, settings)
+    },
+    modelParams() {
+      return settings.modelParams.map((item) => ({ ...item }))
     },
     chosenModel,
     tools: listedTools,
@@ -1565,21 +2046,96 @@ export function openApp(
       settings.disabledTools = [...disabled]
       writeSettings(directory, settings)
     },
+    addLearningTokens(tokens: number | null) {
+      const current = readSettings(directory)
+      if (tokens == null) current.learningTokensUnreported += 1
+      else current.learningTokens += tokens
+      settings.learningTokens = current.learningTokens
+      settings.learningTokensUnreported = current.learningTokensUnreported
+      writeSettings(directory, current, { tokens: true })
+      const log = readIngestLog(directory)
+      if (log.lines.length > 0 || current.learningTokens > 0 || current.learningTokensUnreported > 0) {
+        log.tokens = current.learningTokens
+        log.unreported = current.learningTokensUnreported
+        writeIngestLog(directory, log)
+      }
+    },
+    learningTokens() {
+      const current = readSettings(directory)
+      settings.learningTokens = current.learningTokens
+      settings.learningTokensUnreported = current.learningTokensUnreported
+      return current.learningTokens
+    },
+    learningTokensUnreported() {
+      const current = readSettings(directory)
+      settings.learningTokens = current.learningTokens
+      settings.learningTokensUnreported = current.learningTokensUnreported
+      return current.learningTokensUnreported
+    },
+    initialIngestComplete() {
+      return settings.initialIngestComplete
+    },
+    ingestLog() {
+      return readIngestLog(directory)
+    },
+    ingestView(_nodeCount: number, _transcripts: Transcript[] = []): IngestView | null {
+      const current = readSettings(directory)
+      settings.learningTokens = current.learningTokens
+      settings.learningTokensUnreported = current.learningTokensUnreported
+      const log = readIngestLog(directory)
+      if (settings.initialIngestComplete || log.lines.length === 0) return null
+      return {
+        visible: true,
+        lines: log.lines,
+        tokens: current.learningTokens,
+        unreported: current.learningTokensUnreported,
+      }
+    },
     beginLearning(transcripts: Transcript[] = []) {
       if (!profileIsComplete()) {
         return 'Save your username, email, and team before learning can write cards.'
       }
+      if (!settings.keys.some((key) => key.active)) {
+        return 'Turn on a provider before learning can write cards.'
+      }
       if (offeredModels().length === 0) {
         return 'This SDK has no model list. Switch to Anthropic or OpenAI to start learning.'
       }
+      if (!offeredModels().includes(settings.model)) {
+        return 'Choose a model before learning can write cards.'
+      }
+      if (!paramsReady()) {
+        return 'Choose effort and fast mode before learning can write cards.'
+      }
       settings.learningStarted = true
       writeSettings(directory, settings)
-      this.runLearner(transcripts)
+      const running = this.runLearner(transcripts, { foreground: true })
+      if (running && typeof (running as Promise<unknown>).then === 'function') {
+        Promise.resolve(running).catch((error: unknown) => {
+          if (!learningSnapshot?.active) return
+          emitLearning({
+            active: false,
+            done: learningSnapshot.done,
+            total: learningSnapshot.total,
+            error: learningErrorMessage(error),
+          })
+        })
+      }
       return ''
     },
-    runLearner(transcripts: Transcript[] = []) {
-      if (!profileIsComplete() || offeredModels().length === 0) return { ran: false }
-      const model = chosenModel()
+    runLearner(
+      transcripts: Transcript[] = [],
+      options?: { foreground?: boolean },
+    ): { ran: false } | { ran: true; model: string } | Promise<{ ran: true; model: string }> {
+      if (
+        !profileIsComplete() ||
+        !settings.keys.some((key) => key.active) ||
+        !offeredModels().includes(settings.model) ||
+        !paramsReady()
+      ) {
+        return { ran: false }
+      }
+      const model = settings.model
       const installed = new Set<string>(listedTools().map((tool) => tool.id))
       const readable = newestFirst(
         transcripts.filter(
@@ -1588,175 +2144,332 @@ export function openApp(
             settings.importedTranscripts[transcriptKey(transcript)] !== transcriptRevision(transcript),
         ),
       )
-      if (readable.length === 0) return { ran: true, model }
+      const foreground = options?.foreground === true
+      const latestTotals = () => {
+        const current = readSettings(directory)
+        settings.learningTokens = current.learningTokens
+        settings.learningTokensUnreported = current.learningTokensUnreported
+        return current
+      }
+      const pendingIngest: { lines: string[]; totals?: { tokens: number; unreported: number } } = {
+        lines: [],
+      }
+      const queueIngestLine = (line: string, totals?: { tokens: number; unreported: number }) => {
+        pendingIngest.lines.push(line)
+        if (totals) pendingIngest.totals = totals
+      }
+      const flushIngest = () => {
+        if (pendingIngest.lines.length > 0 || pendingIngest.totals) {
+          appendIngestLines(directory, pendingIngest.lines, pendingIngest.totals)
+          pendingIngest.lines = []
+          pendingIngest.totals = undefined
+        }
+        if (!learningSnapshot) return
+        emitLearning(learningSnapshot)
+        if (!learningSnapshot.active || learningSnapshot.done !== learningSnapshot.total) return
+        const finished: LearningProgress = {
+          active: false,
+          done: learningSnapshot.done,
+          total: learningSnapshot.total,
+        }
+        if (learningSnapshot.error) finished.error = learningSnapshot.error
+        emitLearning(finished)
+      }
+      const settleIngest = (
+        transcript: Transcript,
+        status: 'processed' | 'skipped' | 'failed',
+        detail: string,
+      ) => {
+        if (!foreground) return
+        const totals = latestTotals()
+        const suffix =
+          status === 'processed'
+            ? `card "${detail}"`
+            : status === 'skipped'
+              ? `skipped · ${detail}`
+              : `failed · ${detail}`
+        queueIngestLine(ingestChatLine(transcript, suffix), {
+          tokens: totals.learningTokens,
+          unreported: totals.learningTokensUnreported,
+        })
+      }
+      const markIngestComplete = () => {
+        settings.initialIngestComplete = true
+        writeSettings(directory, settings)
+      }
+      if (readable.length === 0) {
+        if (foreground) {
+          finishEmptyForeground()
+          markIngestComplete()
+        }
+        return { ran: true, model }
+      }
       if (!complete) throw new Error('No model')
-      const pending: Promise<void>[] = []
-      for (let start = 0; start < readable.length; start += importBatchSize) {
-        const batch = readable.slice(start, start + importBatchSize)
-        const projects = knowledgeProjects(directory)
-        const stored = readStoredCards(directory)
-        const cards: KnownCard[] = stored.map((card) => ({
-          id: card.id,
-          sources: card.sources,
-          title: card.title,
-          topics: card.topics,
-          summary: card.summary,
-          situation: card.situation,
-          whatToDo: card.whatToDo,
-          why: card.why,
-          apply: card.apply,
-        }))
-        const keepNames = [settings.profile.username, settings.profile.email, settings.profile.team].filter(filled)
-        const prepared = batch.map((original) => ({
-          original,
-          transcript: {
-            ...original,
-            text: scrubText(original.text, [], keepNames),
-            repo: original.repo ? scrubText(original.repo, [], keepNames) : original.repo,
-            workspace: original.workspace ? scrubText(original.workspace, [], keepNames) : original.workspace,
-          },
-        }))
-        const lessons = prepared.map(({ original, transcript }) => ({
-          original,
-          transcript,
-          lesson: complete({
-            model,
-            transcript,
-            transcripts: prepared.map((item) => item.transcript),
-            projects,
-            cards,
-          }),
-        }))
-        const writeLessons = (
-          ready: { original: Transcript; transcript: Transcript; lesson: LessonDraft }[],
-        ) => {
-        for (const { original, transcript, lesson } of ready) {
-          if (lesson.sameClaim) continue
-          const recorded =
-            [transcript.repo, transcript.workspace].find((name) => name && filled(name))?.trim() ?? null
-          const subject =
-            lesson.clearlyOneProduct && lesson.subjectProject && filled(lesson.subjectProject)
-              ? (knownProject(lesson.subjectProject, projects) ?? lesson.subjectProject.trim())
-              : null
-          const existing = knownProject(lesson.belongsToProject, projects)
-          const project = existing ?? (lesson.generalTechnique ? 'none' : (recorded ?? subject ?? 'none'))
-          const keep = [
-            settings.profile.username,
-            settings.profile.email,
-            settings.profile.team,
-            ...projects,
-            project,
-          ].filter((term, index, all) => filled(term) && term !== 'none' && all.indexOf(term) === index)
-          const names = Array.isArray(lesson.otherNames) ? lesson.otherNames : []
-          const scrubbed: LessonDraft = {
-            ...lesson,
-            title: scrubText(asText(lesson.title), names, keep),
-            topics: (Array.isArray(lesson.topics) ? lesson.topics : [])
-              .map((topic) => scrubText(asText(topic), names, keep))
-              .filter(filled),
-            summary: scrubText(asText(lesson.summary), names, keep),
-            situation: scrubText(asText(lesson.situation), names, keep),
-            whatToDo: scrubText(asText(lesson.whatToDo), names, keep),
-            why: scrubText(asText(lesson.why), names, keep),
-            apply: scrubText(asText(lesson.apply), names, keep),
-            solution: lesson.solution ? scrubText(asText(lesson.solution), names, keep) : undefined,
-            failure_modes: Array.isArray(lesson.failure_modes)
-              ? lesson.failure_modes.map((mode) => scrubText(asText(mode), names, keep)).filter(filled)
-              : undefined,
-            context: lesson.context
-              ? {
-                  os: scrubText(asText(lesson.context.os), names, keep),
-                  tool_version: scrubText(asText(lesson.context.tool_version), names, keep),
-                  framework: scrubText(asText(lesson.context.framework), names, keep),
-                }
-              : undefined,
-            relations: Array.isArray(lesson.relations)
-              ? lesson.relations
-                  .map((relation) => ({
-                    entity: scrubText(asText(relation.entity), names, keep),
-                    relation: asText(relation.relation).trim(),
-                    target_entity: scrubText(asText(relation.target_entity), names, keep),
-                  }))
-                  .filter((relation) => filled(relation.entity) && filled(relation.relation) && filled(relation.target_entity))
-              : undefined,
-          }
-          const previous = lesson.updateId ? stored.find((card) => card.id === lesson.updateId) : undefined
-          if (lesson.updateId && !previous) continue
-          const sources = [
-            ...new Set(
-              [
-                ...(previous?.sources ?? []),
-                ...(Array.isArray(lesson.sources) && lesson.sources.length > 0
-                  ? lesson.sources
-                  : [transcript.source]),
-              ]
-                .map((source) => asText(source).trim())
-                .filter(filled),
-            ),
-          ]
-          if (!lessonIsComplete(scrubbed, sources[0] ?? '')) continue
-          const relations =
-            scrubbed.relations && scrubbed.relations.length > 0
-              ? scrubbed.relations
-              : [
-                  ...sources.map((source) => ({
-                    entity: scrubbed.title,
-                    relation: 'APPLIES_TO',
-                    target_entity: source,
-                  })),
-                  ...(project !== 'none'
-                    ? [{ entity: scrubbed.title, relation: 'RESOLVES', target_entity: project }]
-                    : []),
-                ]
-          const failureModes = [
-            ...(scrubbed.failure_modes?.length ? scrubbed.failure_modes : [scrubbed.situation]),
-            scrubbed.why,
-            scrubbed.apply,
-          ].filter(filled)
-          publishCard({
-            directory,
-            legacyId: previous?.id ?? randomUUID(),
-            autoDrop: settings.autoDrop,
-            drivePath: settings.drivePath,
-            username: settings.profile.username,
-            card: {
-              title: scrubbed.title,
-              context: scrubbed.context ?? {
-                os: machine.platform,
-                tool_version: '',
-                framework: project,
-              },
-              solution: scrubbed.solution || scrubbed.whatToDo,
-              failure_modes: failureModes,
-              relations,
-              sources,
-              author: { ...settings.profile },
-            },
+      const generation = foreground ? startForeground(readable.length) : 0
+      const finishOk = () => {
+        if (foreground && learningSnapshot && learningSnapshot.done === learningSnapshot.total) {
+          markIngestComplete()
+        }
+        return { ran: true as const, model }
+      }
+      const failRun = (error: unknown): never => {
+        if (foreground && learningSnapshot?.active && generation === learningGeneration) {
+          emitLearning({
+            active: false,
+            done: learningSnapshot.done,
+            total: learningSnapshot.total,
+            error: learningErrorMessage(error),
           })
         }
-        for (const item of ready) {
-          settings.importedTranscripts[transcriptKey(item.original)] = transcriptRevision(item.original)
-        }
-        writeSettings(directory, settings)
-        }
-        if (lessons.some((item) => item.lesson instanceof Promise)) {
-          pending.push(
-            Promise.all(
-              lessons.map(async (item) => ({
-                original: item.original,
-                transcript: item.transcript,
-                lesson: await item.lesson,
-              })),
-            ).then((ready) => {
-              writeLessons(ready)
-            }),
-          )
-          continue
-        }
-        writeLessons(lessons as { original: Transcript; transcript: Transcript; lesson: LessonDraft }[])
+        throw error
       }
-      if (pending.length > 0) return Promise.all(pending).then(() => ({ ran: true as const, model }))
-      return { ran: true, model }
+      if (foreground) {
+        queueIngestLine(`Found ${readable.length} transcript${readable.length === 1 ? '' : 's'}`)
+      }
+      try {
+        this.activeKey()
+      } catch (error) {
+        if (foreground) {
+          queueIngestLine(`failed · ${learningErrorMessage(error)}`)
+          learningSnapshot = {
+            active: false,
+            done: 0,
+            total: readable.length,
+            error: learningErrorMessage(error),
+          }
+          flushIngest()
+        }
+        if (isMissingKeySecret(error)) return { ran: true, model }
+        throw error
+      }
+      try {
+        let chain: Promise<void> | undefined
+        for (let start = 0; start < readable.length; start += importBatchSize) {
+          const batch = readable.slice(start, start + importBatchSize)
+          const work = () => {
+            const projects = knowledgeProjects(directory)
+            const stored = readStoredCards(directory)
+            const cards: KnownCard[] = stored.map((card) => ({
+              id: card.id,
+              sources: card.sources,
+              title: card.title,
+              topics: card.topics,
+              summary: card.summary,
+              situation: card.situation,
+              whatToDo: card.whatToDo,
+              why: card.why,
+              apply: card.apply,
+            }))
+            const keepNames = [settings.profile.username, settings.profile.email, settings.profile.team].filter(filled)
+            const prepared = batch.map((original) => ({
+              original,
+              transcript: {
+                ...original,
+                text: scrubText(original.text, [], keepNames),
+                repo: original.repo ? scrubText(original.repo, [], keepNames) : original.repo,
+                workspace: original.workspace ? scrubText(original.workspace, [], keepNames) : original.workspace,
+              },
+            }))
+            if (foreground) {
+              for (const { original } of prepared) {
+                queueIngestLine(ingestChatLine(original, 'learning'))
+              }
+              flushIngest()
+            }
+            const lessons = prepared.map(({ original, transcript }) => ({
+              original,
+              transcript,
+              lesson: complete({
+                model,
+                transcript,
+                transcripts: prepared.map((item) => item.transcript),
+                projects,
+                cards,
+              }),
+            }))
+            const writeOneLesson = (
+              original: Transcript,
+              transcript: Transcript,
+              lesson: LessonDraft,
+            ): { status: 'processed' | 'skipped'; detail: string } => {
+              if (lesson.sameClaim) return { status: 'skipped', detail: 'already have this claim' }
+              const recorded =
+                [transcript.repo, transcript.workspace].find((name) => name && filled(name))?.trim() ?? null
+              const subject =
+                lesson.clearlyOneProduct && lesson.subjectProject && filled(lesson.subjectProject)
+                  ? (knownProject(lesson.subjectProject, projects) ?? lesson.subjectProject.trim())
+                  : null
+              const existing = knownProject(lesson.belongsToProject, projects)
+              const project = existing ?? (lesson.generalTechnique ? 'none' : (recorded ?? subject ?? 'none'))
+              const keep = [
+                settings.profile.username,
+                settings.profile.email,
+                settings.profile.team,
+                ...projects,
+                project,
+              ].filter((term, index, all) => filled(term) && term !== 'none' && all.indexOf(term) === index)
+              const names = Array.isArray(lesson.otherNames) ? lesson.otherNames : []
+              const scrubbed: LessonDraft = {
+                ...lesson,
+                title: scrubText(asText(lesson.title), names, keep),
+                topics: (Array.isArray(lesson.topics) ? lesson.topics : [])
+                  .map((topic) => scrubText(asText(topic), names, keep))
+                  .filter((topic) => filled(topic) && !isFileMention(topic)),
+                summary: scrubText(asText(lesson.summary), names, keep),
+                situation: scrubText(asText(lesson.situation), names, keep),
+                whatToDo: scrubText(asText(lesson.whatToDo), names, keep),
+                why: scrubText(asText(lesson.why), names, keep),
+                apply: scrubText(asText(lesson.apply), names, keep),
+                solution: lesson.solution ? scrubText(asText(lesson.solution), names, keep) : undefined,
+                failure_modes: Array.isArray(lesson.failure_modes)
+                  ? lesson.failure_modes.map((mode) => scrubText(asText(mode), names, keep)).filter(filled)
+                  : undefined,
+                context: lesson.context
+                  ? {
+                      os: scrubText(asText(lesson.context.os), names, keep),
+                      tool_version: scrubText(asText(lesson.context.tool_version), names, keep),
+                      framework: scrubText(asText(lesson.context.framework), names, keep),
+                    }
+                  : undefined,
+                relations: Array.isArray(lesson.relations)
+                  ? lesson.relations
+                      .map((relation) => ({
+                        entity: scrubText(asText(relation.entity), names, keep),
+                        relation: asText(relation.relation).trim(),
+                        target_entity: scrubText(asText(relation.target_entity), names, keep),
+                      }))
+                      .filter(
+                        (relation) =>
+                          filled(relation.entity) &&
+                          filled(relation.relation) &&
+                          filled(relation.target_entity) &&
+                          closedRelations.has(relation.relation) &&
+                          !isFileMention(relation.target_entity),
+                      )
+                  : undefined,
+              }
+              const previous = lesson.updateId ? stored.find((card) => card.id === lesson.updateId) : undefined
+              if (lesson.updateId && !previous) return { status: 'skipped', detail: 'update target missing' }
+              const sources = [
+                ...new Set(
+                  [
+                    ...(previous?.sources ?? []),
+                    ...(Array.isArray(lesson.sources) && lesson.sources.length > 0
+                      ? lesson.sources
+                      : [transcript.source]),
+                  ]
+                    .map((source) => asText(source).trim())
+                    .filter((source) => filled(source) && isLearningSource(source)),
+                ),
+              ]
+              const transcriptSource = asText(transcript.source).trim()
+              if (isLearningSource(transcriptSource) && !sources.includes(transcriptSource)) {
+                sources.push(transcriptSource)
+              }
+              if (!lessonIsComplete(scrubbed, sources[0] ?? '')) return { status: 'skipped', detail: 'lesson incomplete' }
+              const relations =
+                scrubbed.relations && scrubbed.relations.length > 0
+                  ? scrubbed.relations
+                  : [
+                      ...sources.map((source) => ({
+                        entity: scrubbed.title,
+                        relation: 'APPLIES_TO',
+                        target_entity: source,
+                      })),
+                      ...(project !== 'none' && !isFileMention(project)
+                        ? [{ entity: scrubbed.title, relation: 'RESOLVES', target_entity: project }]
+                        : []),
+                    ]
+              const failureModes = [
+                ...(scrubbed.failure_modes?.length ? scrubbed.failure_modes : [scrubbed.situation]),
+                scrubbed.why,
+                scrubbed.apply,
+              ].filter(filled)
+              publishCard({
+                directory,
+                legacyId: previous?.id ?? randomUUID(),
+                autoDrop: settings.autoDrop,
+                drivePath: settings.drivePath,
+                username: settings.profile.username,
+                card: {
+                  title: scrubbed.title,
+                  topics: scrubbed.topics,
+                  context: {
+                    os: scrubbed.context && filled(scrubbed.context.os) ? scrubbed.context.os : machine.platform,
+                    tool_version:
+                      scrubbed.context && filled(scrubbed.context.tool_version) ? scrubbed.context.tool_version : '',
+                    framework: project,
+                  },
+                  solution: scrubbed.solution || scrubbed.whatToDo,
+                  failure_modes: failureModes,
+                  relations,
+                  sources,
+                  author: { ...settings.profile },
+                },
+              })
+              return { status: 'processed', detail: scrubbed.title }
+            }
+            const applyLesson = (original: Transcript, transcript: Transcript, lesson: LessonDraft) => {
+              try {
+                const outcome = writeOneLesson(original, transcript, lesson)
+                settings.importedTranscripts[transcriptKey(original)] = transcriptRevision(original)
+                writeSettings(directory, settings)
+                settleIngest(original, outcome.status, outcome.detail)
+                if (foreground) noteForeground(generation)
+              } catch (error) {
+                const message = learningErrorMessage(error)
+                settleIngest(original, 'failed', message)
+                if (foreground) {
+                  noteForeground(generation, message)
+                  return
+                }
+                throw error
+              }
+            }
+            const applyFailure = (original: Transcript, transcript: Transcript, error: unknown) => {
+              const message = learningErrorMessage(error)
+              settleIngest(original, 'failed', message)
+              if (foreground) noteForeground(generation, message)
+              else throw error
+            }
+            if (lessons.some((item) => item.lesson instanceof Promise)) {
+              let unsettled = lessons.length
+              const enqueueSettle = (write: () => void) =>
+                enqueueLessonWrite(() => {
+                  try {
+                    write()
+                  } finally {
+                    unsettled -= 1
+                    if (unsettled === 0) flushIngest()
+                  }
+                })
+              return Promise.all(
+                lessons.map((item) =>
+                  Promise.resolve(item.lesson).then(
+                    (lesson) => enqueueSettle(() => applyLesson(item.original, item.transcript, lesson)),
+                    (error: unknown) => enqueueSettle(() => applyFailure(item.original, item.transcript, error)),
+                  ),
+                ),
+              ).then(() => undefined)
+            }
+            for (const item of lessons) {
+              applyLesson(item.original, item.transcript, item.lesson as LessonDraft)
+            }
+            if (foreground) flushIngest()
+            return undefined
+          }
+          if (chain) {
+            chain = chain.then(work)
+          } else {
+            const result = work()
+            if (result) chain = result
+          }
+        }
+        if (chain) return chain.then(finishOk, failRun)
+        return finishOk()
+      } catch (error) {
+        throw failRun(error)
+      }
     },
     answerLookup() {
       return { model: chosenModel() }
@@ -1848,13 +2561,25 @@ export function openApp(
           cards: titles(matched),
         }
       }
+      if (kind === 'team') {
+        const matched = cards.filter((card) => card.author.team === key)
+        if (matched.length === 0) throw new Error(`No node ${id}`)
+        return { kind: 'team' as const, name: key, cards: titles(matched) }
+      }
+      if (kind === 'topic') {
+        const matched = cards.filter((card) => card.topics.includes(key))
+        if (matched.length === 0) throw new Error(`No node ${id}`)
+        return { kind: 'topic' as const, name: key, cards: titles(matched) }
+      }
       const named = (name: string, matched: typeof cards) => {
         if (matched.length === 0) throw new Error(`No node ${id}`)
         return { kind: kind as 'tool' | 'issue' | 'antipattern', name, cards: titles(matched) }
       }
       const linked = cards.filter(
         (card) =>
-          card.sources.includes(key) || card.relations.some((relation) => relation.target_entity === key),
+          card.sources.includes(key) ||
+          (kind === 'issue' && card.context.framework === key) ||
+          card.relations.some((relation) => relation.target_entity === key),
       )
       if (kind === 'tool' || kind === 'issue' || kind === 'antipattern') return named(key, linked)
       throw new Error(`No node ${id}`)
@@ -1897,7 +2622,9 @@ export function openUserSession(
   }
 
   function learn(directory: string) {
-    if (!readSettings(directory).learningStarted) return
+    const current = readSettings(directory)
+    if (!current.learningStarted) return
+    if (!current.initialIngestComplete) return
     return openApp(directory, complete, machine, answer, cursorLookup).runLearner(readTranscripts())
   }
 
@@ -2076,6 +2803,9 @@ export function openUserSession(
         knowledgePath() {
           return current
         },
+        recentTranscripts() {
+          return readTranscripts()
+        },
         startLearning() {
           return window.beginLearning(readTranscripts())
         },
@@ -2084,10 +2814,20 @@ export function openUserSession(
           if (next === '') throw new Error('knowledge path is required')
           if (next === current) return
           mkdirSync(next, { recursive: true })
-          const previousSettings = join(current, 'settings.json')
-          const nextSettings = join(next, 'settings.json')
-          if (existsSync(previousSettings) && !existsSync(nextSettings)) {
-            copyFileSync(previousSettings, nextSettings)
+          if (!hasPublishedCards(next)) {
+            const previousSettings = join(current, 'settings.json')
+            const nextSettings = join(next, 'settings.json')
+            if (existsSync(previousSettings) && !existsSync(nextSettings)) {
+              copyFileSync(previousSettings, nextSettings)
+            }
+            const dest = readSettings(next)
+            dest.importedTranscripts = {}
+            dest.learningStarted = false
+            dest.initialIngestComplete = false
+            dest.learningTokens = 0
+            dest.learningTokensUnreported = 0
+            writeSettings(next, dest, { replaceImported: true, tokens: true })
+            writeIngestLog(next, emptyIngestLog())
           }
           if (registeredDirectories().includes(current)) {
             unregister(current)

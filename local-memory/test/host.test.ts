@@ -114,6 +114,14 @@ test('the desktop host lesson writes a scrubbed card without sending secrets to 
     assert.equal(prompt.includes('PATH=/usr/bin'), true)
     assert.equal(prompt.includes('NOTE=hello'), true)
     assert.equal(prompt.includes('Do not edit any files'), true)
+    assert.match(prompt, /one short lesson claim in plain words, like "Retry failed deploys"/)
+    assert.match(prompt, /Never a file name, path, task id, or chat recap/)
+    assert.match(prompt, /Topics are short shared labels, never file names/)
+    assert.match(
+      prompt,
+      /Relations use only APPLIES_TO, OCCURS_IN, INCOMPATIBLE_WITH, WARNS_AGAINST, RESOLVES\. target_entity is a project or tool, never a path/,
+    )
+    assert.match(prompt, /Sources are only the transcript tool, not Read, Shell, or other tool-call names/)
 
     const folder = join(directory, 'cards')
     const cardName = readdirSync(folder).find((name) => name.endsWith('.md'))
@@ -142,14 +150,14 @@ test('the desktop host lesson writes a scrubbed card without sending secrets to 
 
 test('Cursor uses Agent.prompt with the saved key, model id, and vault cwd', async () => {
   let seen:
-    | { text: string; apiKey?: string; model?: { id: string }; local?: { cwd: string } }
+    | { text: string; apiKey?: string; model?: { id: string; params?: { id: string; value: string }[] }; local?: { cwd: string } }
     | undefined
   mock.module('@cursor/sdk', {
     exports: {
       Agent: {
         async prompt(
           text: string,
-          options: { apiKey?: string; model?: { id: string }; local?: { cwd: string } },
+          options: { apiKey?: string; model?: { id: string; params?: { id: string; value: string }[] }; local?: { cwd: string } },
         ) {
           seen = { text, apiKey: options.apiKey, model: options.model, local: options.local }
           return { status: 'finished', result: '{"answer":"Retry the deploy once."}' }
@@ -158,17 +166,26 @@ test('Cursor uses Agent.prompt with the saved key, model id, and vault cwd', asy
     },
   })
   const { callModel } = await import('../src/lookup-cli.ts')
-  const text = await callModel({
+  const replied = await callModel({
     provider: 'cursor',
     secret: 'cursor-key',
     model: 'composer-2.5',
+    params: [
+      { id: 'effort', value: 'low' },
+      { id: 'fast', value: 'false' },
+    ],
     prompt: 'Write the card.',
     cwd: 'C:\\vault',
   })
   assert.ok(seen)
   assert.equal(seen.apiKey, 'cursor-key')
   assert.equal(seen.model?.id, 'composer-2.5')
+  assert.deepEqual(seen.model?.params, [
+    { id: 'effort', value: 'low' },
+    { id: 'fast', value: 'false' },
+  ])
   assert.equal(seen.local?.cwd, 'C:\\vault')
   assert.match(seen.text, /Do not edit any files/)
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })

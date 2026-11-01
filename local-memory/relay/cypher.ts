@@ -1,3 +1,5 @@
+import { isFileMention, isLearningSource } from '../src/graph-rules.ts'
+
 export type RelayAuthor = {
   username: string
   email?: string
@@ -180,7 +182,10 @@ export function cardFromUnknown(value: unknown): RelayCard | null {
 }
 
 export function cardCypher(card: RelayCard): CypherStatement[] {
-  const sourceType = (card.source_type || card.sources?.[0] || '').trim()
+  const learningSources = (card.sources ?? [])
+    .map((source) => source.trim())
+    .filter((source) => source !== '' && isLearningSource(source))
+  const sourceType = (card.source_type || learningSources[0] || '').trim()
   const cardId = card.id.trim()
   const statements: CypherStatement[] = [authored(card, sourceType)]
   const seen = new Set<string>()
@@ -192,7 +197,7 @@ export function cardCypher(card: RelayCard): CypherStatement[] {
   for (const relation of card.relations ?? []) {
     const target = relation.target_entity.trim()
     const entity = (relation.entity ?? '').trim()
-    if (target === '') continue
+    if (target === '' || isFileMention(target)) continue
     if (relation.relation === 'APPLIES_TO') add(`APPLIES_TO:${target.toLowerCase()}`, appliesTo(cardId, target))
     if (relation.relation === 'RESOLVES') add(`RESOLVES:${target.toLowerCase()}`, resolves(cardId, target))
     if (relation.relation === 'WARNS_AGAINST') add(`WARNS_AGAINST:${target.toLowerCase()}`, warnsAgainst(cardId, target))
@@ -201,10 +206,8 @@ export function cardCypher(card: RelayCard): CypherStatement[] {
       add(`INCOMPATIBLE_WITH:${entity.toLowerCase()}:${target.toLowerCase()}`, incompatible(entity, target))
     }
   }
-  for (const source of card.sources ?? []) {
-    const name = source.trim()
-    if (name === '') continue
-    add(`APPLIES_TO:${name.toLowerCase()}`, appliesTo(cardId, name))
+  for (const source of learningSources) {
+    add(`APPLIES_TO:${source.toLowerCase()}`, appliesTo(cardId, source))
   }
   return statements
 }

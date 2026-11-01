@@ -240,7 +240,7 @@ test('the lookup command sends the catalog, then only the picked card, and retur
 test('an Anthropic lookup sends the prompt to the chosen model with the saved key', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
   let seen: { url: string; key: string; version: string; model: string; prompt: string } | undefined
-  const text = await callModel(
+  const replied = await callModel(
     {
       provider: 'anthropic',
       secret: 'sk-ant-api03-aaaa',
@@ -266,13 +266,14 @@ test('an Anthropic lookup sends the prompt to the chosen model with the saved ke
   assert.equal(seen.version, '2023-06-01')
   assert.equal(seen.model, 'claude-sonnet-5-5')
   assert.equal(seen.prompt, 'Catalog:\nwork/platform/retry.md\nRetry a failed deploy once.')
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })
 
 test('an OpenAI lookup sends the prompt to the chosen model with the saved key', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
   let seen: { url: string; authorization: string; model: string; prompt: string } | undefined
-  const text = await callModel(
+  const replied = await callModel(
     {
       provider: 'openai',
       secret: 'sk-proj-bbbb',
@@ -298,12 +299,13 @@ test('an OpenAI lookup sends the prompt to the chosen model with the saved key',
   assert.equal(seen.authorization, 'Bearer sk-proj-bbbb')
   assert.equal(seen.model, 'gpt-6-luna')
   assert.equal(seen.prompt, 'Catalog:\nwork/platform/retry.md\nRetry a failed deploy once.')
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })
 
 test('an Anthropic reply joins every text block and skips a preceding thinking block', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
-  const text = await callModel(
+  const replied = await callModel(
     {
       provider: 'anthropic',
       secret: 'sk-ant-api03-aaaa',
@@ -321,14 +323,15 @@ test('an Anthropic reply joins every text block and skips a preceding thinking b
         }),
       ),
   )
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })
 
 test('a Cursor lookup uses the injected agent prompt with the saved key and model', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
   let sent = false
   let seen: { secret: string; model: string; prompt: string; cwd?: string } | undefined
-  const text = await callModel(
+  const replied = await callModel(
     {
       provider: 'cursor',
       secret: 'cursor-key',
@@ -353,13 +356,14 @@ test('a Cursor lookup uses the injected agent prompt with the saved key and mode
   assert.equal(seen.model, 'composer-2.5')
   assert.equal(seen.cwd, 'C:\\vault')
   assert.match(seen.prompt, /Do not edit any files/)
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })
 
 test('a Copilot lookup sends the saved token to the GitHub API', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
   let seen: { url: string; authorization: string; integration: string; model: string; prompt: string } | undefined
-  const text = await callModel(
+  const replied = await callModel(
     {
       provider: 'copilot',
       secret: 'copilot-token',
@@ -384,13 +388,14 @@ test('a Copilot lookup sends the saved token to the GitHub API', async () => {
   assert.equal(seen.integration, 'copilot-developer-cli')
   assert.equal(seen.model, 'gpt-4o')
   assert.equal(seen.prompt, 'Catalog:\nwork/platform/retry.md')
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })
 
 test('a Copilot model without chat completions uses the responses API', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
   let seen = ''
-  const text = await callModel(
+  const replied = await callModel(
     {
       provider: 'copilot',
       secret: 'copilot-token',
@@ -404,13 +409,14 @@ test('a Copilot model without chat completions uses the responses API', async ()
     },
   )
   assert.equal(seen, 'https://api.githubcopilot.com/responses')
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })
 
 test('a custom lookup posts to the saved OpenAI-compatible base URL', async () => {
   const { callModel } = await import('../src/lookup-cli.ts')
   let seen: { url: string; authorization: string; model: string } | undefined
-  const text = await callModel(
+  const replied = await callModel(
     {
       provider: 'custom',
       secret: 'local-key',
@@ -429,7 +435,8 @@ test('a custom lookup posts to the saved OpenAI-compatible base URL', async () =
   assert.equal(seen.url, 'http://127.0.0.1:8080/v1/chat/completions')
   assert.equal(seen.authorization, 'Bearer local-key')
   assert.equal(seen.model, 'llama-local')
-  assert.equal(text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.text, '{"answer":"Retry the deploy once."}')
+  assert.equal(replied.tokens, null)
 })
 
 test('Copilot model list marks chat completions unavailable when the entry says so', async () => {
@@ -518,7 +525,7 @@ test('cursor account lookup reads key expiry from the me endpoint', async () => 
     }
     return new Response('missing', { status: 404 })
   })
-  assert.equal(account.createdAt, '2026-10-01T00:00:00.000Z')
+  assert.equal('createdAt' in account, false)
   assert.equal(account.expiresAt, '2026-11-12T00:00:00.000Z')
   assert.equal(seen.includes('https://api.cursor.com/v1/me'), true)
 })
@@ -549,4 +556,27 @@ test('cursor account lookup reads expiry from the key list when the me call has 
     return new Response('missing', { status: 404 })
   })
   assert.equal(account.expiresAt, '2026-11-12T00:00:00.000Z')
+})
+
+test('cursor account lookup keeps expiry empty when neither call returns one', async () => {
+  const account = await lookupCursorAccount('cursor-key-e5f6', async (url) => {
+    const address = String(url)
+    if (address === 'https://api.cursor.com/v1/models') {
+      return new Response(JSON.stringify({ items: [{ id: 'composer-2.5', displayName: 'Composer 2.5' }] }), { status: 200 })
+    }
+    if (address === 'https://api.cursor.com/v1/me') {
+      return new Response(JSON.stringify({ createdAt: '2026-10-01T00:00:00.000Z' }), { status: 200 })
+    }
+    if (address === 'https://api2.cursor.sh/auth/exchange_user_api_key') {
+      return new Response(JSON.stringify({ accessToken: 'session-token' }), { status: 200 })
+    }
+    if (address === 'https://api2.cursor.sh/aiserver.v1.DashboardService/ListUserApiKeys') {
+      return new Response(JSON.stringify({ apiKeys: [{ maskedKey: 'crsr_...e5f6', createdAt: '1780000000000' }] }), {
+        status: 200,
+      })
+    }
+    return new Response('missing', { status: 404 })
+  })
+  assert.equal(account.expiresAt, '')
+  assert.equal('createdAt' in account, false)
 })

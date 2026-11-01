@@ -1,6 +1,7 @@
 import { homedir, userInfo } from 'node:os'
 import { join } from 'node:path'
 import {
+  onLearning,
   openApp,
   openUserSession,
   readInstalledTranscripts,
@@ -82,6 +83,10 @@ function cardPrompt(request: Parameters<CompleteLesson>[0]) {
     'Also include scope (personal or work), topics, summary (one or two sentences), situation, whatToDo, why, apply, otherNames, belongsToProject, clearlyOneProduct, subjectProject, generalTechnique, sameClaim, and updateId.',
     'Keep each of situation, whatToDo, why, and apply within 120 words.',
     'Keep the person\'s username, email, and team. Put every other person\'s name only in otherNames, not in the title, the lesson text, or the topics.',
+    'The title is one short lesson claim in plain words, like "Retry failed deploys". Never a file name, path, task id, or chat recap.',
+    'Topics are short shared labels, never file names.',
+    'Relations use only APPLIES_TO, OCCURS_IN, INCOMPATIBLE_WITH, WARNS_AGAINST, RESOLVES. target_entity is a project or tool, never a path.',
+    'Sources are only the transcript tool, not Read, Shell, or other tool-call names.',
     'A repeated claim sets sameClaim true or updateId to the known card id. A different claim leaves updateId empty. A second tool is added to sources.',
     '',
     `Model: ${request.model}`,
@@ -125,20 +130,29 @@ export function desktopLesson(
     const app = await ensureCopilotModels(folder, fetchImpl, machine)
     const key = app.activeKey()
     const model = request.model || app.chosenModel()
-    const text = await callModel(
-      {
-        provider: key.provider,
-        secret: key.secret,
-        model,
-        prompt: cardPrompt({ ...request, model }),
-        baseUrl: app.customBaseUrl(),
-        chatCompletions: key.provider === 'copilot' ? app.copilotChat(model) : undefined,
-        cwd: folder,
-      },
-      fetchImpl,
-      deps,
-    )
-    return lessonFromModel(text)
+    try {
+      const replied = await callModel(
+        {
+          provider: key.provider,
+          secret: key.secret,
+          model,
+          params: key.provider === 'cursor' ? app.modelParams() : undefined,
+          prompt: cardPrompt({ ...request, model }),
+          baseUrl: app.customBaseUrl(),
+          chatCompletions: key.provider === 'copilot' ? app.copilotChat(model) : undefined,
+          cwd: folder,
+        },
+        fetchImpl,
+        deps,
+      )
+      const text = typeof replied === 'string' ? replied : replied.text
+      const tokens = typeof replied === 'string' ? null : replied.tokens
+      app.addLearningTokens(tokens)
+      return lessonFromModel(text)
+    } catch (error) {
+      app.addLearningTokens(null)
+      throw error
+    }
   }
 }
 
@@ -168,11 +182,12 @@ export async function openDesktopHarness(options: {
     const folder = session.knowledgeDirectory(options.directory)
     const app = openApp(folder, undefined, options.machine)
     const key = app.activeKey()
-    const text = await callModel(
+    const replied = await callModel(
       {
         provider: key.provider,
         secret: key.secret,
         model: turn.model,
+        params: key.provider === 'cursor' ? app.modelParams() : undefined,
         prompt: renderLookup(turn),
         baseUrl: app.customBaseUrl(),
         chatCompletions: key.provider === 'copilot' ? app.copilotChat(turn.model) : undefined,
@@ -181,6 +196,7 @@ export async function openDesktopHarness(options: {
       options.fetchImpl,
       options.deps,
     )
+    const text = typeof replied === 'string' ? replied : replied.text
     return JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? text) as { pick: string[] } | { answer: string }
   })
   session.logIn()
@@ -189,7 +205,7 @@ export async function openDesktopHarness(options: {
   return { session, timer }
 }
 
-export async function openRunningDesktopHost() {
+export async function openRunningDesktopHost(options?: { onLearning?: () => void }) {
   const directory = join(homedir(), '.sharlie', 'knowledge')
   const harness = await openDesktopHarness({
     person: userInfo().username,
@@ -201,8 +217,14 @@ export async function openRunningDesktopHost() {
     directory,
     session: harness.session,
   })
+  const stopLearning = onLearning(() => {
+    options?.onLearning?.()
+  })
   return {
     line: (input: string) => host.line(input),
-    close: () => clearInterval(harness.timer),
+    close: () => {
+      stopLearning()
+      clearInterval(harness.timer)
+    },
   }
 }
