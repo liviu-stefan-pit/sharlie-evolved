@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
@@ -26,7 +26,6 @@ let learningInFlight = false
 let learningAgain = false
 let starting: Promise<void> | null = null
 let startupError = ''
-let errorShown = false
 
 const HOST_START_TIMEOUT_MS = 20_000
 
@@ -44,14 +43,28 @@ function startupSentence(error: unknown) {
   return `Sharlie couldn't start its background service. Press Retry, or quit Sharlie from the tray icon and open it again. (${detail})`
 }
 
-function showStartupError(sentence: string) {
-  if (errorShown) return
-  errorShown = true
-  try {
-    dialog.showErrorBox('Sharlie could not start', sentence)
-  } catch {
-    // The window's service screen shows the same sentence.
-  }
+/**
+ * No blocking dialog: a modal box would stall the main process and leave the window blank.
+ * The window's own service screen shows the sentence (from the rejected `state` call) with Retry.
+ */
+function noteStartupError(sentence: string) {
+  startupError = sentence
+  console.error(sentence)
+}
+
+/** Resolves once the window has loaded (or failed to), so a startup error reaches the page; never waits forever. */
+function windowLoaded() {
+  const target = window
+  if (!target || target.isDestroyed()) return Promise.resolve()
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, 10_000)
+    const done = () => {
+      clearTimeout(timer)
+      resolve()
+    }
+    target.webContents.once('did-finish-load', done)
+    target.webContents.once('did-fail-load', done)
+  })
 }
 
 /** Starts the host at most once at a time; never throws, never waits forever. */
@@ -69,11 +82,8 @@ function startHost() {
       ])
       running = opened
       startupError = ''
-      errorShown = false
     } catch (error) {
-      startupError = startupSentence(error)
-      console.error(startupError)
-      showStartupError(startupError)
+      noteStartupError(startupSentence(error))
     } finally {
       if (timer) clearTimeout(timer)
       starting = null
@@ -230,7 +240,7 @@ if (registerFlag || unregisterFlag) {
     // the window and tray open first, the host starts after, and a failure shows one sentence.
     process.on('uncaughtException', (error) => {
       console.error(error)
-      showStartupError(startupSentence(error))
+      if (!running) noteStartupError(startupSentence(error))
     })
     process.on('unhandledRejection', (error) => {
       console.error(error)
@@ -240,12 +250,15 @@ if (registerFlag || unregisterFlag) {
       ipcMain.handle('action', (_event, body: Record<string, unknown>) => ask({ ...body, cmd: 'action' }))
       ipcMain.handle('lookup', (_event, query: string) => ask({ cmd: 'lookup', query }))
       ipcMain.handle('cancel-learning', () => ask({ cmd: 'cancel-learning' }))
+      let loaded: Promise<void> = Promise.resolve()
       try {
         createWindow()
+        loaded = windowLoaded()
         createTray()
       } catch (error) {
-        showStartupError(startupSentence(error))
+        noteStartupError(startupSentence(error))
       }
+      await loaded
       await startHost()
     })
     app.on('before-quit', () => {

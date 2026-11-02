@@ -21,7 +21,15 @@ let ready
 const whenReady = new Promise((resolve) => { ready = resolve })
 const handlers = new Map()
 class BrowserWindow {
-  constructor() { log('window'); this.webContents = { send() {}, once() {} } }
+  constructor() {
+    log('window')
+    this.webContents = {
+      send() {},
+      once(event, callback) {
+        if (event === 'did-finish-load') setTimeout(() => { log('loaded'); callback() }, 20)
+      },
+    }
+  }
   on() {} loadURL() { log('load'); return Promise.resolve() } loadFile() { log('load'); return Promise.resolve() }
   isMinimized() { return false } isDestroyed() { return false } show() {} focus() {} hide() {} restore() {}
 }
@@ -38,7 +46,11 @@ mock.module(process.env.ELECTRON_URL, { namedExports: {
   Menu: { buildFromTemplate: () => ({}) },
   nativeImage: { createFromDataURL: () => ({}) },
   ipcMain: { handle: (name, fn) => handlers.set(name, fn) },
-  dialog: { showErrorBox: (title, text) => log('dialog:' + title + ' | ' + text) },
+  // Any dialog would be logged; main.ts must not use one (a blocking box leaves the window blank).
+  dialog: {
+    showErrorBox: (title, text) => log('dialog:' + title + ' | ' + text),
+    showMessageBox: (_window, options) => { log('dialog:' + (options?.message ?? '')); return Promise.resolve({ response: 0 }) },
+  },
 } })
 const watchdog = setTimeout(() => { console.log(JSON.stringify({ events, hung: true })); process.exit(0) }, 25000)
 await import(process.env.MAIN_MODULE)
@@ -86,12 +98,10 @@ function assertPlainFailure(result: ReturnType<typeof start>, mention: RegExp) {
   assert.equal(report.events[0], 'window', 'the window opens before the host starts')
   assert.ok(report.events.includes('tray'))
   assert.ok(!report.events.some((event) => event.startsWith('exit:') || event === 'quit'), 'Sharlie stays running')
-  const dialogs = report.events.filter((event) => event.startsWith('dialog:'))
-  assert.equal(dialogs.length, 1, 'one visible error')
-  assert.match(dialogs[0]!, mention)
-  assert.match(dialogs[0]!, /press Retry\./)
+  assert.equal(report.events.filter((event) => event.startsWith('dialog:')).length, 0, 'no blocking dialog')
   assert.equal(report.state?.ok, false)
-  assert.match(report.state?.error ?? '', mention, 'the window gets the same sentence for its service screen')
+  assert.match(report.state?.error ?? '', mention, "the window's service screen gets the plain sentence")
+  assert.match(report.state?.error ?? '', /press Retry/i)
 }
 
 function assertStarted(result: ReturnType<typeof start>) {
@@ -136,4 +146,19 @@ test('a read-only settings folder never crashes or hangs startup', () => {
     assert.equal(dialogs.length, 1)
     assert.match(report.state?.error ?? '', /press Retry\./)
   }
+})
+
+test('a knowledge path that is a file fails to the window error screen, never a dialog', () => {
+  const result = start((knowledge) => {
+    rmSync(knowledge, { recursive: true, force: true })
+    writeFileSync(knowledge, 'not a folder')
+  })
+  assertPlainFailure(result, /^Sharlie /)
+})
+
+test('a clean start waits for the window to load and opens without any dialog', () => {
+  const result = start(() => {})
+  assertStarted(result)
+  const events = result.report.events
+  assert.ok(events.indexOf('loaded') > events.indexOf('window'))
 })
