@@ -180,6 +180,8 @@ type Settings = {
   customBaseUrl: string
   customModel: string
   autoDrop: boolean
+  share: boolean
+  lastSharedAt: string
 }
 
 const emptyProfile = (): Profile => ({ username: '', email: '', team: '' })
@@ -484,6 +486,8 @@ function emptySettings(): Settings {
     customBaseUrl: '',
     customModel: '',
     autoDrop: false,
+    share: false,
+    lastSharedAt: '',
   }
 }
 
@@ -578,7 +582,9 @@ function readSettings(directory: string): Settings {
       selectedProvider: providerName(parsed.selectedProvider),
       customBaseUrl: parsed.customBaseUrl ?? defaults.customBaseUrl,
       customModel: parsed.customModel ?? defaults.customModel,
-      autoDrop: parsed.autoDrop ?? defaults.autoDrop,
+      share: parsed.share === true,
+      autoDrop: parsed.share === true,
+      lastSharedAt: typeof parsed.lastSharedAt === 'string' ? parsed.lastSharedAt : '',
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptySettings()
@@ -1886,6 +1892,10 @@ export function openApp(
       enabled: !disabled.has(tool.id),
     }))
   }
+  function rememberShare() {
+    settings.lastSharedAt = new Date().toISOString()
+    writeSettings(directory, settings)
+  }
   return {
     saveProfile(profile: Profile) {
       settings.profile = {
@@ -1992,9 +2002,19 @@ export function openApp(
     autoDrop() {
       return settings.autoDrop
     },
+    share() {
+      return settings.share
+    },
+    lastSharedAt() {
+      return settings.lastSharedAt
+    },
     setAutoDrop(enabled: boolean) {
       settings.autoDrop = enabled
+      settings.share = enabled
       writeSettings(directory, settings)
+    },
+    noteShared() {
+      rememberShare()
     },
     cadence() {
       if (settings.learnerIntervalMs === 0) return 'manual' as const
@@ -2520,6 +2540,14 @@ export function openApp(
                   author: { ...settings.profile },
                 },
               })
+              if (
+                settings.autoDrop &&
+                scrubbed.scope === 'work' &&
+                settings.drivePath.trim() !== '' &&
+                settings.profile.username.trim() !== ''
+              ) {
+                rememberShare()
+              }
               return { status: 'processed', detail: scrubbed.title }
             }
             const applyLesson = (original: Transcript, transcript: Transcript, lesson: LessonDraft) => {
@@ -2651,13 +2679,16 @@ export function openApp(
       if (workStems.length === 0) return { ran: true }
       const dest = join(settings.drivePath, 'Dropzone', username)
       mkdirSync(dest, { recursive: true })
+      let copied = false
       for (const stem of workStems) {
         for (const ext of ['.json', '.md'] as const) {
           const from = join(cardsDir, `${stem}${ext}`)
           if (!existsSync(from)) continue
           copyFileSync(from, join(dest, `${stem}${ext}`))
+          copied = true
         }
       }
+      if (copied) rememberShare()
       return { ran: true }
     },
     graph() {

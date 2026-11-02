@@ -83,6 +83,7 @@ searched: { tool: string; path: string }[]
 chatsFound: number
 scheduled: boolean
 share: boolean
+lastSharedAt: string | null
 learning: {
   active: boolean
   done: number
@@ -103,7 +104,7 @@ When a pass finishes, `learning` becomes `null` and `learningResult` is set. `le
 
 `scheduled` is true only when the learning timer is actually registered for this knowledge folder. The host registers it when it starts and the saved settings already have a username, email, team, an active key, and a model. It registers again after the save that completes those, with no `register` action from the window. A second start or a second save does not register twice. `scheduled` stays false until that registration is stored.
 
-`share` is the one team-Drive switch. It is `false` on first run and when `settings.json` has no `share` field. An old `autoDrop: true` does not turn it on.
+`share` is the one team-Drive switch. It is `false` on first run and when `settings.json` has no `share` field. An old `autoDrop: true` does not turn it on. `lastSharedAt` is an ISO time set when a work card is copied into `Dropzone/<username>/` inside the team folder, and `null` until that happens. The on-disk folder name stays `Dropzone`.
 
 `cadence` from the host is only `1h` or `manual`. A saved 15m or 30m interval is loaded as `1h`.
 

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { discardVault, openApp, openUserSession, readInstalledTranscripts, type LessonDraft } from '../src/app.ts'
-import { openDesktopHost, setKeyProbe } from '../src/window.ts'
+import { openDesktopHost, setFolderPicker, setKeyProbe } from '../src/window.ts'
 import { machineWith } from './machine.ts'
 
 function draft(
@@ -313,6 +313,115 @@ test('a host started with a saved profile, key, and model is scheduled without a
     const again = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as { scheduled?: boolean }
     assert.equal(again.scheduled, true)
   } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('sharing stays off until a usable team folder is chosen, and only a work card is copied', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  const share = join(directory, 'share')
+  mkdirSync(share)
+  const file = join(directory, 'not-a-folder.txt')
+  writeFileSync(file, 'x')
+  writeFileSync(
+    join(directory, 'settings.json'),
+    JSON.stringify({
+      autoDrop: true,
+      profile: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+    }),
+  )
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machine, () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const first = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as {
+      share?: boolean
+      lastSharedAt?: string | null
+      drivePath?: string
+    }
+    assert.equal(first.share, false)
+    assert.equal(first.lastSharedAt, null)
+    assert.equal(first.drivePath, '')
+
+    const missing = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-share', enabled: 'true' })),
+    ) as { errorCode?: string; notice?: string; share?: boolean }
+    assert.equal(missing.errorCode, 'share_needs_path')
+    assert.equal(missing.notice, 'Choose a team Drive folder before sharing.')
+    assert.equal(missing.share, false)
+
+    const blocked = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-drive', path: file })),
+    ) as { errorCode?: string; notice?: string; drivePath?: string }
+    assert.equal(blocked.errorCode, 'path_not_directory')
+    assert.equal(blocked.notice, 'That path is a file, not a folder.')
+    assert.equal(blocked.drivePath, '')
+
+    const blank = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'set-drive', path: '  ' }))) as {
+      errorCode?: string
+    }
+    assert.equal(blank.errorCode, 'path_empty')
+
+    const gone = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-drive', path: join(directory, 'missing') })),
+    ) as { errorCode?: string }
+    assert.equal(gone.errorCode, 'path_not_found')
+
+    setFolderPicker(() => share)
+    const picked = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'pick-folder', purpose: 'share' })),
+    ) as { errorCode?: string; share?: boolean; drivePath?: string }
+    assert.equal(picked.errorCode, undefined)
+    assert.equal(picked.share, false)
+    assert.equal(picked.drivePath, share)
+
+    setFolderPicker(() => null)
+    const cancelled = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'pick-folder', purpose: 'share' })),
+    ) as { drivePath?: string; errorCode?: string }
+    assert.equal(cancelled.drivePath, share)
+    assert.equal(cancelled.errorCode, undefined)
+
+    const enabled = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-auto-drop', enabled: 'true' })),
+    ) as { errorCode?: string; share?: boolean }
+    assert.equal(enabled.errorCode, undefined)
+    assert.equal(enabled.share, true)
+
+    mkdirSync(join(directory, 'cards'))
+    const card = (id: string, scope?: string) =>
+      JSON.stringify({
+        id,
+        title: id,
+        scope,
+        topics: [],
+        sources: [],
+        relations: [],
+        failure_modes: [],
+        solution: id,
+        author: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+      })
+    writeFileSync(join(directory, 'cards', 'card_work.json'), card('card_work', 'work'))
+    writeFileSync(join(directory, 'cards', 'card_work.md'), 'work')
+    writeFileSync(join(directory, 'cards', 'card_personal.json'), card('card_personal', 'personal'))
+    writeFileSync(join(directory, 'cards', 'card_plain.json'), card('card_plain'))
+    session.install(directory)
+    const after = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as {
+      lastSharedAt?: string | null
+      share?: boolean
+    }
+    assert.equal(after.share, true)
+    assert.match(after.lastSharedAt ?? '', /^\d{4}-\d{2}-\d{2}T/)
+    const drop = join(share, 'Dropzone', 'ada')
+    assert.equal(existsSync(join(drop, 'card_work.json')), true)
+    assert.equal(existsSync(join(drop, 'card_work.md')), true)
+    assert.equal(existsSync(join(drop, 'card_personal.json')), false)
+    assert.equal(existsSync(join(drop, 'card_plain.json')), false)
+  } finally {
+    setFolderPicker(null)
     discardVault(directory)
     rmSync(directory, { recursive: true, force: true })
     rmSync(machineRoot(directory), { recursive: true, force: true })

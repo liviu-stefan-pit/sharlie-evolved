@@ -1,8 +1,13 @@
+import { rmSync, statSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { join } from 'node:path'
 import { cancelLearning, learningProgress, learningResult, openUserSession, type Provider } from './app.ts'
 import { listCopilotModels, listCursorCatalog } from './exchange.ts'
 import { mockModelEnabled } from './host.ts'
 import { runningUnderTest } from './login-item.ts'
 import { localGraph } from './synapse.ts'
+
+const require = createRequire(import.meta.url)
 
 const hourMs = 60 * 60 * 1000
 
@@ -28,6 +33,8 @@ const knownActions = new Set([
   'set-publisher-interval',
   'set-drive',
   'set-knowledge',
+  'set-share',
+  'pick-folder',
   'start-learning',
   'cancel-learning',
   'recheck-sources',
@@ -51,6 +58,73 @@ let keyProbe: KeyProbe | null = null
 /** Test hook. A 401 or 403 rejects the key. A throw or any other failure still saves it. */
 export function setKeyProbe(probe: KeyProbe | null) {
   keyProbe = probe
+}
+
+type FolderPicker = (purpose: 'knowledge' | 'share') => Promise<string | null> | string | null
+
+let folderPicker: FolderPicker | null = null
+
+/** Test hook. Returning null is the same as cancelling the folder dialog. */
+export function setFolderPicker(picker: FolderPicker | null) {
+  folderPicker = picker
+}
+
+function checkFolder(path: string): ActionResult | null {
+  const trimmed = path.trim()
+  if (trimmed === '') return refused('path_empty', 'Choose a folder.')
+  let info: ReturnType<typeof statSync>
+  try {
+    info = statSync(trimmed)
+  } catch {
+    return refused('path_not_found', 'That folder does not exist.')
+  }
+  if (!info.isDirectory()) return refused('path_not_directory', 'That path is a file, not a folder.')
+  const probe = join(trimmed, `.sharlie-write-${process.pid}`)
+  try {
+    writeFileSync(probe, '')
+    rmSync(probe, { force: true })
+  } catch {
+    return refused('path_not_writable', 'Sharlie cannot write to that folder.')
+  }
+  return null
+}
+
+async function chooseFolder(purpose: 'knowledge' | 'share'): Promise<string | null> {
+  if (folderPicker) {
+    const chosen = await folderPicker(purpose)
+    return chosen && chosen.trim() !== '' ? chosen : null
+  }
+  try {
+    const loaded = require('electron') as
+      | { dialog?: { showOpenDialog: (options: { properties: string[] }) => Promise<{ canceled: boolean; filePaths: string[] }> } }
+      | string
+    if (typeof loaded === 'string' || typeof loaded.dialog?.showOpenDialog !== 'function') return null
+    const result = await loaded.dialog.showOpenDialog({ properties: ['openDirectory'] })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+function applyShare(app: WindowApp, params: URLSearchParams): ActionResult {
+  const enabled = params.get('enabled') === 'true'
+  if (!enabled) {
+    app.setAutoDrop(false)
+    return ok()
+  }
+  const incoming = params.get('path')
+  if (incoming != null && incoming.trim() !== '') {
+    const problem = checkFolder(incoming)
+    if (problem) return problem
+    app.setDrivePath(incoming.trim())
+  }
+  const drive = app.drivePath().trim()
+  if (drive === '' || checkFolder(drive)) {
+    return refused('share_needs_path', 'Choose a team Drive folder before sharing.')
+  }
+  app.setAutoDrop(true)
+  return ok()
 }
 
 function ok(): ActionResult {
@@ -214,8 +288,8 @@ function applyWindow(app: WindowApp, params: URLSearchParams): ActionResult | Pr
     const cadence = params.get('cadence')
     if (cadence === '15m' || cadence === '30m' || cadence === '1h' || cadence === 'manual') app.setCadence(cadence)
   }
-  if (action === 'set-auto-drop') {
-    app.setAutoDrop(params.get('enabled') === 'true')
+  if (action === 'set-auto-drop' || action === 'set-share') {
+    return applyShare(app, params)
   }
   if (action === 'set-base-url') {
     app.setCustomBaseUrl(params.get('baseUrl') ?? '')
@@ -233,9 +307,6 @@ function applyWindow(app: WindowApp, params: URLSearchParams): ActionResult | Pr
     } catch (error) {
       return { notice: error instanceof Error ? error.message : 'Learner interval must be 15 minutes, 30 minutes, 1 hour, or manual' }
     }
-  }
-  if (action === 'set-drive') {
-    app.setDrivePath(params.get('path') ?? '')
   }
   if (action === 'start-learning') return mapStart(app.startLearning())
   if (action === 'cancel-learning') cancelLearning()
@@ -264,13 +335,42 @@ async function commitWindow(
   params: URLSearchParams,
   reopen: () => WindowApp,
 ) {
-  if (params.get('action') === 'set-knowledge') {
+  const action = params.get('action')
+  if (action === 'pick-folder') {
+    const purpose = params.get('purpose') === 'share' ? 'share' : 'knowledge'
+    const chosen = await chooseFolder(purpose)
+    if (!chosen) return ok()
+    const problem = checkFolder(chosen)
+    if (problem) return problem
+    if (purpose === 'share') {
+      holder.app.setDrivePath(chosen)
+      return ok()
+    }
     try {
-      holder.app.setKnowledgePath(params.get('path') ?? '')
+      holder.app.setKnowledgePath(chosen)
       holder.app = reopen()
     } catch (error) {
       return { notice: error instanceof Error ? error.message : 'knowledge path is required' }
     }
+    return ok()
+  }
+  if (action === 'set-knowledge') {
+    const path = params.get('path') ?? ''
+    const problem = checkFolder(path)
+    if (problem) return problem
+    try {
+      holder.app.setKnowledgePath(path)
+      holder.app = reopen()
+    } catch (error) {
+      return { notice: error instanceof Error ? error.message : 'knowledge path is required' }
+    }
+    return ok()
+  }
+  if (action === 'set-drive') {
+    const path = params.get('path') ?? ''
+    const problem = checkFolder(path)
+    if (problem) return problem
+    holder.app.setDrivePath(path.trim())
     return ok()
   }
   return applyWindow(holder.app, params)
@@ -304,7 +404,9 @@ async function pageState(app: WindowApp, session: Session) {
     keyExpiresAt: expiresAt,
     vaultPath: app.knowledgePath(),
     drivePath: app.drivePath(),
-    autoDrop: app.autoDrop(),
+    autoDrop: app.share(),
+    share: app.share(),
+    lastSharedAt: app.lastSharedAt() === '' ? null : app.lastSharedAt(),
     cadence: app.cadence(),
     customBaseUrl: app.customBaseUrl(),
     sources: session.sourceFolders(),
