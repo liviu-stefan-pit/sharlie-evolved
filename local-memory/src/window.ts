@@ -368,6 +368,9 @@ async function commitWindow(
   const action = params.get('action')
   if (action === 'pick-folder') {
     const purpose = params.get('purpose') === 'share' ? 'share' : 'knowledge'
+    if (purpose === 'share' && !TEAM_SHARING_AVAILABLE) {
+      return refused('share_unavailable', 'Team sharing is not available in this version.')
+    }
     const chosen = await chooseFolder(purpose)
     if (!chosen) return ok()
     const problem = checkFolder(chosen)
@@ -397,6 +400,9 @@ async function commitWindow(
     return ok()
   }
   if (action === 'set-drive') {
+    if (!TEAM_SHARING_AVAILABLE) {
+      return refused('share_unavailable', 'Team sharing is not available in this version.')
+    }
     const path = params.get('path') ?? ''
     const problem = checkFolder(path)
     if (problem) return problem
@@ -434,11 +440,11 @@ async function pageState(app: WindowApp, session: Session) {
     keyExpiresAt: expiresAt,
     vaultPath: app.knowledgePath(),
     drivePath: app.drivePath(),
-    autoDrop: app.share(),
-    share: app.share(),
+    autoDrop: TEAM_SHARING_AVAILABLE && app.share(),
+    share: TEAM_SHARING_AVAILABLE && app.share(),
     shareAvailable: TEAM_SHARING_AVAILABLE,
     shareStartedAt: app.shareStartedAt() === '' ? null : app.shareStartedAt(),
-    lastSharedAt: app.lastSharedAt() === '' ? null : app.lastSharedAt(),
+    lastSharedAt: TEAM_SHARING_AVAILABLE && app.lastSharedAt() !== '' ? app.lastSharedAt() : null,
     lastLearnedAt: app.lastLearnedAt() === '' ? null : app.lastLearnedAt(),
     cadence: app.cadence(),
     customBaseUrl: app.customBaseUrl(),

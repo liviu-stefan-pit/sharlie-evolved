@@ -1996,6 +1996,7 @@ export function openApp(
     }))
   }
   function rememberShare() {
+    if (!TEAM_SHARING_AVAILABLE) return
     settings.lastSharedAt = new Date().toISOString()
     writeSettings(directory, settings)
   }

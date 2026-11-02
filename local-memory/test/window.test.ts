@@ -321,34 +321,39 @@ test('a host started with a saved profile, key, and model is scheduled without a
   }
 })
 
-test('team sharing is unavailable, so set-share writes nothing even after a folder is chosen', async () => {
+test('team sharing is unavailable, so the share folder is refused and nothing is stamped shared', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const machine = machineWith(machineRoot(directory), ['cursor'])
   const share = join(directory, 'share')
+  const other = join(directory, 'other-share')
   mkdirSync(share)
-  const file = join(directory, 'not-a-folder.txt')
-  writeFileSync(file, 'x')
-  writeFileSync(
-    join(directory, 'settings.json'),
-    JSON.stringify({
-      autoDrop: true,
-      profile: { username: 'ada', email: 'ada@example.com', team: 'platform' },
-    }),
-  )
+  mkdirSync(other)
+  writeFileSync(join(share, 'keep.txt'), 'keep')
+  const app = openApp(directory, (request) => draft(request.transcript.text), machine)
+  app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+  app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+  app.setDrivePath(share)
+  app.setAutoDrop(true)
+  app.runLearner([{ source: 'cursor', text: 'retry the deploy', repo: 'sharlie-evolved' }])
+  assert.equal(app.share(), true)
+  assert.equal(app.lastSharedAt(), '')
+  assert.deepEqual(readdirSync(share), ['keep.txt'])
   const session = openUserSession('ada', (request) => draft(request.transcript.text), machine, () => [])
   session.logIn()
   try {
     const host = await openDesktopHost({ directory, session })
     const first = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as {
       share?: boolean
+      autoDrop?: boolean
       shareAvailable?: boolean
       lastSharedAt?: string | null
       drivePath?: string
     }
     assert.equal(first.share, false)
+    assert.equal(first.autoDrop, false)
     assert.equal(first.shareAvailable, false)
     assert.equal(first.lastSharedAt, null)
-    assert.equal(first.drivePath, '')
+    assert.equal(first.drivePath, share)
 
     const missing = JSON.parse(
       await host.line(JSON.stringify({ cmd: 'action', action: 'set-share', enabled: 'true' })),
@@ -357,37 +362,30 @@ test('team sharing is unavailable, so set-share writes nothing even after a fold
     assert.equal(missing.notice, 'Team sharing is not available in this version.')
     assert.equal(missing.share, false)
 
-    const blocked = JSON.parse(
-      await host.line(JSON.stringify({ cmd: 'action', action: 'set-drive', path: file })),
+    const driven = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-drive', path: other })),
     ) as { errorCode?: string; notice?: string; drivePath?: string }
-    assert.equal(blocked.errorCode, 'path_not_directory')
-    assert.equal(blocked.notice, 'That path is a file, not a folder.')
-    assert.equal(blocked.drivePath, '')
+    assert.equal(driven.errorCode, 'share_unavailable')
+    assert.equal(driven.notice, 'Team sharing is not available in this version.')
+    assert.equal(driven.drivePath, share)
+    assert.deepEqual(readdirSync(share), ['keep.txt'])
+    assert.deepEqual(readdirSync(other), [])
 
-    const blank = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'set-drive', path: '  ' }))) as {
-      errorCode?: string
-    }
-    assert.equal(blank.errorCode, 'path_empty')
-
-    const gone = JSON.parse(
-      await host.line(JSON.stringify({ cmd: 'action', action: 'set-drive', path: join(directory, 'missing') })),
-    ) as { errorCode?: string }
-    assert.equal(gone.errorCode, 'path_not_found')
-
-    setFolderPicker(() => share)
+    let picks = 0
+    setFolderPicker(() => {
+      picks += 1
+      return other
+    })
     const picked = JSON.parse(
       await host.line(JSON.stringify({ cmd: 'action', action: 'pick-folder', purpose: 'share' })),
-    ) as { errorCode?: string; share?: boolean; drivePath?: string }
-    assert.equal(picked.errorCode, undefined)
+    ) as { errorCode?: string; notice?: string; share?: boolean; drivePath?: string }
+    assert.equal(picked.errorCode, 'share_unavailable')
+    assert.equal(picked.notice, 'Team sharing is not available in this version.')
     assert.equal(picked.share, false)
     assert.equal(picked.drivePath, share)
-
-    setFolderPicker(() => null)
-    const cancelled = JSON.parse(
-      await host.line(JSON.stringify({ cmd: 'action', action: 'pick-folder', purpose: 'share' })),
-    ) as { drivePath?: string; errorCode?: string }
-    assert.equal(cancelled.drivePath, share)
-    assert.equal(cancelled.errorCode, undefined)
+    assert.equal(picks, 0)
+    assert.deepEqual(readdirSync(share), ['keep.txt'])
+    assert.deepEqual(readdirSync(other), [])
 
     const enabled = JSON.parse(
       await host.line(JSON.stringify({ cmd: 'action', action: 'set-auto-drop', enabled: 'true' })),
@@ -396,7 +394,7 @@ test('team sharing is unavailable, so set-share writes nothing even after a fold
     assert.equal(enabled.notice, 'Team sharing is not available in this version.')
     assert.equal(enabled.share, false)
 
-    mkdirSync(join(directory, 'cards'))
+    mkdirSync(join(directory, 'cards'), { recursive: true })
     const card = (id: string, scope?: string) =>
       JSON.stringify({
         id,
