@@ -24,6 +24,32 @@ function neighbours(node: GraphNode, nodes: GraphNode[], links: GraphLink[]) {
   return out
 }
 
+/** Long unbroken strings (paths, hashes, URLs) wrap instead of scrolling the panel sideways. */
+const wrap = '[overflow-wrap:anywhere]'
+
+const norm = (text?: string) => (text ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+
+/**
+ * Each piece of text shows once. When the host packs "why" and "what to do" into one field it
+ * shows under Why it works only; empty or repeated failure lines are dropped.
+ */
+export function cardParts(node: GraphNode) {
+  const why = node.why?.trim() ?? ''
+  let solution = node.solution?.trim() ?? ''
+  if (why && solution && (norm(why) === norm(solution) || norm(why).includes(norm(solution)))) solution = ''
+  let summary = node.summary?.trim() ?? ''
+  if (summary && [why, solution].some((text) => text && norm(text).includes(norm(summary)))) summary = ''
+  const seen = new Set([norm(why), norm(solution), norm(summary)].filter(Boolean))
+  const failures: string[] = []
+  for (const mode of node.failure_modes ?? []) {
+    const key = norm(mode)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    failures.push(mode.trim())
+  }
+  return { summary, solution, why, failures }
+}
+
 export type ShareState = 'local' | 'waiting' | 'shared'
 
 /**
@@ -68,7 +94,7 @@ function Chip({ node, onOpen }: { node: GraphNode; onOpen: (id: string) => void 
     <li>
       <button
         type="button"
-        className={`inline-flex min-h-9 items-center rounded-full border bg-field px-3 text-[13px] text-ink hover:bg-panel ${node.kind === 'card' ? 'border-amber/60' : 'border-line'}`}
+        className={`inline-flex min-h-9 max-w-full items-center rounded-full border bg-field px-3 text-left text-[13px] text-ink [overflow-wrap:anywhere] hover:bg-panel ${node.kind === 'card' ? 'border-amber/60' : 'border-line'}`}
         onClick={() => onOpen(node.id)}
       >
         {node.title || node.label}
@@ -129,6 +155,7 @@ export function LessonDetail({
   const fromLine = [from.join(', '), day].filter(Boolean).join(' · ')
   const lessons = related.filter((item) => item.kind === 'card')
   const others = related.filter((item) => item.kind !== 'card' && item.kind !== 'developer')
+  const parts = cardParts(node)
 
   return (
     <aside
@@ -146,7 +173,7 @@ export function LessonDetail({
       <div className="flex items-start gap-2 px-4 pt-3 pb-2">
         <div className="min-w-0 flex-1">
           {!isCard ? <p className="text-[13px] text-muted">{kindName[node.kind] ?? node.kind}</p> : null}
-          <h2 id={`${id}-title`} ref={heading} tabIndex={-1} className="text-[18px] leading-snug font-semibold text-ink">
+          <h2 id={`${id}-title`} ref={heading} tabIndex={-1} className={`text-[18px] leading-snug font-semibold text-ink ${wrap}`}>
             {node.title || node.label}
           </h2>
         </div>
@@ -157,28 +184,28 @@ export function LessonDetail({
       <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
         {isCard ? (
           <>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
+            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted ${wrap}`}>
               {fromLine ? <p>From: {fromLine}</p> : null}
               {shareState(node, share) ? <ShareBadge state={shareState(node, share)!} /> : null}
             </div>
-            {node.summary ? <p className="mt-3 text-[16px] leading-[1.55] text-ink">{node.summary}</p> : null}
-            {node.solution ? (
+            {parts.summary ? <p className={`mt-3 text-[16px] leading-[1.55] text-ink ${wrap}`}>{parts.summary}</p> : null}
+            {parts.solution ? (
               <section className="mt-4">
                 <h3 className="text-[13px] font-semibold text-muted">What to do</h3>
-                <p className="mt-1 text-[16px] leading-[1.55] whitespace-pre-wrap text-ink">{node.solution}</p>
+                <p className={`mt-1 text-[16px] leading-[1.55] whitespace-pre-wrap text-ink ${wrap}`}>{parts.solution}</p>
               </section>
             ) : null}
-            {node.why ? (
+            {parts.why ? (
               <section className="mt-4">
                 <h3 className="text-[13px] font-semibold text-muted">Why it works</h3>
-                <p className="mt-1 text-[15px] whitespace-pre-wrap text-ink">{node.why}</p>
+                <p className={`mt-1 text-[15px] whitespace-pre-wrap text-ink ${wrap}`}>{parts.why}</p>
               </section>
             ) : null}
-            {node.failure_modes && node.failure_modes.length > 0 ? (
+            {parts.failures.length > 0 ? (
               <section className="mt-4">
                 <h3 className="text-[13px] font-semibold text-muted">What went wrong</h3>
-                <ul className="mt-1 list-disc pl-5 text-[15px] text-ink">
-                  {node.failure_modes.map((mode) => (
+                <ul className={`mt-1 list-disc pl-5 text-[15px] text-ink ${wrap}`}>
+                  {parts.failures.map((mode) => (
                     <li key={mode}>{mode}</li>
                   ))}
                 </ul>

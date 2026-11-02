@@ -562,3 +562,49 @@ test('no sharing badge at all while the host sends no scope', async ({ page }) =
   await expect(page.locator('[data-share-badge]')).toHaveCount(0)
   await expect(page.getByText(/Only on this PC|Waiting to share|^Shared$/)).toHaveCount(0)
 })
+
+for (const width of [360, 768, 1280]) {
+  test(`a 200-character unbroken string wraps inside Lesson detail at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 760 })
+    const long = 'C:\\Users\\ada\\' + 'x'.repeat(200)
+    const graph = graphWithNodes()
+    graph.nodes = graph.nodes.map((node) =>
+      node.id === 'card:retry'
+        ? { ...node, title: `Retry ${long}`, summary: `S${long}`, solution: `D${long}`, why: `W${long}`, failure_modes: [`F${long}`] }
+        : node.kind === 'tool'
+          ? { ...node, label: `T${long}` }
+          : node,
+    )
+    await openApp(page, pageState({ graph }))
+    await page.getByRole('button', { name: 'List' }).click()
+    await page.locator('[data-lesson-list]').getByRole('button', { name: /^Retry C:/ }).click()
+    const panel = page.locator('[data-lesson-detail]')
+    await expect(panel).toBeVisible()
+    const sizes = await panel.evaluate((el) => {
+      const all = [el, ...el.querySelectorAll('*')] as HTMLElement[]
+      const box = el.getBoundingClientRect()
+      return {
+        over: all.filter((item) => item.scrollWidth > item.clientWidth + 1 && getComputedStyle(item).overflowX !== 'visible').length,
+        outside: all.filter((item) => item.getBoundingClientRect().right > box.right + 1).length,
+        page: document.documentElement.scrollWidth - window.innerWidth,
+      }
+    })
+    expect(sizes).toEqual({ over: 0, outside: 0, page: 0 })
+  })
+}
+
+test('packed why and what-to-do show once under Why it works, and empty sections stay hidden', async ({ page }) => {
+  const packed = 'Retry once after the lock clears, because the lock is released within a minute.'
+  const graph = graphWithNodes()
+  graph.nodes = graph.nodes.map((node) =>
+    node.id === 'card:retry' ? { ...node, solution: packed, why: packed, summary: '', failure_modes: ['', '  ', packed] } : node,
+  )
+  await openApp(page, pageState({ graph }))
+  await page.getByRole('button', { name: 'List' }).click()
+  await page.locator('[data-lesson-list]').getByRole('button', { name: 'Retry the deploy' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Retry the deploy' })
+  await expect(dialog.getByRole('heading', { name: 'Why it works' })).toBeVisible()
+  await expect(dialog.getByText(packed)).toHaveCount(1)
+  await expect(dialog.getByRole('heading', { name: 'What to do' })).toHaveCount(0)
+  await expect(dialog.getByRole('heading', { name: 'What went wrong' })).toHaveCount(0)
+})
