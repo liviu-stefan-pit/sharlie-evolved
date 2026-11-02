@@ -15,6 +15,7 @@ declare global {
     __sharlieReply: (id: number, value: unknown) => void
     __sharlieFail: (id: number, message: string) => void
     __sharlieLearning?: Array<(state: PageState) => void>
+    __sharlieCall: (cmd: string, payload?: unknown) => Promise<unknown>
     __sharlieGraph?: { screenCoords: (id: string) => { x: number; y: number } | null }
   }
 }
@@ -93,6 +94,8 @@ export function graphWithNodes(): PageState['graph'] {
 }
 
 export async function installHost(page: Page) {
+  // The app is dark-first; Chromium defaults to light, so pin dark unless a test opts into light.
+  await page.emulateMedia({ colorScheme: 'dark' })
   await page.addInitScript(() => {
     const calls: Call[] = []
     const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
@@ -106,6 +109,7 @@ export async function installHost(page: Page) {
       })
     }
     window.__sharlieCalls = calls
+    window.__sharlieCall = call
     window.__sharlieLearning = learning
     window.__sharlieReply = (id, value) => {
       const entry = calls.find((item) => item.id === id)
@@ -175,11 +179,23 @@ export async function lastCall(page: Page, cmd: string) {
   }, cmd)
 }
 
-export async function openApp(page: Page, state: PageState) {
+export type HostExtras = { cancelLearning?: boolean; checkSources?: boolean }
+
+/** Optional host methods (window.sharlie.cancelLearning / checkSources) the UI codes against. */
+export async function addHostExtras(page: Page, extras: HostExtras) {
+  await page.addInitScript((flags: HostExtras) => {
+    const sharlie = window.sharlie as Record<string, unknown>
+    if (flags.cancelLearning) sharlie.cancelLearning = () => window.__sharlieCall('cancel')
+    if (flags.checkSources) sharlie.checkSources = () => window.__sharlieCall('check')
+  }, extras)
+}
+
+export async function openApp(page: Page, state: PageState, extras: HostExtras = {}) {
   await installHost(page)
+  if (extras.cancelLearning || extras.checkSources) await addHostExtras(page, extras)
   await page.goto('/')
   await reply(page, 'state', state)
-  await expect(page.getByRole('heading', { name: 'Sharlie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sharlie', exact: true })).toBeVisible()
 }
 
 export async function clickNode(page: Page, id: string) {

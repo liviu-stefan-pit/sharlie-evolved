@@ -4,7 +4,7 @@ import { clickNode, fail, graphWithNodes, installHost, openApp, pageState, reply
 test('the header stays up while the page loads, errors, and switches views', async ({ page }) => {
   await installHost(page)
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Sharlie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sharlie', exact: true })).toBeVisible()
   await expect(page.getByLabel('Search')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sources' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Settings' })).toBeVisible()
@@ -50,7 +50,7 @@ test('a running harvest mark uses the synced color', async ({ page }) => {
   await openApp(page, pageState({ paused: false }))
   const mark = page.getByLabel('Harvest running')
   await expect(mark).toBeVisible()
-  await expect(mark).toHaveCSS('background-color', 'rgb(111, 143, 120)')
+  await expect(mark).toHaveCSS('background-color', 'rgb(127, 176, 141)')
 })
 
 test('a paused harvest mark uses the pending color', async ({ page }) => {
