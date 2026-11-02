@@ -1,9 +1,10 @@
 import { Graph } from '@cosmos.gl/graph'
 import { useEffect, useRef, useState } from 'react'
-import { displayColor, displayRadius, linkEnd } from './graph'
+import { displayColor, displayRadius, isBusy, linkEnd } from './graph'
 import type { GraphData, GraphNode } from './types'
 
 type LabelItem = { id: string; label: string; x: number; y: number }
+type GlowItem = { id: string; x: number; y: number }
 
 type SharlieGraphApi = {
   screenCoords(id: string): { x: number; y: number } | null
@@ -16,11 +17,24 @@ type SharlieGraphApi = {
   }
 }
 
-const LABEL_CAP = 48
+const LABEL_CAP = 12
+const GLOW_MS = 600
 const LABEL_SIZE_FLOOR = 3.5
 const HOVER_ALPHA = 0.28
-const RING = '#cccccc'
-const LINK = '#5c5c5c'
+/** Lyra's tokens from index.css; the host's old graph palette is ignored. */
+function token(name: string, fallback: string) {
+  if (typeof document === 'undefined') return fallback
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback
+}
+const palette = () => ({
+  canvas: token('--color-canvas', '#14161c'),
+  link: token('--color-link', '#3a4050'),
+  ring: token('--color-ink', '#e6e8ee'),
+  low: token('--color-muted', '#a3a9b8'),
+  high: token('--color-amber', '#b89a6a'),
+})
+const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
 function webgl2Ok() {
   try {
@@ -89,6 +103,9 @@ export function GraphMap({
   const e2e = import.meta.env.VITE_E2E === '1'
   const [blocked, setBlocked] = useState(false)
   const [labels, setLabels] = useState<LabelItem[]>([])
+  const [glows, setGlows] = useState<GlowItem[]>([])
+  const glowing = useRef(new Map<string, number>())
+  const colorsRef = useRef(palette())
 
   graphRef.current = graph
   selectedRef.current = selectedId
@@ -122,6 +139,52 @@ export function GraphMap({
     paintRings(g)
     scheduleLabels()
   }, [selectedId])
+
+  // Follow the system theme (or the manual override) without reloading the map.
+  useEffect(() => {
+    const repaint = () => {
+      colorsRef.current = palette()
+      const g = engine.current
+      if (!g) return
+      const c = colorsRef.current
+      g.setConfigPartial({ backgroundColor: c.canvas, linkDefaultColor: c.link, hoveredPointRingColor: c.ring, focusedPointRingColor: c.ring, outlinedPointRingColor: c.ring })
+      paintColors(g, hovered.current)
+      g.render(undefined, 0)
+    }
+    const media = window.matchMedia?.('(prefers-color-scheme: light)')
+    media?.addEventListener?.('change', repaint)
+    const watch = new MutationObserver(repaint)
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => {
+      media?.removeEventListener?.('change', repaint)
+      watch.disconnect()
+    }
+  }, [])
+
+  // When the side panel opens or the window narrows, refit so no lesson hides off-screen.
+  useEffect(() => {
+    const node = frame.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    let width = node.clientWidth
+    let timer = 0
+    const watch = new ResizeObserver(() => {
+      const next = node.clientWidth
+      if (Math.abs(next - width) < 8) return
+      width = next
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        const g = engine.current
+        if (!g || ids.current.length === 0) return
+        g.fitView(e2e || reducedMotion() ? 0 : 200, 0.1, false)
+        scheduleLabels()
+      }, 60)
+    })
+    watch.observe(node)
+    return () => {
+      window.clearTimeout(timer)
+      watch.disconnect()
+    }
+  }, [])
 
   function visibleCanvas() {
     const canvases = [...(frame.current?.querySelectorAll('canvas') ?? [])]
@@ -210,7 +273,7 @@ export function GraphMap({
     }
     if (selected != null) keep.add(selected)
     for (let i = 0; i < nodes.length; i++) {
-      const [r, gch, b] = rgba(displayColor(nodes[i]?.degree), 1)
+      const [r, gch, b] = rgba(displayColor(nodes[i]?.degree, colorsRef.current.low, colorsRef.current.high), 1)
       const alpha = hover == null || keep.has(i) ? 1 : HOVER_ALPHA
       colors[i * 4] = r
       colors[i * 4 + 1] = gch
@@ -242,6 +305,10 @@ export function GraphMap({
     scheduleLabels()
   }
 
+  function scheduleLabelsSoon() {
+    window.setTimeout(scheduleLabels, 100)
+  }
+
   function scheduleLabels() {
     window.cancelAnimationFrame(labelRaf.current)
     labelRaf.current = window.requestAnimationFrame(refreshLabels)
@@ -263,11 +330,31 @@ export function GraphMap({
     for (const index of sampled) {
       if (chosen.size >= LABEL_CAP) break
       if (chosen.has(index)) continue
+      if (!isBusy(data.nodes[index]?.degree)) continue
       if (g.spaceToScreenRadius(displayRadius(data.nodes[index]?.degree)) < LABEL_SIZE_FLOOR) continue
       chosen.add(index)
     }
-    g.trackPointPositionsByIndices([...chosen])
+    const now = performance.now()
+    const glowIdx: number[] = []
+    for (const [id, until] of glowing.current) {
+      if (until < now) glowing.current.delete(id)
+      else {
+        const index = indexOf.current.get(id)
+        if (index != null) glowIdx.push(index)
+      }
+    }
+    g.trackPointPositionsByIndices([...new Set([...chosen, ...glowIdx])])
     const tracked = g.getTrackedPointPositionsMap({ nonBlocking: true })
+    const nextGlows: GlowItem[] = []
+    for (const index of glowIdx) {
+      const node = data.nodes[index]
+      const space = tracked.get(index)
+      if (!node || !space) continue
+      const screen = g.spaceToScreenPosition(space)
+      nextGlows.push({ id: node.id, x: screen[0], y: screen[1] })
+    }
+    setGlows(nextGlows)
+    if (glowing.current.size > 0) scheduleLabelsSoon()
     const next: LabelItem[] = []
     for (const index of chosen) {
       const node = data.nodes[index]
@@ -292,7 +379,13 @@ export function GraphMap({
   function applyData(g: Graph, data: GraphData) {
     const nextIds = data.nodes.map((node) => node.id)
     const nextIndex = new Map(nextIds.map((id, index) => [id, index]))
-    const added = nextIds.some((id) => !seen.current.has(id))
+    const fresh = nextIds.filter((id) => !seen.current.has(id))
+    const added = fresh.length > 0
+    // One amber glow per newly learned lesson (not on the first paint, not with reduced motion).
+    if (seen.current.size > 0 && !reducedMotion()) {
+      const until = performance.now() + GLOW_MS
+      for (const id of fresh) if (data.nodes[nextIndex.get(id)!]?.kind === 'card') glowing.current.set(id, until)
+    }
     const positions = new Float32Array(data.nodes.length * 2)
     const sizes = new Float32Array(data.nodes.length)
     const pinned: number[] = []
@@ -339,25 +432,25 @@ export function GraphMap({
         return
       }
       engine.current = new Graph(mount, {
-        backgroundColor: data.canvas,
+        backgroundColor: colorsRef.current.canvas,
         pointDefaultColor: '#9d9d9d',
         pointDefaultSize: 4,
         pointOpacity: 1,
-        linkDefaultColor: LINK,
+        linkDefaultColor: colorsRef.current.link,
         linkDefaultWidth: 1,
         curvedLinks: false,
         scalePointsOnZoom: false,
         scaleLinksOnZoom: false,
         enableDrag: !e2e,
         enableZoom: true,
-        enableSimulation: !e2e,
+        enableSimulation: !e2e && !reducedMotion(),
         enableSimulationDuringZoom: false,
         fitViewOnInit: false,
         attribution: '',
         renderHoveredPointRing: true,
-        hoveredPointRingColor: RING,
-        focusedPointRingColor: RING,
-        outlinedPointRingColor: RING,
+        hoveredPointRingColor: colorsRef.current.ring,
+        focusedPointRingColor: colorsRef.current.ring,
+        outlinedPointRingColor: colorsRef.current.ring,
         hoveredPointCursor: 'pointer',
         simulationCollision: 1,
         simulationCollisionPadding: 2,
@@ -399,18 +492,27 @@ export function GraphMap({
   }
 
   return (
-    <div ref={frame} data-graph className="relative min-h-0 flex-1" style={{ background: graph.canvas }}>
+    <div ref={frame} data-graph className="relative min-h-0 flex-1 bg-canvas">
       <div ref={host} className="absolute inset-0" />
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
         {labels.map((item) => (
           <div
             key={item.id}
             data-graph-label={item.id}
-            className="absolute whitespace-nowrap text-[12px]"
-            style={{ left: item.x, top: item.y, transform: 'translate(10px, -50%)', color: '#cccccc' }}
+            className="absolute whitespace-nowrap text-[13px] text-ink [text-shadow:0_0_3px_var(--color-canvas)]"
+            style={{ left: item.x, top: item.y, transform: 'translate(10px, -50%)' }}
           >
             {item.label}
           </div>
+        ))}
+        {glows.map((item) => (
+          <span
+            key={`glow:${item.id}`}
+            data-graph-glow={item.id}
+            aria-hidden="true"
+            className="sharlie-glow absolute h-6 w-6 rounded-full"
+            style={{ left: item.x, top: item.y }}
+          />
         ))}
       </div>
       {blocked ? (

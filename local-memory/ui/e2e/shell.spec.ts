@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { clickNode, fail, graphWithNodes, installHost, openApp, pageState, reply } from './support'
+import { clickNode, emitLearning, fail, graphWithNodes, installHost, openApp, pageState, reply } from './support'
 
 test('the header stays up while the page loads, errors, and switches views', async ({ page }) => {
   await installHost(page)
@@ -46,18 +46,68 @@ test('settings opens over a loaded graph without a blank frame', async ({ page }
   await expect(page.locator('[data-graph]')).toBeVisible()
 })
 
-test('a running harvest mark uses the synced color', async ({ page }) => {
-  await openApp(page, pageState({ paused: false }))
-  const mark = page.getByLabel('Harvest running')
+test('a set-up app says it learns every hour, in the success colour', async ({ page }) => {
+  await openApp(page, pageState({ paused: false, cadence: '1h' }))
+  const mark = page.getByRole('img', { name: 'Learns every hour' })
   await expect(mark).toBeVisible()
   await expect(mark).toHaveCSS('background-color', 'rgb(127, 176, 141)')
 })
 
-test('a paused harvest mark uses the pending color', async ({ page }) => {
+test('a paused app says Learning paused in the muted colour', async ({ page }) => {
   await openApp(page, pageState({ paused: true }))
-  const mark = page.getByLabel('Harvest paused')
+  const mark = page.getByRole('img', { name: 'Learning paused' })
   await expect(mark).toBeVisible()
-  await expect(mark).toHaveCSS('background-color', 'rgb(184, 154, 106)')
+  await expect(mark).toHaveCSS('background-color', 'rgb(163, 169, 184)')
+})
+
+test('the status never claims learning when nothing is set up', async ({ page }) => {
+  await openApp(page, pageState({ hasKey: false, savedProviders: [], provider: '', paused: false }))
+  await expect(page.getByRole('img', { name: 'Not set up yet' })).toBeVisible()
+  await expect(page.getByRole('img', { name: /Learns|Learning now/ })).toHaveCount(0)
+  expect((await page.content()).toLowerCase()).not.toContain('harvest')
+})
+
+test('a running pass shows Learning now in amber', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes(), learning: { active: true, done: 1, total: 4 } }))
+  await expect(page.getByRole('img', { name: 'Learning now' })).toHaveCSS('background-color', 'rgb(184, 154, 106)')
+})
+
+test('Home toggles between the map and the list', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await expect(page.getByText('1 lesson', { exact: true })).toBeVisible()
+  const map = page.getByRole('button', { name: 'Map' })
+  const list = page.getByRole('button', { name: 'List' })
+  await expect(map).toHaveAttribute('aria-pressed', 'true')
+  await list.click()
+  await expect(list).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('[data-graph]')).toHaveCount(0)
+  await page.locator('[data-lesson-list]').getByRole('button', { name: 'Retry the deploy' }).click()
+  await expect(page.getByRole('heading', { name: 'Retry the deploy' })).toBeVisible()
+  await map.click()
+  await expect(page.locator('[data-graph]')).toBeVisible()
+})
+
+test('the map paints with the UI tokens, not the host palette', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await expect(page.locator('[data-graph]')).toHaveCSS('background-color', 'rgb(20, 22, 28)')
+})
+
+test('a newly learned lesson glows once', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.waitForFunction(() => !!window.__sharlieGraph?.screenCoords('card:retry'))
+  const graph = graphWithNodes()
+  graph.nodes.push({ id: 'card:new', kind: 'card', label: 'New', color: '#b89a6a', title: 'New lesson', x: 150, y: 110, fx: 150, fy: 110 })
+  await emitLearning(page, pageState({ graph }))
+  await expect(page.locator('[data-graph-glow="card:new"]')).toHaveCount(1)
+  await expect(page.locator('[data-graph-glow]')).toHaveCount(0, { timeout: 3000 })
+  await expect(page.locator('[data-graph-glow="card:retry"]')).toHaveCount(0)
+})
+
+test('low-degree nodes stay unlabelled unless hovered or selected', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.waitForFunction(() => !!window.__sharlieGraph?.screenCoords('card:retry'))
+  await page.waitForTimeout(300)
+  await expect(page.locator('[data-graph-label]')).toHaveCount(0)
 })
 
 test('the open drawer is 280 wide and stays inside the window', async ({ page }) => {

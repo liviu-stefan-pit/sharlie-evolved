@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { fail, graphWithNodes, lastCall, openApp, pageState, reply } from './support'
 
-const retryLabel = '[data-graph-label="card:retry"]'
-const viteLabel = '[data-graph-label="tool:vite"]'
+// Low-degree nodes carry no map label, so filtering is checked on the List view rows.
+const retryLabel = '[data-lesson-list] button:has-text("Retry the deploy")'
+const viteLabel = '[data-lesson-list] button:has-text("vite")'
 
 test('search stays usable through a lookup, an error, and a second lookup', async ({ page }) => {
   await openApp(page, pageState())
@@ -27,6 +28,7 @@ test('search stays usable through a lookup, an error, and a second lookup', asyn
 
 test('typing retry hides vite and does not call lookup', async ({ page }) => {
   await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.getByRole('button', { name: 'List' }).click()
   const search = page.getByLabel('Search')
   await expect(page.locator(retryLabel)).toBeVisible()
   await expect(page.locator(viteLabel)).toBeVisible()
@@ -38,6 +40,7 @@ test('typing retry hides vite and does not call lookup', async ({ page }) => {
 
 test('clearing the search field shows both labels again', async ({ page }) => {
   await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.getByRole('button', { name: 'List' }).click()
   const search = page.getByLabel('Search')
   await expect(page.locator(retryLabel)).toBeVisible()
   await expect(page.locator(viteLabel)).toBeVisible()
@@ -50,6 +53,7 @@ test('clearing the search field shows both labels again', async ({ page }) => {
 
 test('typing RETRY still hides vite', async ({ page }) => {
   await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.getByRole('button', { name: 'List' }).click()
   const search = page.getByLabel('Search')
   await expect(page.locator(retryLabel)).toBeVisible()
   await expect(page.locator(viteLabel)).toBeVisible()
@@ -60,6 +64,7 @@ test('typing RETRY still hides vite', async ({ page }) => {
 
 test('enter looks up the typed query and shows the answer', async ({ page }) => {
   await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.getByRole('button', { name: 'List' }).click()
   const search = page.getByLabel('Search')
   await expect(page.locator(retryLabel)).toBeVisible()
   await search.fill('retry')

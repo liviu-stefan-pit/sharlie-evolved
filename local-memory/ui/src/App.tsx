@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Drawer } from './Drawer'
 import { FirstRun } from './FirstRun'
 import { LearningStrip } from './LearningStrip'
@@ -124,6 +124,7 @@ export function App() {
   const active = waiting || state?.learning?.active === true
   const [ranOnce, setRanOnce] = useState(false)
   const [noWebgl, setNoWebgl] = useState(false)
+  const [layout, setLayout] = useState<'map' | 'list'>('map')
   useEffect(() => {
     if (state?.learning?.active) setRanOnce(true)
   }, [state?.learning?.active])
@@ -274,10 +275,7 @@ export function App() {
     <div className="flex h-full flex-col bg-canvas text-ink">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-panel px-3">
         <h1 className="shrink-0 text-[13px] font-semibold">{state?.title ?? 'Sharlie'}</h1>
-        <span
-          className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${state?.paused ? 'bg-pending' : 'bg-synced'}`}
-          aria-label={state?.paused ? 'Harvest paused' : 'Harvest running'}
-        />
+        <StatusDot state={state} active={active} />
         <form className="min-w-0 flex-1" onSubmit={(event) => void submitSearch(event)}>
           <input
             className="h-8 w-full rounded-full border border-line bg-field px-3 text-[13px] text-ink outline-none transition-colors duration-[120ms] placeholder:text-faint hover:bg-white/[0.05] focus:border-focus"
@@ -320,13 +318,16 @@ export function App() {
       {!state && !hostError ? <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p> : null}
       {view === 'graph' && visible ? (
         <div className="flex min-h-0 flex-1 flex-col">
+          {!firstRun && !homeEmpty && state ? (
+            <HomeBar layout={noWebgl ? 'list' : layout} canMap={!noWebgl} onLayout={setLayout} count={cardCount} />
+          ) : null}
           <div className="relative flex min-h-0 flex-1 flex-col">
-            {noWebgl ? (
+            {noWebgl || layout === 'list' ? (
               <LessonList
                 nodes={visible.nodes}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
-                note="This PC can't draw the map, so here is the list."
+                note={noWebgl ? "This PC can't draw the map, so here is the list." : undefined}
               />
             ) : (
               <GraphMap
@@ -402,6 +403,52 @@ export function App() {
       {view === 'graph' && state && !visible ? (
         <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p>
       ) : null}
+    </div>
+  )
+}
+
+/** Never claims learning is on when nothing is set up. */
+function StatusDot({ state, active }: { state: PageState | null; active: boolean }) {
+  const setUp = !!state && firstTodo(state) === null
+  const [label, tone] = !state
+    ? ['Starting', 'border border-faint']
+    : active
+      ? ['Learning now', 'bg-amber']
+      : !setUp
+        ? ['Not set up yet', 'border border-faint']
+        : state.paused
+          ? ['Learning paused', 'bg-muted']
+          : state.cadence === 'manual'
+            ? ['Learns when you ask', 'bg-synced']
+            : ['Learns every hour', 'bg-synced']
+  return (
+    <span className="flex shrink-0 items-center gap-1.5" title={label}>
+      <span role="img" aria-label={label} className={`inline-block h-2 w-2 rounded-full ${tone}`} />
+      <span className="hidden text-[13px] text-muted md:inline">{label}</span>
+    </span>
+  )
+}
+
+function HomeBar({ layout, canMap, onLayout, count, children }: { layout: 'map' | 'list'; canMap: boolean; onLayout: (next: 'map' | 'list') => void; count: number; children?: ReactNode }) {
+  const option = (value: 'map' | 'list', text: string) => (
+    <button
+      type="button"
+      aria-pressed={layout === value}
+      disabled={value === 'map' && !canMap}
+      className={`h-8 rounded-[8px] px-3 text-[13px] transition-colors duration-[120ms] disabled:opacity-50 ${layout === value ? 'bg-panel text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
+      onClick={() => onLayout(value)}
+    >
+      {text}
+    </button>
+  )
+  return (
+    <div className="relative z-10 flex shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 py-1.5">
+      <p className="shrink-0 text-[13px] text-muted">{count === 1 ? '1 lesson' : `${count} lessons`}</p>
+      <div className="min-w-0 flex-1">{children}</div>
+      <div role="group" aria-label="View" className="flex shrink-0 items-center rounded-[10px] bg-field p-0.5">
+        {option('map', 'Map')}
+        {option('list', 'List')}
+      </div>
     </div>
   )
 }

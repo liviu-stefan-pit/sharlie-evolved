@@ -111,7 +111,26 @@ input[type="checkbox"] {
   animation: sharlie-indeterminate 1.4s ease-in-out infinite;
 }
 
+@keyframes sharlie-glow {
+  from {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+}
+.sharlie-glow {
+  background: radial-gradient(circle, var(--color-glow) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  animation: sharlie-glow 600ms ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .sharlie-glow {
+    display: none;
+  }
   *,
   *::before,
   *::after {

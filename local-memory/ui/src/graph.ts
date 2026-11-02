@@ -1,7 +1,8 @@
 import type { GraphData, GraphLink, GraphNode } from './types.ts'
 
-const GRAY = [0x9d, 0x9d, 0x9d] as const
-const ORANGE = [0xd4, 0x89, 0x4a] as const
+function channels(hex: string) {
+  return [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16)) as [number, number, number]
+}
 
 function finiteDegree(degree: number | undefined) {
   return typeof degree === 'number' && Number.isFinite(degree) ? degree : 0
@@ -15,12 +16,20 @@ function hexChannel(value: number) {
   return value.toString(16).padStart(2, '0')
 }
 
-export function displayColor(degree?: number) {
+/** Low-degree nodes use the muted token, busy ones fade toward the amber token. */
+export function displayColor(degree?: number, low = '#a3a9b8', high = '#b89a6a') {
+  const GRAY = channels(low)
+  const ORANGE = channels(high)
   const t = fade(degree)
   const r = Math.round(GRAY[0] + (ORANGE[0] - GRAY[0]) * t)
   const g = Math.round(GRAY[1] + (ORANGE[1] - GRAY[1]) * t)
   const b = Math.round(GRAY[2] + (ORANGE[2] - GRAY[2]) * t)
   return `#${hexChannel(r)}${hexChannel(g)}${hexChannel(b)}`
+}
+
+/** Labels are kept for hovered, selected, or busy nodes only. */
+export function isBusy(degree?: number) {
+  return fade(degree) > 0
 }
 
 export function displayRadius(degree?: number) {
