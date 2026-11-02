@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage } from 'electron'
 import { existsSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openRunningDesktopHost } from '../src/host.ts'
@@ -22,6 +23,63 @@ let window: BrowserWindow | null = null
 let running: Awaited<ReturnType<typeof openRunningDesktopHost>> | null = null
 let learningInFlight = false
 let learningAgain = false
+let starting: Promise<void> | null = null
+let startupError = ''
+let errorShown = false
+
+const HOST_START_TIMEOUT_MS = 20_000
+
+/** One plain sentence for a failed start; the raw detail follows on its own line. */
+function startupSentence(error: unknown) {
+  const detail = error instanceof Error ? error.message.split('\n')[0] : String(error)
+  const settings = join(homedir(), '.sharlie', 'knowledge', 'settings.json')
+  if (error instanceof SyntaxError || /JSON/.test(detail)) {
+    return `Sharlie couldn't read its settings file at ${settings}. Fix or remove that file, then press Retry. (${detail})`
+  }
+  if (/EACCES|EPERM|EROFS|read-only/i.test(detail)) {
+    return `Sharlie can't write to its settings folder at ${dirname(settings)}. Check the folder's permissions, then press Retry. (${detail})`
+  }
+  if (/timed out/.test(detail)) return 'Sharlie\'s background service took too long to start. Press Retry, or quit Sharlie from the tray icon and open it again.'
+  return `Sharlie couldn't start its background service. Press Retry, or quit Sharlie from the tray icon and open it again. (${detail})`
+}
+
+function showStartupError(sentence: string) {
+  if (errorShown) return
+  errorShown = true
+  try {
+    dialog.showErrorBox('Sharlie could not start', sentence)
+  } catch {
+    // The window's service screen shows the same sentence.
+  }
+}
+
+/** Starts the host at most once at a time; never throws, never waits forever. */
+function startHost() {
+  if (running) return Promise.resolve()
+  if (starting) return starting
+  starting = (async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const opened = await Promise.race([
+        openRunningDesktopHost({ onLearning: sendLearningSnapshot }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Starting the background service timed out')), HOST_START_TIMEOUT_MS)
+        }),
+      ])
+      running = opened
+      startupError = ''
+      errorShown = false
+    } catch (error) {
+      startupError = startupSentence(error)
+      console.error(startupError)
+      showStartupError(startupError)
+    } finally {
+      if (timer) clearTimeout(timer)
+      starting = null
+    }
+  })()
+  return starting
+}
 
 function showWindow() {
   if (!window) return
@@ -31,7 +89,9 @@ function showWindow() {
 }
 
 async function ask(message: Record<string, unknown>) {
-  if (!running) throw new Error('Sharlie host is not available')
+  // A state request after a failed start (the window's Retry) tries the start again.
+  if (!running && message.cmd === 'state') await startHost()
+  if (!running) throw new Error(startupError || 'Sharlie host is not available')
   return JSON.parse(await running.line(JSON.stringify(message))) as unknown
 }
 
@@ -148,13 +208,26 @@ if (registerFlag || unregisterFlag) {
     app.on('second-instance', () => {
       showWindow()
     })
+    // A bad settings file, a read-only folder, or a slow start must never crash or hang Sharlie:
+    // the window and tray open first, the host starts after, and a failure shows one sentence.
+    process.on('uncaughtException', (error) => {
+      console.error(error)
+      showStartupError(startupSentence(error))
+    })
+    process.on('unhandledRejection', (error) => {
+      console.error(error)
+    })
     app.whenReady().then(async () => {
-      running = await openRunningDesktopHost({ onLearning: sendLearningSnapshot })
       ipcMain.handle('state', () => ask({ cmd: 'state' }))
       ipcMain.handle('action', (_event, body: Record<string, unknown>) => ask({ ...body, cmd: 'action' }))
       ipcMain.handle('lookup', (_event, query: string) => ask({ cmd: 'lookup', query }))
-      createWindow()
-      createTray()
+      try {
+        createWindow()
+        createTray()
+      } catch (error) {
+        showStartupError(startupSentence(error))
+      }
+      await startHost()
     })
     app.on('before-quit', () => {
       quitting = true
