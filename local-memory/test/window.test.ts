@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { discardVault, openUserSession, readInstalledTranscripts, type LessonDraft } from '../src/app.ts'
+import { discardVault, openApp, openUserSession, readInstalledTranscripts, type LessonDraft } from '../src/app.ts'
 import { openDesktopHost, setKeyProbe } from '../src/window.ts'
 import { machineWith } from './machine.ts'
 
@@ -134,11 +134,13 @@ test('the desktop window is an Electron shell titled Sharlie', () => {
     build: {
       appId: string
       productName: string
-      win: { target: string[] }
+      win: { target: string[]; requestedExecutionLevel?: string }
+      nsis: { perMachine?: boolean; allowElevation?: boolean }
       mac: { target: string[] }
       linux?: unknown
     }
   }
+  const loginItem = readFileSync(new URL('../src/login-item.ts', import.meta.url), 'utf8')
   const installer = readFileSync(new URL('../electron/installer.nsh', import.meta.url), 'utf8')
   assert.match(main, /title:\s*'Sharlie'/)
   assert.match(main, /width:\s*960/)
@@ -154,6 +156,12 @@ test('the desktop window is an Electron shell titled Sharlie', () => {
   assert.equal(pkg.build.appId, 'app.sharlie.local')
   assert.equal(pkg.build.productName, 'Sharlie')
   assert.deepEqual(pkg.build.win.target, ['nsis'])
+  assert.equal(pkg.build.win.requestedExecutionLevel, 'asInvoker')
+  assert.equal(pkg.build.nsis.perMachine, false)
+  assert.equal(pkg.build.nsis.allowElevation, false)
+  assert.match(loginItem, /setLoginItemSettings/)
+  assert.equal(loginItem.includes('schtasks'), false)
+  assert.match(main, /finally\s*\{[\s\S]*app\.exit\(0\)/)
   assert.deepEqual(pkg.build.mac.target, ['dmg'])
   assert.equal(pkg.build.linux, undefined)
   assert.match(installer, /--register-login/)
@@ -284,6 +292,27 @@ test('a rejected key is not saved, and a network failure still saves it', async 
     assert.equal(JSON.stringify(saved).includes('sk-proj-bbbb'), false)
   } finally {
     setKeyProbe(null)
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('a host started with a saved profile, key, and model is scheduled without a register action', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  const prepared = openApp(directory, (request) => draft(request.transcript.text), machine)
+  prepared.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+  prepared.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machine, () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const state = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as { scheduled?: boolean }
+    assert.equal(state.scheduled, true)
+    const again = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as { scheduled?: boolean }
+    assert.equal(again.scheduled, true)
+  } finally {
     discardVault(directory)
     rmSync(directory, { recursive: true, force: true })
     rmSync(machineRoot(directory), { recursive: true, force: true })

@@ -310,6 +310,7 @@ async function pageState(app: WindowApp, session: Session) {
     sources: session.sourceFolders(),
     searched: session.searchedFolders(),
     chatsFound: session.sourceFolders().reduce((sum, source) => sum + source.chats, 0),
+    scheduled: session.jobsRegistered(app.knowledgePath()),
     graph,
     learning: snapshot?.active ? { ...snapshot, tokens, unreported } : null,
     learningResult: learningResult(),
@@ -322,6 +323,7 @@ async function pageState(app: WindowApp, session: Session) {
 export async function openDesktopHost(options: { directory: string; session: Session }) {
   const reopen = () => options.session.openWindow(options.directory)
   const holder = { app: reopen() }
+  options.session.ensureJobs(holder.app.knowledgePath())
   await loadCursorAccount(holder.app)
   return {
     async line(input: string) {
@@ -363,6 +365,7 @@ export async function openDesktopHost(options: { directory: string; session: Ses
           params.set(key, String(value))
         }
         const result = await commitWindow(holder, params, reopen)
+        options.session.ensureJobs(holder.app.knowledgePath())
         return JSON.stringify({ ...(await pageState(holder.app, options.session)), ...result })
       }
       return JSON.stringify({})

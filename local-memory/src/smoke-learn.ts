@@ -12,6 +12,7 @@ export type SmokeLearnReport = {
   calls: number
   rerunCalls: number
   secretFound: boolean
+  scheduled: boolean
   reason?: string
 }
 
@@ -89,7 +90,7 @@ export async function runSmokeLearn(): Promise<SmokeLearnReport> {
         }),
       ),
     ) as { notice?: string }
-    if (profile.notice) return { ok: false, cards: 0, calls: 0, rerunCalls: 0, secretFound: false, reason: profile.notice }
+    if (profile.notice) return { ok: false, cards: 0, calls: 0, rerunCalls: 0, secretFound: false, scheduled: false, reason: profile.notice }
     const saved = JSON.parse(
       await host.line(
         JSON.stringify({
@@ -99,12 +100,13 @@ export async function runSmokeLearn(): Promise<SmokeLearnReport> {
           secret: 'sk-ant-api03-aaaa',
         }),
       ),
-    ) as { notice?: string }
-    if (saved.notice) return { ok: false, cards: 0, calls: 0, rerunCalls: 0, secretFound: false, reason: saved.notice }
+    ) as { notice?: string; scheduled?: boolean }
+    if (saved.notice) return { ok: false, cards: 0, calls: 0, rerunCalls: 0, secretFound: false, scheduled: false, reason: saved.notice }
+    const scheduled = saved.scheduled === true
     const started = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
       notice?: string
     }
-    if (started.notice) return { ok: false, cards: 0, calls: 0, rerunCalls: 0, secretFound: false, reason: started.notice }
+    if (started.notice) return { ok: false, cards: 0, calls: 0, rerunCalls: 0, secretFound: false, scheduled, reason: started.notice }
     await settle()
     const calls = mockModelCallCount()
     const first = cardText(directory)
@@ -112,14 +114,15 @@ export async function runSmokeLearn(): Promise<SmokeLearnReport> {
     await new Promise((resolve) => setTimeout(resolve, 50))
     const rerunCalls = mockModelCallCount() - calls
     const secretFound = first.text.includes(plantedSecret)
-    const ok = first.count === 1 && calls === 1 && rerunCalls === 0 && !secretFound
+    const ok = first.count === 1 && calls === 1 && rerunCalls === 0 && !secretFound && scheduled
     return {
       ok,
       cards: first.count,
       calls,
       rerunCalls,
       secretFound,
-      reason: ok ? undefined : 'the fixture learn did not write one clean card',
+      scheduled,
+      reason: ok ? undefined : scheduled ? 'the fixture learn did not write one clean card' : 'the learning timer was not registered',
     }
   } finally {
     host.close()

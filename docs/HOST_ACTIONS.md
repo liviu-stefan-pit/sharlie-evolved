@@ -81,6 +81,7 @@ Existing fields stay. These are added:
 sources: { tool: string; path: string; chats: number }[]
 searched: { tool: string; path: string }[]
 chatsFound: number
+scheduled: boolean
 share: boolean
 learning: {
   active: boolean
@@ -99,6 +100,8 @@ learningResult: { lessons: number; chats: number; text: string } | null
 `learning.done` and `learning.total` are chats in the current pass. Copy: `37 of 412 chats`. `learning.lessons` is how many cards this pass has written so far.
 
 When a pass finishes, `learning` becomes `null` and `learningResult` is set. `learningResult.text` is `58 lessons learned` (the number is `lessons`, singular when it is 1: `1 lesson learned`). A pass that writes nothing uses `0 lessons learned`. A pass that ends with `learning.error` still sets `learningResult` for the cards that did land, and the error stays on the last `learning` event before it clears.
+
+`scheduled` is true only when the learning timer is actually registered for this knowledge folder. The host registers it when it starts and the saved settings already have a username, email, team, an active key, and a model. It registers again after the save that completes those, with no `register` action from the window. A second start or a second save does not register twice. `scheduled` stays false until that registration is stored.
 
 `share` is the one team-Drive switch. It is `false` on first run and when `settings.json` has no `share` field. An old `autoDrop: true` does not turn it on.
 
@@ -189,7 +192,9 @@ When `share` is on, the host also scans the share folder. A file there is contex
 
 ## Packaged smoke
 
-`SHARLIE_MOCK_MODEL=1` does nothing on a normal launch. The mock model runs only when that variable is set and the process was started with `--smoke`. That path starts the host, learns one fixture chat, checks that a second pass makes no model call, and checks that a planted secret is absent from the card. A crash or a missing result exits non-zero.
+`SHARLIE_MOCK_MODEL=1` does nothing on a normal launch. The mock model runs only when that variable is set and the process was started with `--smoke`. That path starts the host, learns one fixture chat, checks that a second pass makes no model call, checks that a planted secret is absent from the card, and checks that `scheduled` is true after the key is saved. A crash or a missing result exits non-zero.
+
+Windows login uses `app.setLoginItemSettings` (`openAtLogin`, per user). The installer does not ask for an administrator. `--register-login` and `--unregister-login` always exit, including when the login-item call throws.
 
 ## What the UI does not need to send
 

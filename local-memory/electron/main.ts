@@ -198,9 +198,12 @@ function createTray() {
 
 if (registerFlag || unregisterFlag) {
   app.whenReady().then(() => {
-    if (registerFlag) registerLoginItem()
-    else unregisterLoginItem()
-    app.exit(0)
+    try {
+      if (registerFlag) registerLoginItem()
+      else unregisterLoginItem()
+    } finally {
+      app.exit(0)
+    }
   })
 } else if (smoke) {
   app.whenReady().then(async () => {

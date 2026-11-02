@@ -63,7 +63,7 @@ jobs:
             Write-Error 'SMOKE_FAIL the host did not report a finished learn'
             exit 1
           }
-          if ($stdout -notmatch '"cards":1' -or $stdout -notmatch '"calls":1' -or $stdout -notmatch '"rerunCalls":0' -or $stdout -match '"secretFound":true') {
+          if ($stdout -notmatch '"cards":1' -or $stdout -notmatch '"calls":1' -or $stdout -notmatch '"rerunCalls":0' -or $stdout -match '"secretFound":true' -or $stdout -notmatch '"scheduled":true') {
             Write-Error 'SMOKE_FAIL the fixture learn did not write one clean card'
             exit 1
           }

@@ -1,12 +1,25 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-const taskName = 'Sharlie'
-const runName = 'Sharlie'
 const label = 'app.sharlie.local'
-const runKey = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
+const require = createRequire(import.meta.url)
+
+type LoginApp = {
+  setLoginItemSettings: (settings: { openAtLogin: boolean; args?: string[] }) => void
+}
+
+function loginApp(): LoginApp | null {
+  try {
+    const loaded = require('electron') as { app?: LoginApp } | string
+    if (typeof loaded === 'string' || typeof loaded.app?.setLoginItemSettings !== 'function') return null
+    return loaded.app
+  } catch {
+    return null
+  }
+}
 
 export function runningUnderTest() {
   return (
@@ -50,14 +63,12 @@ function launchAgent(binary: string) {
 
 export function registerLoginItem() {
   if (runningUnderTest()) return
-  const command = quotedCommand()
-  if (command === '') return
   if (process.platform === 'win32') {
-    execFileSync('schtasks', ['/Create', '/TN', taskName, '/SC', 'ONLOGON', '/TR', command, '/F'], {
-      stdio: 'ignore',
-    })
+    loginApp()?.setLoginItemSettings({ openAtLogin: true, args: ['--background'] })
     return
   }
+  const command = quotedCommand()
+  if (command === '') return
   if (process.platform === 'darwin') {
     const path = join(homedir(), 'Library', 'LaunchAgents', `${label}.plist`)
     mkdirSync(join(path, '..'), { recursive: true })
@@ -82,16 +93,7 @@ export function registerLoginItem() {
 export function unregisterLoginItem() {
   if (runningUnderTest()) return
   if (process.platform === 'win32') {
-    try {
-      execFileSync('schtasks', ['/Delete', '/TN', taskName, '/F'], { stdio: 'ignore' })
-    } catch {
-      // The task was not registered.
-    }
-    try {
-      execFileSync('reg', ['delete', runKey, '/v', runName, '/f'], { stdio: 'ignore' })
-    } catch {
-      // The Run value was not registered.
-    }
+    loginApp()?.setLoginItemSettings({ openAtLogin: false })
     return
   }
   if (process.platform === 'darwin') {

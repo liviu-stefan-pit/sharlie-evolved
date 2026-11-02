@@ -2847,6 +2847,18 @@ export function openUserSession(
     registerLoginItem()
   }
 
+  function readyToSchedule(directory: string) {
+    const app = openApp(directory, complete, machine, answer, cursorLookup)
+    const profile = app.profile()
+    if ([profile.username, profile.email, profile.team].some((field) => field.trim() === '')) return false
+    if (!app.keys().some((key) => key.active)) return false
+    try {
+      return app.chosenModel() !== ''
+    } catch {
+      return false
+    }
+  }
+
   function unregister(directory: string) {
     forget(directory)
     jobs.delete(directory)
@@ -2930,6 +2942,15 @@ export function openUserSession(
     },
     install(directory: string) {
       register(directory)
+    },
+    ensureJobs(directory: string) {
+      if (!readyToSchedule(directory)) return false
+      if (registeredDirectories().includes(directory)) return true
+      register(directory)
+      return registeredDirectories().includes(directory)
+    },
+    jobsRegistered(directory: string) {
+      return registeredDirectories().includes(directory)
     },
     uninstall(directory: string) {
       unregister(directory)

@@ -16,7 +16,7 @@ To get the installer:
 ## 2. Install
 
 - The installer asks **"Who should this application be installed for?"** Pick **Only for me**. That choice needs no admin rights and installs into `%LOCALAPPDATA%\Programs\Sharlie`. (**Anyone who uses this computer** asks for admin; you don't need it.)
-- At the end of the install, Sharlie adds a Windows scheduled task called **Sharlie** that starts it quietly in the tray each time you sign in. Uninstalling removes the task. *(Not yet checked on Windows: whether creating that task works without admin rights.)*
+- At the end of the install, Sharlie registers itself to start quietly in the tray each time you sign in. That is a per-user login item (`setLoginItemSettings`). It does not create a scheduled task and it does not ask for administrator rights. Uninstalling turns that login start off. *(Not yet checked on Windows.)*
 
 ## 3. First run: four steps
 
@@ -30,7 +30,7 @@ The window says **"Sharlie learns from your work on this computer"**. It reads t
 Then press **Start learning**. A strip at the top shows "Learning… 37 of 412 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns.
 
 After that, Home has a **Learn now** button to learn your newest chats again; the status line says **Learns when you open Sharlie** until the first pass of the session, then **Last learned …**.
-> **[DEV NOTE]** Learning on open isn't wired up yet: the app never registers its learning job, so today new chats are learned only when you press **Learn now**. Don't promise hourly or background learning until the host reports a running schedule.
+> **[DEV NOTE]** Once name, email, team, a key, and a model are saved, the host registers its learning timer. The snapshot field `scheduled` is true only then. The first pass still waits for **Start learning**. Later passes run on that timer. The window may still accept a cadence under one hour until that host change lands.
 
 > **[DEV NOTE]** Coming in this build: the first pass is planned to read only your newest 50 chats and leave older ones for later. Today it reads every new chat, newest first.
 

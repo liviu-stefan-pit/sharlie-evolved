@@ -22,5 +22,6 @@ test('a mock first-run learn writes one card, skips the secret, and does not cal
   assert.equal(report.calls, 1)
   assert.equal(report.rerunCalls, 0)
   assert.equal(report.secretFound, false)
+  assert.equal(report.scheduled, true)
   assert.equal(report.ok, true)
 })

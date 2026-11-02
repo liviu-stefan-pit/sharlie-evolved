@@ -62,12 +62,14 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "include": "electron/installer.nsh",
       "oneClick": false,
-      "perMachine": false
+      "perMachine": false,
+      "allowElevation": false
     },
     "mac": {
       "target": [
