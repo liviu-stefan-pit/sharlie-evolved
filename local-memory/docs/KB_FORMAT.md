@@ -93,7 +93,11 @@ The read skips anything it cannot trust, and it does not throw:
 
 A lesson is written only when its scope is exactly `work`. Personal lessons stay on that computer. A lesson with no scope is personal, so it is not written either. The shared folder is left untouched.
 
-Saving writes a temp file in the same folder, then renames it to the real name. Anyone reading either sees the previous file or the finished file. If that rename fails because the name is busy or already there, the app tries the rename five times, about a fifth of a second apart. It does not write over the destination directly. When the tries are used up, the temp file is removed and the save comes back with a short reason. A lesson that was already there stays as it was.
+Saving writes a temp file in the same folder, then renames it to the real name. The Markdown file is renamed into place first, and the JSON file last. A crash in between can leave a note without its JSON. It cannot leave a JSON file whose note was never written. Anyone reading either sees the previous file or the finished file.
+
+If that rename fails because the name is busy or already there, the app tries the rename five times, about a fifth of a second apart. It does not write over the destination directly. When the tries are used up, the temp file is removed and the save comes back with a short reason. A lesson that was already there stays as it was.
+
+At the start of a save, the app deletes its own temp files that are older than 10 minutes. Those names start with a dot, then that writer id, then a hyphen, and end in `.tmp`. A younger temp file stays. Another writer's temp file stays, however old it is.
 
 A writer only creates new files, or rewrites files that already carry that writer's own id and the same email. A different email, or an id that belongs to another writer, is refused and the file is left alone. A writer does not move, rename, or delete files in the shared folder, and does not change another person's lesson. Links are a list inside the writer's own JSON and Markdown. They name the other lesson's id and that lesson's writer.
 

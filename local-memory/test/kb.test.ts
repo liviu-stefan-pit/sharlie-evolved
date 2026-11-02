@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
-import { accessSync, chmodSync, constants, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { accessSync, chmodSync, constants, existsSync, mkdirSync, readdirSync, readFileSync, statSync, utimesSync, writeFileSync } from 'node:fs'
+import { rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import {
@@ -446,6 +447,102 @@ test('two people with the same name do not overwrite each other', async () => {
       (JSON.parse(readFileSync(join(folder, `${first.lesson.id}.json`), 'utf8')) as { summary: string }).summary,
       'Updated summary.',
     )
+  })
+})
+
+test('the note is saved before the json, so a failed json rename leaves no json without its note', async () => {
+  await withFolder(async (folder) => {
+    setKbSaveHooksForTests({
+      rename: async (from, to) => {
+        if (to.endsWith('.json')) {
+          const error = new Error('killed') as NodeJS.ErrnoException
+          error.code = 'EPERM'
+          throw error
+        }
+        await rename(from, to)
+      },
+      wait: async () => undefined,
+    })
+    let killedNew: Awaited<ReturnType<typeof save>>
+    try {
+      killedNew = await save(folder, lesson('ada', { title: 'Killed before json' }))
+    } finally {
+      setKbSaveHooksForTests(null)
+    }
+    assert.equal(killedNew.ok, false)
+    const notes = readdirSync(folder).filter((name) => name.endsWith('.md') && !name.startsWith('.'))
+    assert.equal(notes.length, 1)
+    const noteId = notes[0]?.slice(0, -'.md'.length)
+    assert.equal(existsSync(join(folder, `${noteId}.json`)), false)
+    assert.equal(
+      readdirSync(folder).some((name) => name.endsWith('.tmp')),
+      false,
+    )
+
+    const renamed: string[] = []
+    setKbSaveHooksForTests({
+      rename: async (from, to) => {
+        renamed.push(to)
+        await rename(from, to)
+      },
+    })
+    let created: Awaited<ReturnType<typeof save>>
+    try {
+      created = await save(folder, lesson('ada', { summary: 'Noted first.' }))
+    } finally {
+      setKbSaveHooksForTests(null)
+    }
+    assert.equal(created.ok, true)
+    if (!created.ok) return
+    assert.equal(renamed.length, 2)
+    assert.equal(renamed[0]?.endsWith('.md'), true)
+    assert.equal(renamed[1]?.endsWith('.json'), true)
+
+    setKbSaveHooksForTests({
+      rename: async (from, to) => {
+        if (to.endsWith('.json')) {
+          const error = new Error('killed') as NodeJS.ErrnoException
+          error.code = 'EPERM'
+          throw error
+        }
+        await rename(from, to)
+      },
+      wait: async () => undefined,
+    })
+    let killed: Awaited<ReturnType<typeof save>>
+    try {
+      killed = await save(folder, lesson('ada', { id: created.lesson.id, summary: 'Half written.' }))
+    } finally {
+      setKbSaveHooksForTests(null)
+    }
+    assert.equal(killed.ok, false)
+    assert.equal(existsSync(join(folder, `${created.lesson.id}.md`)), true)
+    const stored = JSON.parse(readFileSync(join(folder, `${created.lesson.id}.json`), 'utf8')) as { summary: string }
+    assert.equal(stored.summary, 'Noted first.')
+    assert.equal(
+      readdirSync(folder).some((name) => name.endsWith('.tmp')),
+      false,
+    )
+  })
+})
+
+test('a save deletes only this writer\'s temp files older than 10 minutes', async () => {
+  await withFolder(async (folder) => {
+    const old = new Date(Date.now() - 11 * 60 * 1000)
+    const ownOld = join(folder, `.${adaWriter}-stale.json.111.tmp`)
+    const ownFresh = join(folder, `.${adaWriter}-fresh.json.222.tmp`)
+    const otherOld = join(folder, `.${graceWriter}-stale.json.333.tmp`)
+    const ownNote = join(folder, `.${adaWriter}-notes.txt`)
+    for (const path of [ownOld, ownFresh, otherOld, ownNote]) writeFileSync(path, 'temp')
+    utimesSync(ownOld, old, old)
+    utimesSync(otherOld, old, old)
+    const result = await save(folder, lesson('ada', { title: 'Clear stale temps' }))
+    assert.equal(result.ok, true)
+    assert.equal(existsSync(ownOld), false)
+    assert.equal(existsSync(ownFresh), true)
+    assert.equal(existsSync(otherOld), true)
+    assert.equal(existsSync(ownNote), true)
+    assert.equal(readFileSync(otherOld, 'utf8'), 'temp')
   })
 })
 

@@ -418,6 +418,30 @@ function renderMarkdown(lesson: LessonRecord) {
   ].join('\n')
 }
 
+const tempMaxAgeMs = 10 * 60 * 1000
+
+async function sweepOldTemps(folder: string, writer: string) {
+  const prefix = `.${writer}-`
+  const cutoff = Date.now() - tempMaxAgeMs
+  let names: string[] = []
+  try {
+    names = readdirSync(folder)
+  } catch {
+    return
+  }
+  for (const name of names) {
+    if (!name.startsWith(prefix) || !name.endsWith('.tmp')) continue
+    const path = join(folder, name)
+    try {
+      const info = statSync(path)
+      if (!info.isFile() || info.mtimeMs >= cutoff) continue
+      await rm(path, { force: true })
+    } catch {
+      // A temp file that cannot be removed stays where it is.
+    }
+  }
+}
+
 async function discardTemp(path: string) {
   const name = basename(path)
   if (!name.startsWith('.') || !name.endsWith('.tmp')) return
@@ -566,11 +590,12 @@ export async function writeLesson(
       links,
     }
     const body = `${JSON.stringify(record, null, 2)}\n`
-    await placeFile(folder, jsonName, body)
     const markdownName = `${id}.md`
     const markdownState = await fileExists(join(folder, markdownName))
     if (markdownState === 'directory') return refuse('that path is not a folder')
+    await sweepOldTemps(folder, writerKey)
     await placeFile(folder, markdownName, renderMarkdown(record))
+    await placeFile(folder, jsonName, body)
     return { ok: true, lesson: { ...record, writer: writerKey, synced: true } }
   } catch (error) {
     const reason = failureReason(error)
