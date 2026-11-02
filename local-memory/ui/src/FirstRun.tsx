@@ -147,6 +147,10 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
   }
 
   const found = !nothingToLearn(state)
+  // Chats seen earlier in this window that are now gone (folder moved, deleted, unreadable).
+  const everFound = useRef(false)
+  if (found) everFound.current = true
+  const lost = !found && everFound.current
   const [checking, setChecking] = useState(false)
   const [checkError, setCheckError] = useState<Problem>(null)
   const [checked, setChecked] = useState(false)
@@ -223,7 +227,7 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
         <Step
           n={1}
           id={`${ids}-found`}
-          title={found ? `Found: ${foundSummary(state)}` : 'Found on this PC: nothing yet'}
+          title={found ? `Found: ${foundSummary(state)}` : lost ? 'Found on this PC: no chats now' : 'Found on this PC: nothing yet'}
           done={found}
           problem={checkError ?? (refusedAt === 'found' ? { text: refusal!.notice } : null)}
         >
@@ -232,7 +236,9 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
           ) : (
             <>
               <p className="text-[15px] text-muted">
-                Sharlie learns from chats saved by Cursor, Claude, or Copilot in VS Code. None were found on this PC. Use one of them for a while, then press Check again.
+                {lost
+                  ? "I can't find your chats anymore. The folder may have moved or been deleted. Press Check again after it's back."
+                  : 'Sharlie learns from chats saved by Cursor, Claude, or Copilot in VS Code. None were found on this PC. Use one of them for a while, then press Check again.'}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <button

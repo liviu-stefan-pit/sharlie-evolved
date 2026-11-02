@@ -367,3 +367,63 @@ test('a real-host model refusal without errorCode shows once at the AI key step'
   await expect(page.getByText(notice)).toHaveCount(1)
   await expect(page.getByText(/^Done\./)).toHaveCount(0)
 })
+
+const found = { sources: [{ tool: 'Claude CLI', path: 'C:\\Users\\ada\\.claude\\projects', chats: 3 }], chatsFound: 3 }
+const stateCalls = (page: Page) => page.evaluate(() => window.__sharlieCalls.filter((call) => call.cmd === 'state').length)
+const focusWindow = (page: Page) => page.evaluate(() => window.dispatchEvent(new Event('focus')))
+
+test('chats found, then gone on window focus: Check again with plain copy and Start held', async ({ page }) => {
+  await openApp(page, pageState(found))
+  await expect(page.getByRole('heading', { name: /Found: Claude CLI · 3 chats/ })).toBeVisible()
+  await page.waitForTimeout(2100) // the load itself counts as a refresh
+  await focusWindow(page)
+  await page.waitForFunction(() => window.__sharlieCalls.some((call) => call.cmd === 'state' && !call.done))
+  await reply(page, 'state', pageState({ sources: [], chatsFound: 0 }))
+  await expect(page.getByRole('heading', { name: /Found on this PC: no chats now/ })).toBeVisible()
+  const copy = page.getByText("I can't find your chats anymore.", { exact: false })
+  await expect(copy).toBeVisible()
+  await expect(copy).toHaveCSS('color', 'rgb(163, 169, 184)')
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await expect(start(page)).toBeDisabled()
+  await expect(page.getByText('Nothing to learn from yet')).toBeVisible()
+  const check = page.getByRole('button', { name: 'Check again' })
+  await check.evaluate((button: HTMLButtonElement) => {
+    for (let i = 0; i < 5; i++) button.click()
+  })
+  await page.waitForTimeout(150)
+  const rechecks = await page.evaluate(() => window.__sharlieCalls.filter((call) => call.cmd === 'action' && (call.payload as { action?: string })?.action === 'recheck-sources').length)
+  expect(rechecks).toBe(1)
+  await reply(page, 'action', pageState(found))
+  await expect(page.getByRole('heading', { name: /Found: Claude CLI · 3 chats/ })).toBeVisible()
+})
+
+test('focus refreshes at most once per 2 seconds and never during a learning pass', async ({ page }) => {
+  await openApp(page, pageState(found))
+  const base = await stateCalls(page)
+  await focusWindow(page)
+  await page.waitForTimeout(150)
+  expect(await stateCalls(page)).toBe(base) // within 2s of the load
+  await page.waitForTimeout(2000)
+  await focusWindow(page)
+  await focusWindow(page)
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await page.waitForTimeout(150)
+  expect(await stateCalls(page)).toBe(base + 1)
+  await reply(page, 'state', pageState(found))
+  await emitLearning(page, pageState({ ...found, learning: { active: true, done: 0, total: 3 } }))
+  await page.waitForTimeout(2100)
+  await focusWindow(page)
+  await page.waitForTimeout(150)
+  expect(await stateCalls(page)).toBe(base + 1)
+})
+
+test('focus while an action is in flight does not refresh over it', async ({ page }) => {
+  await openApp(page, pageState({ sources: [], chatsFound: 0 }))
+  const base = await stateCalls(page)
+  await page.waitForTimeout(2100)
+  await page.getByRole('button', { name: 'Check again' }).click()
+  await page.waitForFunction(() => window.__sharlieCalls.some((call) => call.cmd === 'action' && !call.done))
+  await focusWindow(page)
+  await page.waitForTimeout(150)
+  expect(await stateCalls(page)).toBe(base)
+})

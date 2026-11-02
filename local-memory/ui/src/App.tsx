@@ -105,6 +105,8 @@ export function App() {
   useEffect(() => applyTheme(readTheme()), [])
 
   const [attempt, setAttempt] = useState(0)
+  const inFlight = useRef(0)
+  const lastRefresh = useRef(0)
   const [retrying, setRetrying] = useState(false)
 
   useEffect(() => {
@@ -113,6 +115,7 @@ export function App() {
       .then((next) => {
         if (cancel) return
         setHostError('')
+        lastRefresh.current = Date.now()
         apply(next)
       })
       .catch((error: unknown) => {
@@ -125,6 +128,40 @@ export function App() {
       cancel = true
     }
   }, [attempt])
+
+  // Refresh when the window comes back (focus or visible): folders may have changed meanwhile.
+  // At most once per 2s, never during a learning pass or while an action is in flight, and a
+  // failed refresh keeps the current screen instead of flashing the service error.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return
+      const current = stateRef.current
+      if (!current || current.learning?.active || inFlight.current > 0) return
+      const now = Date.now()
+      if (now - lastRefresh.current < 2000) return
+      lastRefresh.current = now
+      loadState()
+        .then((next) => {
+          if (inFlight.current > 0 || stateRef.current?.learning?.active) return
+          apply(next)
+        })
+        .catch(() => {})
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [])
+  async function tracked<T>(run: () => Promise<T>) {
+    inFlight.current += 1
+    try {
+      return await run()
+    } finally {
+      inFlight.current -= 1
+    }
+  }
 
   function retryHost() {
     setRetrying(true)
@@ -172,7 +209,7 @@ export function App() {
   const firstRun = empty && !homeEmpty
 
   async function checkAgain() {
-    apply(await checkSources())
+    apply(await tracked(checkSources))
   }
 
   const [checkingHome, setCheckingHome] = useState(false)
@@ -195,7 +232,7 @@ export function App() {
 
   /** Runs one action and adopts its reply; throws so callers can show the error inline. */
   async function act(body: Record<string, unknown>) {
-    const next = await runAction(body)
+    const next = await tracked(() => runAction(body))
     apply(next)
     return stateRef.current ?? next
   }
@@ -241,7 +278,7 @@ export function App() {
     setStartRefusal(null)
     setStartTrouble('')
     try {
-      const next = await runAction({ action: 'start-learning' })
+      const next = await tracked(() => runAction({ action: 'start-learning' }))
       // A refused start (no chats, profile incomplete...) never counts as a run.
       if (next.notice && !next.learning?.active) {
         setStartRefusal({ code: refusalCode(next.errorCode, next.notice), notice: next.notice })
