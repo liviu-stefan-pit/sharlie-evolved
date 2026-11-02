@@ -87,6 +87,7 @@ chatsFound: number
 scheduled: boolean
 share: boolean
 shareAvailable: boolean
+shareStartedAt: string | null
 lastSharedAt: string | null
 lastLearnedAt: string | null
 learning: {
@@ -115,9 +116,15 @@ When a pass finishes cleanly and nothing was capped or deferred, `learning` beco
 
 `scheduled` is true only when the learning timer is actually registered for this knowledge folder. The host registers it when it starts and the saved settings already have a username, email, team, an active key, and a model. It registers again after the save that completes those, with no `register` action from the window. A second start or a second save does not register twice. `scheduled` stays false until that registration is stored.
 
-`share` is the one team-Drive switch. It is `false` on first run and when `settings.json` has no `share` field. An old `autoDrop: true` does not turn it on. `lastSharedAt` is an ISO time set when a work card is copied into `Dropzone/<username>/` inside the team folder, and `null` until that happens. The on-disk folder name stays `Dropzone`.
+`share` is the one team-Drive switch. It is `false` on first run and when `settings.json` has no `share` field. An old `autoDrop: true` does not turn it on. `lastSharedAt` is an ISO time set only when a lesson file is actually written into the team folder, and `null` until that happens. An identical file already there does not move `lastSharedAt`.
 
-`shareAvailable` is `false` while `TEAM_SHARING_AVAILABLE` is off (`local-memory/src/team-sharing.ts`). In that state team sharing is not available in this version. `set-share` and `set-auto-drop` return `share_unavailable` and do not change the switch. The publisher and the auto-drop copy write nothing and do not create the team folder, even when saved settings already say sharing is on and the app is restarted. The commit that proves old lessons stay on this PC, and two installs with the same name do not overwrite each other, sets the flag to `true`.
+Lesson files sit directly in the chosen team folder. The names are `<writer id>-<uuid>.json` and the matching `.md`. There is no `Dropzone` directory and no per-person subfolder. The writer id is the username slug plus a four-character `installId` stored once in `settings.json`.
+
+`shareStartedAt` is the ISO time `set-share` last turned sharing on, or `null` if it never has. It is replaced each time sharing is turned on. It stays when sharing is turned off.
+
+Each graph card has `shareState`: `shared` when a copy is in the team folder (it stays `shared` while sharing is off), `waiting` when the card was stamped shareable, sharing is on, a folder is set, and the copy is not there yet, and `local` for everything else. `synced` is true for `shared`, including another writer's lesson. Another writer's lesson also has `writer` set to that person's name. A card is stamped `shareEligible` only at the moment it is learned, and only when sharing is on, a team folder is set, and `scope` is `work`. Updating a lesson does not change that stamp. A missing stamp is not eligible. Only lessons learned from now on are shared. Earlier lessons stay on this PC.
+
+`shareAvailable` is `false` while `TEAM_SHARING_AVAILABLE` is off (`local-memory/src/team-sharing.ts`). In that state team sharing is not available in this version. `set-share` and `set-auto-drop` return `share_unavailable` and do not change the switch. Nothing is written to the team folder and the folder is not created, even when saved settings already say sharing is on and the app is restarted. The commit that proves old lessons stay on this PC, and two installs with the same name do not overwrite each other, sets the flag to `true`.
 
 `lastLearnedAt` is an ISO time stored in settings and set when a pass ends without being cancelled, including a pass that writes nothing. It is `null` until then, and it is still there after a restart. A failed pass does not move it. An empty rerun sets `learning` to `null` and `learningResult` to `{ lessons: 0, chats: 0, text: "0 lessons learned" }`. It does not call the model and it does not report `learning.active`. A saved key whose secret is gone returns `secret_missing`. `learning.error` contains `No secret stored`, and `lastLearnedAt` does not move.
 
@@ -162,7 +169,7 @@ Typed paths use the same checks:
 
 While `shareAvailable` is `false`, both `enabled` values return `share_unavailable` with `Team sharing is not available in this version.` The saved switch and path stay as they were.
 
-Off means the publisher does not run and auto-drop does not copy. On means both copy, and only cards whose file says `scope: work`. A missing `scope`, or any value other than `work`, is personal and is not copied. The local folder still keeps those cards. That on-path is inactive until `shareAvailable` is `true`.
+Off means nothing is copied. On means a waiting shareable work lesson is written immediately, and again on the publisher schedule. A personal lesson, a lesson with no scope, and a work lesson learned while sharing was off are not written. The local folder still keeps those cards. That on-path is inactive until `shareAvailable` is `true`. Turning sharing on publishes at once, so a lesson that is already waiting is not left until the next hour.
 
 `set-auto-drop` remains as an alias of `set-share` so the current settings form does not break. `enabled: "true"` without a valid path returns `share_needs_path` and leaves `share` false. While sharing is unavailable, the alias returns `share_unavailable` instead.
 

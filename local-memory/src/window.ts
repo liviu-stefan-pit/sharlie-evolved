@@ -5,7 +5,6 @@ import { cancelLearning, clearLearningError, learningProgress, learningResult, o
 import { listCopilotModels, listCursorCatalog } from './exchange.ts'
 import { mockModelEnabled } from './host.ts'
 import { runningUnderTest } from './login-item.ts'
-import { localGraph } from './synapse.ts'
 import { TEAM_SHARING_AVAILABLE } from './team-sharing.ts'
 
 const require = createRequire(import.meta.url)
@@ -108,7 +107,7 @@ async function chooseFolder(purpose: 'knowledge' | 'share'): Promise<string | nu
   }
 }
 
-function applyShare(app: WindowApp, params: URLSearchParams): ActionResult {
+function applyShare(app: WindowApp, params: URLSearchParams): ActionResult | Promise<ActionResult> {
   if (!TEAM_SHARING_AVAILABLE) {
     return refused('share_unavailable', 'Team sharing is not available in this version.')
   }
@@ -127,7 +126,8 @@ function applyShare(app: WindowApp, params: URLSearchParams): ActionResult {
   if (drive === '' || checkFolder(drive)) {
     return refused('share_needs_path', 'Choose a team Drive folder before sharing.')
   }
-  app.setAutoDrop(true)
+  const published = app.setAutoDrop(true)
+  if (published instanceof Promise) return published.then(() => ok())
   return ok()
 }
 
@@ -416,7 +416,7 @@ async function pageState(app: WindowApp, session: Session) {
   const provider = app.activeProvider()
   const savedProviders = [...new Set(app.keys().map((key) => key.provider))]
   const expiresAt = app.cursorKey().expiresAt
-  const graph = localGraph(app.knowledgePath(), app.drivePath(), app.autoDrop())
+  const graph = app.graph()
   const tokens = app.learningTokens()
   const unreported = app.learningTokensUnreported()
   const snapshot = learningProgress()
@@ -437,6 +437,7 @@ async function pageState(app: WindowApp, session: Session) {
     autoDrop: app.share(),
     share: app.share(),
     shareAvailable: TEAM_SHARING_AVAILABLE,
+    shareStartedAt: app.shareStartedAt() === '' ? null : app.shareStartedAt(),
     lastSharedAt: app.lastSharedAt() === '' ? null : app.lastSharedAt(),
     lastLearnedAt: app.lastLearnedAt() === '' ? null : app.lastLearnedAt(),
     cadence: app.cadence(),

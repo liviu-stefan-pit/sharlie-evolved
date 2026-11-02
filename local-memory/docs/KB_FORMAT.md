@@ -6,7 +6,7 @@ Several people can point their apps at the same folder. Each app reads whatever 
 
 ## What is in the folder
 
-Lessons sit side by side in the folder. There are no subfolders to keep in step, and there is no index file for two people to rewrite.
+Lessons sit side by side in the folder the person chose. There is no Dropzone directory, no per-person subfolder, no other subfolders to keep in step, and no index file for two people to rewrite. Only lessons learned while sharing was on, with that folder set and scope work, are written. A lesson learned earlier stays on that PC. An update does not make an older lesson eligible.
 
 ```
 <shared folder>/

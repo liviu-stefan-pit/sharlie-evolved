@@ -488,7 +488,9 @@ test('a learn pass writes nothing outside the Sharlie data folder and the config
       { source: 'cursor', text: 'the deploy failed after the lock timed out', repo: 'sharlie-evolved' },
     ]))
     assert.equal(learned.ran, true)
-    assert.equal(app.runPublisher().ran, false)
+    const published = app.runPublisher()
+    assert.ok(!(published instanceof Promise))
+    assert.equal(published.ran, false)
     const allowed = [knowledge, share, join(machine.home, '.sharlie')]
     const fresh = filesUnder(root).filter((file) => !before.has(file))
     assert.ok(fresh.some((file) => insideFolder(file, knowledge)))

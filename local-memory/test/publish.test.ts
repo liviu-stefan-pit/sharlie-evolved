@@ -42,6 +42,11 @@ function ready(directory: string, complete: (request: { transcript: Transcript }
   return app
 }
 
+function publisherRan(result: { ran: boolean } | Promise<{ ran: boolean }>) {
+  if (result instanceof Promise) throw new Error('publisher returned a promise')
+  return result.ran
+}
+
 const transcript: Transcript = {
   source: 'cursor',
   text: 'the deploy failed after the lock timed out',
@@ -67,12 +72,12 @@ test('an empty Drive path means the publisher does not run', () => {
     app.runLearner([transcript])
     assert.equal(readdirSync(join(directory, 'cards')).some((name) => name.endsWith('.md')), true)
 
-    assert.equal(app.runPublisher().ran, false)
+    assert.equal(publisherRan(app.runPublisher()), false)
     assert.equal(existsSync(join(directory, 'drive')), false)
 
     app.setDrivePath(join(directory, 'drive'))
     app.setDrivePath('')
-    assert.equal(app.runPublisher().ran, false)
+    assert.equal(publisherRan(app.runPublisher()), false)
     assert.equal(existsSync(join(directory, 'drive')), false)
   })
 })
@@ -84,7 +89,7 @@ test('sharing off writes a work card nowhere in the share folder', () => {
     app.setDrivePath(drive)
     app.setAutoDrop(false)
     app.runLearner([transcript])
-    assert.equal(app.runPublisher().ran, false)
+    assert.equal(publisherRan(app.runPublisher()), false)
     assert.equal(existsSync(drive), false)
     assert.equal(existsSync(join(drive, 'Dropzone')), false)
     const local = readdirSync(join(directory, 'cards')).filter((name) => name.endsWith('.json') && name !== '.claims.json')
@@ -124,7 +129,7 @@ test('sharing on still keeps work, personal, and unscoped cards on this PC', () 
       }),
     )
     writeFileSync(join(cards, 'noscope.md'), 'No scope')
-    assert.equal(app.runPublisher().ran, false)
+    assert.equal(publisherRan(app.runPublisher()), false)
     assert.equal(existsSync(drive), false)
 
     app.runLearner([{ source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' }])
@@ -147,7 +152,7 @@ test('auto-drop files the card locally and does not create the team folder', () 
     assert.ok(file)
     assert.equal(readdirSync(join(directory, 'inbox')).length, 0)
     assert.equal(existsSync(drive), false)
-    assert.equal(app.runPublisher().ran, false)
+    assert.equal(publisherRan(app.runPublisher()), false)
   })
 })
 
@@ -179,7 +184,7 @@ test('publishing continues after the model key is removed', () => {
     )
     assert.throws(() => reopened.activeKey(), /No active key/)
     reopened.setAutoDrop(true)
-    assert.equal(reopened.runPublisher().ran, false)
+    assert.equal(publisherRan(reopened.runPublisher()), false)
     assert.equal(modelCalls, learned)
     assert.equal(existsSync(drive), false)
 
@@ -220,12 +225,12 @@ test('a restart with sharing already on writes nothing and does not create the t
 
     const app = openApp(directory)
     assert.equal(app.share(), true)
-    assert.equal(app.runPublisher().ran, false)
+    assert.equal(publisherRan(app.runPublisher()), false)
     assert.equal(existsSync(drive), false)
 
     const restarted = openApp(directory)
     assert.equal(restarted.share(), true)
-    assert.equal(restarted.runPublisher().ran, false)
+    assert.equal(publisherRan(restarted.runPublisher()), false)
     assert.equal(existsSync(drive), false)
     assert.equal(existsSync(join(drive, 'Dropzone')), false)
   })

@@ -22,6 +22,8 @@ export type GraphNode = {
   summary?: string
   why?: string
   scope?: 'work' | 'personal' | string
+  shareState?: 'local' | 'waiting' | 'shared'
+  writer?: string
   relations?: CardRelation[]
   x?: number
   y?: number
@@ -105,6 +107,8 @@ export type PageState = {
   share?: boolean
   /** docs/HOST_ACTIONS.md: false while team sharing is not available in this version. */
   shareAvailable?: boolean
+  /** docs/HOST_ACTIONS.md: ISO time sharing was last turned on. Null until then. */
+  shareStartedAt?: string | null
   /** Assumed (not in docs/HOST_ACTIONS.md yet): ISO time of the last copy to the team folder. */
   lastSharedAt?: string | null
   /**

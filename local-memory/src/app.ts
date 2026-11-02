@@ -6,7 +6,8 @@ import { basename, join, posix, relative, win32 } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { registerLoginItem, unregisterLoginItem } from './login-item.ts'
 import { isFileMention, isLearningSource } from './graph-rules.ts'
-import { localGraph, publishCard, readCards, type CardRelation } from './synapse.ts'
+import { newInstallId, readIndex, writeLesson, writerId, type KbLessonInput, type KbNode } from './kb.ts'
+import { localGraph, publishCard, readCards, type CardRelation, type SynapseCard } from './synapse.ts'
 import { TEAM_SHARING_AVAILABLE } from './team-sharing.ts'
 import {
   catalogParameters,
@@ -184,6 +185,9 @@ type Settings = {
   share: boolean
   lastSharedAt: string
   lastLearnedAt: string
+  installId: string
+  shareEnabledAt: string
+  sharedLessons: Record<string, string>
 }
 
 const emptyProfile = (): Profile => ({ username: '', email: '', team: '' })
@@ -343,8 +347,8 @@ function isMissingKeySecret(error: unknown) {
   return error instanceof Error && error.message.startsWith('No secret stored for key ')
 }
 
-function enqueueLessonWrite(write: () => void): Promise<void> {
-  const finished = lessonWriteQueue.then(write)
+function enqueueLessonWrite(write: () => void | Promise<void>): Promise<void> {
+  const finished = lessonWriteQueue.then(() => write()).then(() => undefined)
   lessonWriteQueue = finished.then(
     () => undefined,
     () => undefined,
@@ -546,6 +550,9 @@ function emptySettings(): Settings {
     share: false,
     lastSharedAt: '',
     lastLearnedAt: '',
+    installId: '',
+    shareEnabledAt: '',
+    sharedLessons: {},
   }
 }
 
@@ -603,7 +610,20 @@ function quarantineSettings(file: string) {
   }
 }
 
-let migratingCadence = false
+let rewritingSettings = false
+
+function validInstallId(value: unknown) {
+  return typeof value === 'string' && /^[a-z0-9]{4}$/.test(value) ? value : ''
+}
+
+function sharedLessonsFrom(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const lessons: Record<string, string> = {}
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === 'string' && item.trim() !== '') lessons[key] = item.trim()
+  }
+  return lessons
+}
 
 function readSettings(directory: string): Settings {
   const file = settingsPath(directory)
@@ -646,13 +666,22 @@ function readSettings(directory: string): Settings {
       autoDrop: parsed.share === true,
       lastSharedAt: typeof parsed.lastSharedAt === 'string' ? parsed.lastSharedAt : '',
       lastLearnedAt: typeof parsed.lastLearnedAt === 'string' ? parsed.lastLearnedAt : '',
+      installId: validInstallId(parsed.installId) || newInstallId(),
+      shareEnabledAt: typeof parsed.shareEnabledAt === 'string' ? parsed.shareEnabledAt : '',
+      sharedLessons: sharedLessonsFrom(parsed.sharedLessons),
     }
-    if (!migratingCadence && (intervalWasShort(parsed.learnerIntervalMs) || intervalWasShort(parsed.publisherIntervalMs))) {
-      migratingCadence = true
+    const rewrite =
+      validInstallId(parsed.installId) === '' ||
+      intervalWasShort(parsed.learnerIntervalMs) ||
+      intervalWasShort(parsed.publisherIntervalMs)
+    if (!rewritingSettings && rewrite) {
+      rewritingSettings = true
       try {
         writeSettings(directory, settings)
+      } catch {
+        // A read-only settings file keeps the generated install id in memory.
       } finally {
-        migratingCadence = false
+        rewritingSettings = false
       }
     }
     return settings
@@ -675,7 +704,11 @@ function writeSettings(
       : { ...current.importedTranscripts, ...settings.importedTranscripts },
     learningTokens: options?.tokens ? settings.learningTokens : current.learningTokens,
     learningTokensUnreported: options?.tokens ? settings.learningTokensUnreported : current.learningTokensUnreported,
+    installId: validInstallId(settings.installId) || validInstallId(current.installId) || newInstallId(),
+    sharedLessons: sharedLessonsFrom(settings.sharedLessons),
+    shareEnabledAt: typeof settings.shareEnabledAt === 'string' ? settings.shareEnabledAt : '',
   }
+  settings.installId = merged.installId
   mkdirSync(directory, { recursive: true })
   writeAtomic(settingsPath(directory), JSON.stringify(merged))
 }
@@ -1970,6 +2003,75 @@ export function openApp(
     settings.lastLearnedAt = new Date().toISOString()
     writeSettings(directory, settings)
   }
+  function installKey() {
+    const stored = validInstallId(settings.installId)
+    if (stored !== '') return stored
+    settings.installId = newInstallId()
+    try {
+      writeSettings(directory, settings)
+    } catch {
+      // The id stays on this app object when settings cannot be saved.
+    }
+    return settings.installId
+  }
+  function teamNodes(): KbNode[] {
+    const folder = settings.drivePath.trim()
+    if (folder === '') return []
+    return readIndex(folder)
+  }
+  function lessonFromCard(card: SynapseCard, id: string): KbLessonInput {
+    const modes = card.failure_modes ?? []
+    return {
+      id,
+      title: card.title,
+      topics: card.topics,
+      summary: card.title,
+      situation: modes[0] ?? '',
+      whatToDo: card.solution,
+      why: modes[1] ?? '',
+      apply: modes[2] ?? '',
+      scope: 'work',
+      author: card.author,
+      project: card.context?.framework ?? '',
+      created_at: card.created_at,
+      sources: card.sources,
+    }
+  }
+  async function writeShared(cards: readonly SynapseCard[]) {
+    const folder = settings.drivePath.trim()
+    const writer = writerId(settings.profile.username, installKey())
+    if (writer === '' || folder === '') return false
+    const eligible = cards.filter((card) => card.scope === 'work' && card.shareEligible === true)
+    if (eligible.length === 0) return false
+    mkdirSync(folder, { recursive: true })
+    let index = readIndex(folder)
+    let wrote = false
+    for (const card of eligible) {
+      const result = await writeLesson(folder, writer, lessonFromCard(card, settings.sharedLessons[card.id] ?? ''), index)
+      if (!result.ok) continue
+      settings.sharedLessons[card.id] = result.lesson.id
+      if (!result.unchanged) wrote = true
+      index = [...index.filter((node) => node.id !== result.lesson.id), result.lesson]
+    }
+    writeSettings(directory, settings)
+    if (wrote) rememberShare()
+    return wrote
+  }
+  function queueShare(card: SynapseCard) {
+    if (!TEAM_SHARING_AVAILABLE) return
+    if (!settings.share || settings.drivePath.trim() === '' || settings.profile.username.trim() === '') return
+    if (card.scope !== 'work' || card.shareEligible !== true) return
+    return writeShared([card])
+  }
+  function publishReady() {
+    if (!TEAM_SHARING_AVAILABLE) return { ran: false as const }
+    if (!settings.share || settings.drivePath.trim() === '' || settings.profile.username.trim() === '') {
+      return { ran: false as const }
+    }
+    const eligible = readCards(directory).filter((card) => card.scope === 'work' && card.shareEligible === true)
+    if (eligible.length === 0) return { ran: true as const }
+    return writeShared(eligible).then(() => ({ ran: true as const }))
+  }
   return {
     saveProfile(profile: Profile) {
       settings.profile = {
@@ -2085,10 +2187,17 @@ export function openApp(
     lastLearnedAt() {
       return settings.lastLearnedAt
     },
+    shareStartedAt() {
+      return settings.shareEnabledAt
+    },
     setAutoDrop(enabled: boolean) {
       settings.autoDrop = enabled
       settings.share = enabled
+      if (enabled && TEAM_SHARING_AVAILABLE) settings.shareEnabledAt = new Date().toISOString()
       writeSettings(directory, settings)
+      if (!enabled || !TEAM_SHARING_AVAILABLE) return
+      if (settings.drivePath.trim() === '' || settings.profile.username.trim() === '') return
+      return publishReady()
     },
     noteShared() {
       rememberShare()
@@ -2563,7 +2672,9 @@ export function openApp(
               original: Transcript,
               transcript: Transcript,
               lesson: LessonDraft,
-            ): { status: 'processed' | 'skipped'; detail: string } => {
+            ):
+              | { status: 'processed' | 'skipped'; detail: string }
+              | Promise<{ status: 'processed' | 'skipped'; detail: string }> => {
               if (lesson.sameClaim) return { status: 'skipped', detail: 'already have this claim' }
               const recorded =
                 [transcript.repo, transcript.workspace].find((name) => name && filled(name))?.trim() ?? null
@@ -2658,7 +2769,13 @@ export function openApp(
                 scrubbed.apply,
               ].filter(filled)
               if (stopped()) return { status: 'skipped', detail: 'cancelled' }
-              publishCard({
+              const shareEligible =
+                TEAM_SHARING_AVAILABLE &&
+                settings.share &&
+                settings.drivePath.trim() !== '' &&
+                scrubbed.scope === 'work' &&
+                settings.profile.username.trim() !== ''
+              const published = publishCard({
                 directory,
                 legacyId: previous?.id ?? randomUUID(),
                 autoDrop: settings.autoDrop,
@@ -2679,22 +2796,25 @@ export function openApp(
                   sources,
                   scope: scrubbed.scope,
                   author: { ...settings.profile },
+                  ...(shareEligible ? { shareEligible: true as const } : {}),
                 },
               })
-              if (
-                settings.autoDrop &&
-                scrubbed.scope === 'work' &&
-                settings.drivePath.trim() !== '' &&
-                settings.profile.username.trim() !== ''
-              ) {
-                rememberShare()
-              }
-              return { status: 'processed', detail: scrubbed.title }
+              const sharing = queueShare(published)
+              if (sharing) return sharing.then(() => ({ status: 'processed' as const, detail: scrubbed.title }))
+              return { status: 'processed' as const, detail: scrubbed.title }
             }
             const applyLesson = (original: Transcript, transcript: Transcript, lesson: LessonDraft) => {
               if (stopped()) return
-              try {
-                const outcome = writeOneLesson(original, transcript, lesson)
+              const fail = (error: unknown) => {
+                const message = learningErrorMessage(error)
+                settleIngest(original, 'failed', message)
+                if (foreground) {
+                  noteForeground(generation, message)
+                  return
+                }
+                throw error
+              }
+              const settle = (outcome: { status: 'processed' | 'skipped'; detail: string }) => {
                 if (stopped()) return
                 settings.importedTranscripts[transcriptKey(original)] = transcriptRevision(original)
                 writeSettings(directory, settings)
@@ -2709,14 +2829,13 @@ export function openApp(
                   learningSnapshot = { ...learningSnapshot, lessons: (learningSnapshot.lessons ?? 0) + 1 }
                 }
                 if (foreground) noteForeground(generation)
+              }
+              try {
+                const outcome = writeOneLesson(original, transcript, lesson)
+                if (outcome instanceof Promise) return outcome.then(settle, fail)
+                settle(outcome)
               } catch (error) {
-                const message = learningErrorMessage(error)
-                settleIngest(original, 'failed', message)
-                if (foreground) {
-                  noteForeground(generation, message)
-                  return
-                }
-                throw error
+                fail(error)
               }
             }
             const applyFailure = (original: Transcript, transcript: Transcript, error: unknown) => {
@@ -2727,13 +2846,19 @@ export function openApp(
             }
             if (lessons.some((item) => item.lesson instanceof Promise)) {
               let unsettled = lessons.length
-              const enqueueSettle = (write: () => void) =>
+              const enqueueSettle = (write: () => void | Promise<void>) =>
                 enqueueLessonWrite(() => {
-                  try {
-                    write()
-                  } finally {
+                  const finish = () => {
                     unsettled -= 1
                     if (unsettled === 0) flushIngest()
+                  }
+                  try {
+                    const result = write()
+                    if (result instanceof Promise) return result.then(finish, finish)
+                    finish()
+                  } catch (error) {
+                    finish()
+                    throw error
                   }
                 })
               return Promise.all(
@@ -2745,8 +2870,15 @@ export function openApp(
                 ),
               ).then(() => undefined)
             }
+            const pendingWrites: Promise<void>[] = []
             for (const item of lessons) {
-              applyLesson(item.original, item.transcript, item.lesson as LessonDraft)
+              const result = applyLesson(item.original, item.transcript, item.lesson as LessonDraft)
+              if (result instanceof Promise) pendingWrites.push(result)
+            }
+            if (pendingWrites.length > 0) {
+              return Promise.all(pendingWrites).then(() => {
+                if (foreground) flushIngest()
+              })
             }
             if (foreground) flushIngest()
             return undefined
@@ -2787,16 +2919,29 @@ export function openApp(
       const model = chosenModel()
       if (!answer) throw new Error('No model')
       const stored = readStoredCards(directory)
-      const catalog = stored
-        .map((card) => ({ file: cardFile(directory, card.path), summary: card.summary }))
-        .sort((left, right) => left.file.localeCompare(right.file))
+      const remoteNotes =
+        TEAM_SHARING_AVAILABLE && settings.share && settings.drivePath.trim() !== ''
+          ? readIndex(settings.drivePath)
+              .filter((node) => !Object.values(settings.sharedLessons).includes(node.id))
+              .map((node) => ({
+                file: join(settings.drivePath, `${node.id}.md`),
+                summary: node.title,
+              }))
+              .filter((note) => existsSync(note.file))
+          : []
+      const catalog = [
+        ...stored.map((card) => ({ file: cardFile(directory, card.path), summary: card.summary })),
+        ...remoteNotes,
+      ].sort((left, right) => left.file.localeCompare(right.file))
       const picked = await answer({ model, question, catalog })
       const pick = new Set('pick' in picked ? picked.pick : [])
-      const cards = stored
-        .map((card) => ({
+      const cards = [
+        ...stored.map((card) => ({
           file: cardFile(directory, card.path),
           text: readFileSync(card.path, 'utf8'),
-        }))
+        })),
+        ...remoteNotes.map((note) => ({ file: note.file, text: readFileSync(note.file, 'utf8') })),
+      ]
         .filter((card) => pick.has(card.file))
         .sort((left, right) => left.file.localeCompare(right.file))
       const answered = await answer({ model, question, cards })
@@ -2818,41 +2963,14 @@ export function openApp(
       writeSettings(directory, settings)
     },
     runPublisher() {
-      if (!TEAM_SHARING_AVAILABLE) return { ran: false }
-      if (!settings.autoDrop) return { ran: false }
-      if (settings.drivePath.trim() === '') return { ran: false }
-      const username = settings.profile.username.trim()
-      if (username === '') return { ran: false }
-      const cardsDir = join(directory, 'cards')
-      const names = existsSync(cardsDir)
-        ? readdirSync(cardsDir).filter((name) => name !== '.claims.json' && name.endsWith('.json'))
-        : []
-      const workStems: string[] = []
-      for (const name of names) {
-        try {
-          const parsed = JSON.parse(readFileSync(join(cardsDir, name), 'utf8')) as { scope?: unknown }
-          if (parsed?.scope === 'work') workStems.push(name.slice(0, -'.json'.length))
-        } catch {
-          // A file that is not a work card stays on this PC.
-        }
-      }
-      if (workStems.length === 0) return { ran: true }
-      const dest = join(settings.drivePath, 'Dropzone', username)
-      mkdirSync(dest, { recursive: true })
-      let copied = false
-      for (const stem of workStems) {
-        for (const ext of ['.json', '.md'] as const) {
-          const from = join(cardsDir, `${stem}${ext}`)
-          if (!existsSync(from)) continue
-          copyFileSync(from, join(dest, `${stem}${ext}`))
-          copied = true
-        }
-      }
-      if (copied) rememberShare()
-      return { ran: true }
+      return publishReady()
     },
     graph() {
-      return localGraph(directory, settings.drivePath, settings.autoDrop)
+      return localGraph(directory, {
+        sharing: TEAM_SHARING_AVAILABLE && settings.share && settings.drivePath.trim() !== '',
+        owned: settings.sharedLessons,
+        remote: teamNodes(),
+      })
     },
     show(id: string) {
       const split = id.indexOf(':')
@@ -2861,19 +2979,33 @@ export function openApp(
       const cards = readCards(directory)
       const titles = (matched: typeof cards) =>
         matched.map((card) => card.title).sort((left, right) => left.localeCompare(right))
-      const dropped = (card: (typeof cards)[number]) =>
-        settings.drivePath.trim() !== '' &&
-        existsSync(join(settings.drivePath, 'Dropzone', card.author.username, `${card.id}.json`))
+      const dropped = (card: (typeof cards)[number]) => {
+        const kbId = settings.sharedLessons[card.id]
+        return typeof kbId === 'string' && kbId !== '' && teamNodes().some((node) => node.id === kbId)
+      }
       if (kind === 'card') {
         const card = cards.find((item) => item.id === key)
-        if (!card) throw new Error(`No node ${id}`)
+        if (card) {
+          return {
+            kind: 'card' as const,
+            title: card.title,
+            solution: card.solution,
+            failure_modes: card.failure_modes,
+            created_at: card.created_at,
+            synced: dropped(card),
+          }
+        }
+        const remote = teamNodes().find((node) => node.id === key)
+        if (!remote) throw new Error(`No node ${id}`)
         return {
           kind: 'card' as const,
-          title: card.title,
-          solution: card.solution,
-          failure_modes: card.failure_modes,
-          created_at: card.created_at,
-          synced: dropped(card),
+          title: remote.title,
+          solution: remote.whatToDo,
+          failure_modes: [remote.situation, remote.why, remote.apply].filter((mode) => mode !== ''),
+          created_at: remote.created_at,
+          synced: true,
+          writer: remote.author.username.trim() || remote.writer,
+          shareState: 'shared' as const,
         }
       }
       if (kind === 'developer') {
@@ -2957,7 +3089,7 @@ export function openUserSession(
   }
 
   function publish(directory: string) {
-    openApp(directory, complete, machine, undefined, cursorLookup).runPublisher()
+    return openApp(directory, complete, machine, undefined, cursorLookup).runPublisher()
   }
 
   function arm(directory: string) {
@@ -2969,9 +3101,10 @@ export function openUserSession(
 
   function start(directory: string) {
     if (!loggedIn) return
-    learn(directory)
-    publish(directory)
     arm(directory)
+    const learned = learn(directory)
+    if (learned instanceof Promise) return learned.then(() => publish(directory))
+    return publish(directory)
   }
 
   function registryPath() {
@@ -3034,8 +3167,9 @@ export function openUserSession(
   function register(directory: string) {
     remember(directory)
     scheduled(directory)
-    start(directory)
+    const started = start(directory)
     registerLoginItem()
+    return started
   }
 
   function readyToSchedule(directory: string) {
@@ -3060,10 +3194,13 @@ export function openUserSession(
     logIn() {
       if (loggedIn) return
       loggedIn = true
+      const pending: Promise<unknown>[] = []
       for (const directory of new Set([...registeredDirectories(), ...jobs.keys()])) {
         scheduled(directory)
-        start(directory)
+        const started = start(directory)
+        if (started instanceof Promise) pending.push(started)
       }
+      if (pending.length > 0) return Promise.all(pending).then(() => undefined)
     },
     logOut() {
       endSession()
@@ -3073,6 +3210,11 @@ export function openUserSession(
     },
     pass(ms: number) {
       if (!loggedIn || harvestPaused) return
+      let pending: Promise<unknown> | undefined
+      const follow = (run: () => unknown) => {
+        pending = pending ? pending.then(run) : Promise.resolve(run()).then((result) => result)
+        if (!(pending instanceof Promise)) pending = undefined
+      }
       for (const [directory, entry] of jobs) {
         if (entry.learnerDue === null || entry.publisherDue === null) continue
         const settings = () => readSettings(directory)
@@ -3081,7 +3223,7 @@ export function openUserSession(
         if (learnerInterval > 0) {
           entry.learnerDue -= ms
           while (entry.learnerDue <= 0) {
-            learn(directory)
+            follow(() => learn(directory))
             const step = settings().learnerIntervalMs
             if (step <= 0) {
               entry.learnerDue = 0
@@ -3093,7 +3235,7 @@ export function openUserSession(
         if (publisherInterval > 0) {
           entry.publisherDue -= ms
           while (entry.publisherDue <= 0) {
-            publish(directory)
+            follow(() => publish(directory))
             const step = settings().publisherIntervalMs
             if (step <= 0) {
               entry.publisherDue = 0
@@ -3103,6 +3245,7 @@ export function openUserSession(
           }
         }
       }
+      if (pending) return pending.then(() => undefined)
     },
     pauseHarvest() {
       harvestPaused = true
@@ -3116,9 +3259,13 @@ export function openUserSession(
     syncNow() {
       const pending: Promise<unknown>[] = []
       for (const directory of new Set([...registeredDirectories(), ...jobs.keys()])) {
-        const result = learn(directory)
-        if (result instanceof Promise) pending.push(result)
-        publish(directory)
+        const learned = learn(directory)
+        const runPublish = () => publish(directory)
+        if (learned instanceof Promise) pending.push(learned.then(runPublish))
+        else {
+          const published = runPublish()
+          if (published instanceof Promise) pending.push(published)
+        }
       }
       return pending.length > 0 ? Promise.all(pending).then(() => ({ ran: true })) : { ran: true }
     },
@@ -3132,7 +3279,7 @@ export function openUserSession(
       return searched()
     },
     install(directory: string) {
-      register(directory)
+      return register(directory)
     },
     ensureJobs(directory: string) {
       if (!readyToSchedule(directory)) return false

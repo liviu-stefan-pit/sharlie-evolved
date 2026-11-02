@@ -1,7 +1,7 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isFileMention, isLearningSource } from './graph-rules.ts'
-import { TEAM_SHARING_AVAILABLE } from './team-sharing.ts'
+import type { KbNode } from './kb.ts'
 
 export type CardRelation = {
   entity: string
@@ -28,6 +28,12 @@ export type SynapseCard = {
   author: CardAuthor
   /** Missing, or any value other than work, means the card stays on this PC. */
   scope?: 'work' | 'personal'
+  /**
+   * Stamped once, at the moment the card is first learned.
+   * True only when sharing was on, a team folder was set, and the lesson was work.
+   * Missing means the lesson is not shared, including after sharing is turned on later.
+   */
+  shareEligible?: boolean
 }
 
 function yaml(value: string) {
@@ -158,29 +164,13 @@ function archivePrevious(directory: string, id: string) {
   }
 }
 
-function place(
-  directory: string,
-  name: string,
-  body: string,
-  drop: { enabled: boolean; drivePath: string; username: string; scope?: string },
-) {
+function place(directory: string, name: string, body: string) {
   const inbox = join(directory, 'inbox')
   const cards = join(directory, 'cards')
   mkdirSync(inbox, { recursive: true })
   mkdirSync(cards, { recursive: true })
   const inboxFile = join(inbox, name)
   writeFileSync(inboxFile, body)
-  if (
-    TEAM_SHARING_AVAILABLE &&
-    drop.enabled &&
-    drop.scope === 'work' &&
-    drop.drivePath.trim() !== '' &&
-    drop.username.trim() !== ''
-  ) {
-    const dest = join(drop.drivePath, 'Dropzone', drop.username)
-    mkdirSync(dest, { recursive: true })
-    copyFileSync(inboxFile, join(dest, name))
-  }
   const target = join(cards, name)
   if (existsSync(target)) rmSync(target)
   renameSync(inboxFile, target)
@@ -211,14 +201,11 @@ export function publishCard(options: {
     id,
     created_at: existing?.created_at ?? options.card.created_at ?? new Date().toISOString(),
   }
-  const drop = {
-    enabled: options.autoDrop,
-    drivePath: options.drivePath,
-    username: options.username,
-    scope: options.card.scope,
-  }
-  place(options.directory, `${id}.json`, `${JSON.stringify(card, null, 2)}\n`, drop)
-  place(options.directory, `${id}.md`, renderCardMarkdown(card), drop)
+  if (existing?.shareEligible === true) card.shareEligible = true
+  else if (!existing && options.card.shareEligible === true) card.shareEligible = true
+  else delete card.shareEligible
+  place(options.directory, `${id}.json`, `${JSON.stringify(card, null, 2)}\n`)
+  place(options.directory, `${id}.md`, renderCardMarkdown(card))
   claims[options.legacyId] = id
   claims[id] = id
   writeClaims(options.directory, claims)
@@ -262,9 +249,17 @@ export type GraphNode = {
   solution?: string
   failure_modes?: string[]
   relations?: CardRelation[]
+  shareState?: 'shared' | 'waiting' | 'local'
+  writer?: string
 }
 
-export function localGraph(directory: string, drivePath = '', autoDrop = false) {
+export type TeamShare = {
+  sharing: boolean
+  owned: Readonly<Record<string, string>>
+  remote: readonly KbNode[]
+}
+
+export function localGraph(directory: string, share: TeamShare = { sharing: false, owned: {}, remote: [] }) {
   const link = '#5c5c5c'
   const pending = '#b89a6a'
   const syncedColor = '#6f8f78'
@@ -297,14 +292,20 @@ export function localGraph(directory: string, drivePath = '', autoDrop = false) 
     if (name === '' || name === 'none' || isFileMention(name)) return ''
     return name
   }
+  const ownedIds = new Set(Object.values(share.owned))
   for (const card of readCards(directory)) {
-    const copied =
-      drivePath.trim() !== '' &&
-      existsSync(join(drivePath, 'Dropzone', card.author.username, `${card.id}.json`))
-    void autoDrop
+    const kbId = share.owned[card.id]
+    const copied = typeof kbId === 'string' && kbId !== '' && share.remote.some((node) => node.id === kbId)
+    const shareState = copied
+      ? 'shared'
+      : card.shareEligible === true && card.scope === 'work' && share.sharing
+        ? 'waiting'
+        : 'local'
     const cardId = ensure('card', card.id, card.title)
     const node = nodes.get(cardId)!
     node.synced = copied
+    node.shareState = shareState
+    node.writer = card.author.username
     if (card.scope === 'work' || card.scope === 'personal') node.scope = card.scope
     node.color = copied ? syncedColor : pending
     node.title = card.title
@@ -326,6 +327,36 @@ export function localGraph(directory: string, drivePath = '', autoDrop = false) 
       connect(cardId, ensure('tool', name, name))
     }
     const framework = projectName(card.context?.framework)
+    if (framework !== '') connect(cardId, ensure('issue', framework, framework))
+  }
+  for (const lesson of share.remote) {
+    if (ownedIds.has(lesson.id)) continue
+    const cardId = ensure('card', lesson.id, lesson.title)
+    const node = nodes.get(cardId)!
+    node.synced = true
+    node.shareState = 'shared'
+    node.scope = 'work'
+    node.color = syncedColor
+    node.title = lesson.title
+    node.created_at = lesson.created_at
+    node.solution = lesson.whatToDo
+    node.failure_modes = [lesson.situation, lesson.why, lesson.apply].filter((mode) => mode !== '')
+    node.writer = lesson.author.username.trim() || lesson.writer
+    const author = ensure('developer', lesson.author.email || lesson.author.username || lesson.writer, lesson.author.username || lesson.writer)
+    connect(author, cardId)
+    const team = lesson.author.team.trim()
+    if (team !== '' && !isFileMention(team)) connect(ensure('team', team, team), cardId)
+    for (const topic of lesson.topics) {
+      const name = topic.trim()
+      if (name === '' || isFileMention(name)) continue
+      connect(cardId, ensure('topic', name, name))
+    }
+    for (const source of lesson.sources) {
+      const name = source.trim()
+      if (!isLearningSource(name)) continue
+      connect(cardId, ensure('tool', name, name))
+    }
+    const framework = projectName(lesson.project)
     if (framework !== '') connect(cardId, ensure('issue', framework, framework))
   }
   for (const node of nodes.values()) {

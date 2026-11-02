@@ -57,6 +57,7 @@ export type ShareState = 'local' | 'waiting' | 'shared'
  * a work lesson waits while sharing is on until the host reports it copied (`synced`).
  */
 export function shareState(node: GraphNode, share: boolean): ShareState | null {
+  if (node.shareState === 'local' || node.shareState === 'waiting' || node.shareState === 'shared') return node.shareState
   // No scope on the node means the host doesn't know yet: show no badge rather than guess.
   if (node.scope === undefined || node.scope === null || node.scope === '') return null
   if (node.scope !== 'work') return 'local'
