@@ -46,12 +46,26 @@ test('settings opens over a loaded graph without a blank frame', async ({ page }
   await expect(page.locator('[data-graph]')).toBeVisible()
 })
 
-test('a set-up app says it learns every hour, in the success colour', async ({ page }) => {
-  await openApp(page, pageState({ paused: false, cadence: '1h' }))
+test('a set-up app says it learns every hour, in the success colour, only when the host runs that schedule', async ({ page }) => {
+  await openApp(page, pageState({ paused: false, cadence: '1h', scheduled: true }))
   const mark = page.getByRole('img', { name: 'Learns every hour' })
   await expect(mark).toBeVisible()
   await expect(mark).toHaveCSS('background-color', 'rgb(127, 176, 141)')
 })
+
+for (const [cadence, scheduled, label] of [
+  ['30m', true, 'Learns every 30 minutes'],
+  ['15m', true, 'Learns every 15 minutes'],
+  ['1h', undefined, 'Learns when you open Sharlie'],
+  ['30m', false, 'Learns when you open Sharlie'],
+  ['manual', true, 'Learns when you ask'],
+] as const) {
+  test(`status line for cadence ${cadence}, scheduled ${String(scheduled)}: ${label}`, async ({ page }) => {
+    await openApp(page, pageState({ cadence, scheduled }))
+    await expect(page.getByRole('img', { name: label, exact: true })).toBeVisible()
+    await expect(page.getByRole('img', { name: /every/ })).toHaveCount(label.includes('every') ? 1 : 0)
+  })
+}
 
 test('a paused app says Learning paused in the muted colour', async ({ page }) => {
   await openApp(page, pageState({ paused: true }))

@@ -104,6 +104,11 @@ export type PageState = {
   share?: boolean
   /** Assumed (not in docs/HOST_ACTIONS.md yet): ISO time of the last copy to the team folder. */
   lastSharedAt?: string
+  /**
+   * Assumed (not in docs/HOST_ACTIONS.md yet): true only while the host has a registered,
+   * running schedule for `cadence`. Until it says so the UI claims no schedule.
+   */
+  scheduled?: boolean
   /** docs/HOST_ACTIONS.md: set when a pass finishes or is cancelled. */
   learningResult?: { lessons: number; chats: number; text: string } | null
 }

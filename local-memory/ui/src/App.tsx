@@ -5,7 +5,7 @@ import { LearningStrip, type PassEnd } from './LearningStrip'
 import { LessonList } from './LessonList'
 import { AskPanel, type AskState } from './Ask'
 import { Trouble } from './Trouble'
-import { firstTodo } from './setup'
+import { cadenceLabel, firstTodo } from './setup'
 import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
 import { checkSources, loadState, onLearning, runAction, runLookup } from './host'
@@ -413,9 +413,7 @@ function StatusDot({ state, active }: { state: PageState | null; active: boolean
         ? ['Not set up yet', 'border border-faint']
         : state.paused
           ? ['Learning paused', 'bg-muted']
-          : state.cadence === 'manual'
-            ? ['Learns when you ask', 'bg-synced']
-            : ['Learns every hour', 'bg-synced']
+          : [cadenceLabel(state), 'bg-synced']
   return (
     <span className="flex shrink-0 items-center gap-1.5" title={label}>
       <span role="img" aria-label={label} className={`inline-block h-2 w-2 rounded-full ${tone}`} />

@@ -173,6 +173,36 @@ test('turning sharing off sends set-share false', async ({ page }) => {
   expect(await nextAction(page)).toEqual({ action: 'set-share', enabled: 'false' })
 })
 
+test('When to learn names the real cadence once the host reports it scheduled', async ({ page }) => {
+  await settings(page, pageState({ cadence: '30m', scheduled: true }))
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  const learn = page.getByLabel('When to learn')
+  expect(await learn.locator('option').allTextContents()).toEqual(['Every 30 minutes', 'Only when I start it'])
+  await expect(learn).toHaveValue('30m')
+})
+
+test('without host sharing support the switch is disabled, says so, and never shows Saved', async ({ page }) => {
+  await settings(page, pageState({ share: undefined }))
+  const toggle = page.getByRole('switch')
+  await expect(toggle).toBeDisabled()
+  await expect(page.getByText("Team sharing isn't available in this version yet")).toBeVisible()
+  await expect(page.getByText('Not sharing. Everything stays on this PC.')).toHaveCount(0)
+  await toggle.click({ force: true })
+  await page.waitForTimeout(200)
+  await expect(page.getByText('✓ Saved')).toHaveCount(0)
+  expect(await lastCall(page, 'action')).toBeNull()
+})
+
+test('a host reply without the share field turns sharing off as unsupported, without Saved', async ({ page }) => {
+  await settings(page, pageState({ share: false, drivePath: 'G:\\Team' }))
+  await page.getByRole('switch').click()
+  expect(await nextAction(page)).toEqual({ action: 'set-share', enabled: 'true' })
+  await reply(page, 'action', pageState({ share: undefined }))
+  await expect(page.getByText("Team sharing isn't available in this version yet")).toBeVisible()
+  await expect(page.getByRole('switch')).toBeDisabled()
+  await expect(page.getByText('✓ Saved')).toHaveCount(0)
+})
+
 test('Advanced holds model, options, cadence, folder, and theme', async ({ page }) => {
   const models = [{ id: 'sonnet', displayName: 'Sonnet', parameters: [{ id: 'effort', displayName: 'Effort', values: [{ value: 'low' }, { value: 'high' }] }, { id: 'fast', displayName: 'Fast', values: [{ value: 'true' }, { value: 'false' }] }] }]
   await settings(page, pageState({ models, model: 'sonnet', modelParams: [{ id: 'effort', value: 'low' }], cadence: '30m', chatsFound: 412 }))
@@ -187,8 +217,9 @@ test('Advanced holds model, options, cadence, folder, and theme', async ({ page 
   await reply(page, 'action', pageState({ models, model: 'sonnet' }))
 
   const learn = page.getByLabel('When to learn')
-  expect(await learn.locator('option').allTextContents()).toEqual(['Every hour', 'Only when I start it'])
-  await expect(learn).toHaveValue('1h')
+  // No registered schedule reported: the timed option promises only what runs.
+  expect(await learn.locator('option').allTextContents()).toEqual(['When I open Sharlie', 'Only when I start it'])
+  await expect(learn).toHaveValue('30m')
   await learn.selectOption('manual')
   expect(await nextAction(page)).toEqual({ action: 'set-cadence', cadence: 'manual' })
   await reply(page, 'action', pageState({ cadence: 'manual' }))

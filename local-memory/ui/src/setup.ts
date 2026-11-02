@@ -1,6 +1,22 @@
 import type { PageState } from './types'
 
 /** Providers that can actually learn (Lyra): Copilot stays a chat source, Custom is hidden. */
+/** Never promises more than the host runs: a schedule only when the host reports it registered. */
+export function cadenceLabel(state: Pick<PageState, 'cadence' | 'scheduled'>) {
+  if (state.cadence === 'manual') return 'Learns when you ask'
+  if (state.scheduled !== true) return 'Learns when you open Sharlie'
+  return `Learns ${everyText(state.cadence)}`
+}
+
+export function everyText(cadence: PageState['cadence']) {
+  return cadence === '15m' ? 'every 15 minutes' : cadence === '30m' ? 'every 30 minutes' : 'every hour'
+}
+
+/** Team sharing needs the `share` field and the set-share / pick-folder actions; a host without `share` lacks them. */
+export function canShare(state: Pick<PageState, 'share'>) {
+  return typeof state.share === 'boolean'
+}
+
 export const keyProviders = [
   { id: 'anthropic', label: 'Anthropic' },
   { id: 'openai', label: 'OpenAI' },

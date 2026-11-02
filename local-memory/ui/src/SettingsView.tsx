@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { keyProviders } from './setup'
+import { canShare, everyText, keyProviders } from './setup'
 import { applyTheme, readTheme, type ThemeChoice } from './theme'
 import { errorText, HOST_TROUBLE } from './Trouble'
 import type { CatalogParameter, PageState } from './types'
@@ -166,6 +166,7 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
     const picked = await run({ action: 'pick-folder', purpose: 'share' }, () => void chooseShareFolder(thenEnable))
     setShareBusy(false)
     if (!picked) return false
+    if (!canShare(picked)) return false // host has no team sharing: never show Saved
     if (picked.errorCode && pathCodes.includes(picked.errorCode)) {
       setShareError(picked.notice ?? '')
       return false
@@ -181,12 +182,14 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
     return true
   }
   async function setShare(on: boolean, knownPath?: string): Promise<boolean> {
+    if (!canShare(state)) return false
     if (on && (knownPath ?? state.drivePath).trim() === '') return chooseShareFolder(true)
     setShareBusy(true)
     setShareError('')
     const reply = await run({ action: 'set-share', enabled: on ? 'true' : 'false' }, () => void setShare(on))
     setShareBusy(false)
     if (!reply) return false
+    if (!canShare(reply)) return false // host has no team sharing: never show Saved
     if (reply.errorCode && pathCodes.includes(reply.errorCode)) {
       folderBanner()
       return false
@@ -205,7 +208,11 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
   const [advError, setAdvError] = useState<{ at: string; text: string } | null>(null)
   const [theme, setTheme] = useState<ThemeChoice>(readTheme())
   const chosen = state.models.find((item) => item.id === state.model)
-  const cadence = state.cadence === 'manual' ? 'manual' : '1h'
+  // The host's real value; the timed option names a schedule only when the host reports one running.
+  const cadence = state.cadence
+  const timed = cadence === 'manual' ? '1h' : cadence
+  const timedText = state.scheduled === true ? everyText(timed).replace(/^e/, 'E') : 'When I open Sharlie'
+  const shareable = canShare(state)
   async function advanced(at: string, body: Record<string, unknown>) {
     setAdvError(null)
     const reply = await run(body, () => void advanced(at, body))
@@ -366,7 +373,7 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
               aria-checked={sharing}
               aria-labelledby={`${ids}-share-label`}
               aria-describedby={`${ids}-share-help`}
-              disabled={shareBusy}
+              disabled={shareBusy || !shareable}
               className="relative h-9 w-12 shrink-0 rounded-full disabled:opacity-60"
               onClick={() => void setShare(!sharing)}
             >
@@ -382,7 +389,9 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
               </p>
             </div>
           </div>
-          {sharing ? (
+          {!shareable ? (
+            <p className="text-[15px] text-muted">Team sharing isn't available in this version yet</p>
+          ) : sharing ? (
             <div className="space-y-2">
               <p className="text-[15px] break-all text-ink">
                 Sharing to {state.drivePath}
@@ -469,7 +478,7 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
                   aria-describedby={fieldError(`${ids}-cadence-error`, advError?.at === 'cadence')}
                   onChange={(e) => void advanced('cadence', { action: 'set-cadence', cadence: e.target.value })}
                 >
-                  <option value="1h">Every hour</option>
+                  <option value={timed}>{timedText}</option>
                   <option value="manual">Only when I start it</option>
                 </select>
               </label>
