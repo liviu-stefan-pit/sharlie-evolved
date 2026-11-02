@@ -40,9 +40,10 @@ export function newness(node: GraphNode, sessionNew: ReadonlySet<string>, now: n
 export function displayColor(t: number, low = '#a3a9b8', high = '#b89a6a') {
   const GRAY = channels(low)
   const ORANGE = channels(high)
-  const r = Math.round(GRAY[0] + (ORANGE[0] - GRAY[0]) * t)
-  const g = Math.round(GRAY[1] + (ORANGE[1] - GRAY[1]) * t)
-  const b = Math.round(GRAY[2] + (ORANGE[2] - GRAY[2]) * t)
+  const k = Number.isFinite(t) ? Math.min(1, Math.max(0, t)) : 0
+  const r = Math.round(GRAY[0] + (ORANGE[0] - GRAY[0]) * k)
+  const g = Math.round(GRAY[1] + (ORANGE[1] - GRAY[1]) * k)
+  const b = Math.round(GRAY[2] + (ORANGE[2] - GRAY[2]) * k)
   return `#${hexChannel(r)}${hexChannel(g)}${hexChannel(b)}`
 }
 
