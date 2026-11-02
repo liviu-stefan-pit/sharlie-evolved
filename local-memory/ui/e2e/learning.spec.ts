@@ -85,13 +85,34 @@ test('saving a key switches the provider on and picks a model and its options', 
   await expect(page.getByRole('heading', { name: 'AI key (done)' })).toBeVisible()
 })
 
-test('a key save error shows inline in plain words', async ({ page }) => {
+const TROUBLE = 'Something went wrong on this PC. Try again. If it keeps happening, open Details'
+
+test('a rejected key shows once, inline in step 3, tied to the field', async ({ page }) => {
+  await openApp(page, pageState({ hasKey: false, savedProviders: [], provider: '' }))
+  const key = page.getByLabel('Anthropic key')
+  await key.fill('bad')
+  await key.press('Enter')
+  await reply(page, 'action', pageState({ hasKey: false, savedProviders: [], provider: '', notice: 'Anthropic said 401' }))
+  const message = 'That key was rejected by Anthropic. Check it and try again'
+  await expect(page.getByRole('alert')).toHaveCount(1)
+  await expect(page.getByRole('alert')).toHaveText(message)
+  const described = await key.getAttribute('aria-describedby')
+  expect(described).toBeTruthy()
+  await expect(page.locator(`[id="${described}"]`)).toHaveText(message)
+  await expect(key).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByRole('button', { name: 'Save key' })).toBeEnabled()
+})
+
+test('a thrown key error says something went wrong, raw text under Details', async ({ page }) => {
   await openApp(page, pageState({ hasKey: false, savedProviders: [], provider: '' }))
   await page.getByLabel('Anthropic key').fill('bad')
   await page.getByLabel('Anthropic key').press('Enter')
-  await fail(page, 'action', 'That key was not accepted')
-  await expect(page.getByText('That key was not accepted')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Save key' })).toBeEnabled()
+  await fail(page, 'action', 'keyring: org.freedesktop.secrets was not provided')
+  await expect(page.getByRole('alert')).toHaveCount(1)
+  await expect(page.getByText(TROUBLE)).toBeVisible()
+  await expect(page.getByText('keyring: org.freedesktop.secrets was not provided')).toBeHidden()
+  await page.getByText('Details', { exact: true }).click()
+  await expect(page.getByText('keyring: org.freedesktop.secrets was not provided')).toBeVisible()
 })
 
 test('a saved key that is off offers Use this key', async ({ page }) => {
@@ -148,12 +169,26 @@ test('several sources join as one summary', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Found: Cursor, Claude CLI · 412 chats/ })).toBeVisible()
 })
 
-test('a no_chats refusal from the host shows its sentence', async ({ page }) => {
+test('a no_chats refusal shows at step 1 and never a Done strip', async ({ page }) => {
   await openApp(page, pageState())
   await start(page).click()
   const notice = 'No AI coding chats were found. Sharlie looks in Cursor, Copilot, and Claude.'
-  await reply(page, 'action', pageState({ errorCode: 'no_chats', notice }))
-  await expect(page.getByRole('alert').getByText(notice)).toBeVisible()
+  await reply(page, 'action', pageState({ errorCode: 'no_chats', notice, sources: [], chatsFound: 0 }))
+  await expect(page.getByRole('alert')).toHaveCount(1)
+  await expect(page.getByRole('alert')).toHaveText(notice)
+  await expect(page.getByText(/^Done\./)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Check again' })).toBeFocused()
+})
+
+test('a profile_incomplete refusal shows at About you and focuses Name', async ({ page }) => {
+  await openApp(page, pageState())
+  await start(page).click()
+  const notice = 'Save your username, email, and team before learning can write cards.'
+  await reply(page, 'action', pageState({ errorCode: 'profile_incomplete', notice }))
+  await expect(page.getByRole('alert')).toHaveText(notice)
+  await expect(page.getByText(/^Done\./)).toHaveCount(0)
+  await expect(page.getByText('No lessons yet. Sharlie will learn as you work.')).toHaveCount(0)
+  await expect(page.getByLabel('Name')).toBeFocused()
 })
 
 test('Show where I look lists every folder searched', async ({ page }) => {
@@ -166,6 +201,9 @@ test('Show where I look lists every folder searched', async ({ page }) => {
   const list = page.getByRole('list', { name: 'Folders Sharlie looks in' })
   await expect(list.getByRole('listitem')).toHaveCount(2)
   await expect(list).toContainText('.claude\\projects')
+  await page.keyboard.press('Escape')
+  await expect(list).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Show where I look' })).toBeFocused()
 })
 
 test('Start collapses into the learning strip and counts chats', async ({ page }) => {
@@ -176,7 +214,7 @@ test('Start collapses into the learning strip and counts chats', async ({ page }
 
   await fail(page, 'action', 'Could not start learning')
   await expect(start(page)).toBeEnabled()
-  await expect(page.getByText('Could not start learning')).toBeVisible()
+  await expect(page.getByText(TROUBLE)).toBeVisible()
   await expect(page.getByRole('progressbar')).toHaveCount(0)
 
   await start(page).click()
@@ -259,7 +297,7 @@ test('a finished run with no lessons shows the Home empty state, never a blank g
   await expect(page.getByText('No lessons yet. Sharlie will learn as you work.')).toBeVisible()
   await expect(start(page)).toHaveCount(0)
   await page.getByRole('button', { name: 'Check again' }).click()
-  expect(await nextAction(page)).toEqual({ action: 'start-learning' })
+  expect(await nextAction(page)).toEqual({ action: 'recheck-sources' })
 })
 
 test('a run that ends with zero lessons in this session lands on the Home empty state', async ({ page }) => {

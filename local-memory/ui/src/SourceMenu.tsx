@@ -30,7 +30,7 @@ export function SourceMenu({ sources, view }: { sources: SourceFolder[]; view: s
     <div className="relative shrink-0" ref={root}>
       <button
         type="button"
-        className="h-8 rounded-full border border-line bg-field px-2.5 text-[13px] text-ink transition-colors duration-[120ms] hover:bg-white/[0.05]"
+        className="h-9 rounded-full border border-line bg-field px-3 text-[15px] text-ink transition-colors duration-[120ms] hover:bg-white/[0.05]"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}

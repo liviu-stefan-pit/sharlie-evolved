@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Drawer } from './Drawer'
 import { FirstRun } from './FirstRun'
-import { LearningStrip } from './LearningStrip'
+import { LearningStrip, type PassEnd } from './LearningStrip'
 import { LessonList } from './LessonList'
+import { Trouble } from './Trouble'
 import { firstTodo } from './setup'
 import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
@@ -36,7 +37,25 @@ export function App() {
   const [notice, setNotice] = useState('')
   const stateRef = useRef<PageState | null>(null)
 
+  const passStart = useRef(0)
+  const passError = useRef('')
+  const [passEnd, setPassEnd] = useState<PassEnd | null>(null)
+  const [ranOnce, setRanOnce] = useState(false)
+
   function adopt(next: PageState) {
+    const wasActive = stateRef.current?.learning?.active === true
+    const isActive = next.learning?.active === true
+    const cards = next.graph.nodes.filter((node) => node.kind === 'card').length
+    if (!wasActive && isActive) {
+      passStart.current = cards
+      passError.current = ''
+      setRanOnce(true)
+    }
+    if (next.learning?.error) passError.current = next.learning.error
+    if (wasActive && !isActive) {
+      const error = passError.current
+      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, result: next.learningResult ?? null }))
+    }
     stateRef.current = next
     setState(next)
     setProfile(next.profile)
@@ -122,12 +141,8 @@ export function App() {
   const selected = graph?.nodes.find((node) => node.id === selectedId) ?? null
   const cardCount = graph?.nodes.filter((node) => node.kind === 'card').length ?? 0
   const active = waiting || state?.learning?.active === true
-  const [ranOnce, setRanOnce] = useState(false)
   const [noWebgl, setNoWebgl] = useState(false)
   const [layout, setLayout] = useState<'map' | 'list'>('map')
-  useEffect(() => {
-    if (state?.learning?.active) setRanOnce(true)
-  }, [state?.learning?.active])
   const empty = !!state && state.graph.nodes.length === 0 && !active
   const ready = !!state && firstTodo(state) === null
   const finishedRun =
@@ -140,6 +155,20 @@ export function App() {
 
   async function checkAgain() {
     apply(await checkSources())
+  }
+
+  const [checkingHome, setCheckingHome] = useState(false)
+  const [homeTrouble, setHomeTrouble] = useState('')
+  async function checkHome() {
+    setCheckingHome(true)
+    setHomeTrouble('')
+    try {
+      await checkAgain()
+    } catch (error) {
+      setHomeTrouble(error instanceof Error ? error.message : String(error))
+    } finally {
+      setCheckingHome(false)
+    }
   }
 
   /** Runs one action and adopts its reply; throws so callers can show the error inline. */
@@ -164,13 +193,25 @@ export function App() {
     }
   }
 
+  const [startRefusal, setStartRefusal] = useState<{ code: string; notice: string } | null>(null)
+  const [startTrouble, setStartTrouble] = useState('')
+
   async function startLearning() {
     setWaiting(true)
-    setNotice('')
+    setStartRefusal(null)
+    setStartTrouble('')
     try {
-      applyActionReply(await runAction({ action: 'start-learning' }))
+      const next = await runAction({ action: 'start-learning' })
+      // A refused start (no chats, profile incomplete...) never counts as a run.
+      if (next.notice && !next.learning?.active) {
+        setStartRefusal({ code: next.errorCode ?? '', notice: next.notice })
+        apply({ ...next, notice: '' })
+        setWaiting(false)
+        return
+      }
+      applyActionReply(next)
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not start learning')
+      setStartTrouble(error instanceof Error ? error.message : String(error))
       setWaiting(false)
     }
   }
@@ -278,7 +319,7 @@ export function App() {
         <StatusDot state={state} active={active} />
         <form className="min-w-0 flex-1" onSubmit={(event) => void submitSearch(event)}>
           <input
-            className="h-8 w-full rounded-full border border-line bg-field px-3 text-[13px] text-ink outline-none transition-colors duration-[120ms] placeholder:text-faint hover:bg-white/[0.05] focus:border-focus"
+            className="h-9 w-full rounded-full border border-border-input bg-field px-3 text-[15px] text-ink transition-colors duration-[120ms] placeholder:text-muted hover:bg-white/[0.05]"
             aria-label="Search"
             placeholder="Search"
             value={query}
@@ -288,7 +329,7 @@ export function App() {
         <SourceMenu sources={state?.sources ?? []} view={view} />
         <button
           type="button"
-          className={`h-8 shrink-0 rounded-full border px-2.5 text-[13px] transition-colors duration-[120ms] ${view === 'settings' ? 'border-accent bg-accent text-on-accent' : 'border-line bg-field text-ink hover:bg-white/[0.05]'}`}
+          className={`h-9 shrink-0 rounded-full border px-3 text-[15px] transition-colors duration-[120ms] ${view === 'settings' ? 'border-accent bg-accent text-on-accent' : 'border-line bg-field text-ink hover:bg-white/[0.05]'}`}
           aria-pressed={view === 'settings'}
           onClick={() => setView((current) => (current === 'settings' ? 'graph' : 'settings'))}
         >
@@ -298,11 +339,10 @@ export function App() {
       {state ? (
         <LearningStrip
           learning={state.learning ?? null}
-          result={state.learningResult ?? null}
+          ended={passEnd}
           onState={applyActionReply}
           waiting={waiting}
           lines={state.ingest?.visible ? state.ingest.lines : []}
-          cardCount={cardCount}
           onSeeLessons={() => {
             setQuery('')
             setView('graph')
@@ -344,10 +384,12 @@ export function App() {
                 <button
                   type="button"
                   className="h-10 rounded-[10px] border border-accent bg-accent px-4 text-[15px] font-medium text-on-accent"
-                  onClick={() => void startLearning()}
+                  disabled={checkingHome}
+                  onClick={() => void checkHome()}
                 >
-                  Check again
+                  {checkingHome ? 'Checking' : 'Check again'}
                 </button>
+                {homeTrouble ? <Trouble raw={homeTrouble} className="max-w-md" /> : null}
               </div>
             ) : null}
             {firstRun && state ? (
@@ -356,7 +398,8 @@ export function App() {
                   state={state}
                   act={act}
                   starting={waiting}
-                  startError={notice}
+                  startError={startTrouble}
+                  refusal={startRefusal}
                   onStart={() => void startLearning()}
                   onOpenSettings={() => setView('settings')}
                   onCheckAgain={checkAgain}
@@ -435,7 +478,7 @@ function HomeBar({ layout, canMap, onLayout, count, children }: { layout: 'map' 
       type="button"
       aria-pressed={layout === value}
       disabled={value === 'map' && !canMap}
-      className={`h-8 rounded-[8px] px-3 text-[13px] transition-colors duration-[120ms] disabled:opacity-50 ${layout === value ? 'bg-panel text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
+      className={`h-9 rounded-[8px] px-3 text-[13px] transition-colors duration-[120ms] disabled:opacity-50 ${layout === value ? 'bg-panel text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
       onClick={() => onLayout(value)}
     >
       {text}

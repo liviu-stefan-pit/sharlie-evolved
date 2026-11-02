@@ -1,13 +1,27 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { firstTodo, foundSummary, keyHold, keyProviders, nothingFound, nothingToLearn, profileHold } from './setup'
+import { errorText, Trouble } from './Trouble'
 import type { PageState } from './types'
+
+/** A plain sentence (refusal, missing step) or a thrown host error shown via Trouble. */
+type Problem = { text: string } | { raw: string } | null
+
+const stepOf: Record<string, 'found' | 'profile' | 'key'> = {
+  no_chats: 'found',
+  profile_incomplete: 'profile',
+  key_missing: 'key',
+  model_missing: 'key',
+}
 
 type Props = {
   state: PageState
   /** Runs one host action and adopts the reply; resolves to the new state or throws. */
   act: (body: Record<string, unknown>) => Promise<PageState>
   starting: boolean
+  /** A thrown error from start-learning (raw message). */
   startError: string
+  /** A refused start-learning reply: errorCode + notice. Shown at the step it is about. */
+  refusal: { code: string; notice: string } | null
   onStart: () => void
   onOpenSettings: (section: 'sharing') => void
   /** Check again for chat folders (one explicit look, never a silent retry). */
@@ -17,7 +31,7 @@ type Props = {
 const field =
   'h-10 w-full min-w-0 rounded-[10px] border border-border-input bg-field px-3 text-[15px] text-ink placeholder:text-muted'
 
-function Step({ n, title, done, optional, hold, children, id }: { n: number; title: ReactNode; done: boolean; optional?: boolean; hold?: string; children: ReactNode; id: string }) {
+function Step({ n, title, done, optional, problem, children, id }: { n: number; title: ReactNode; done: boolean; optional?: boolean; problem?: Problem; children: ReactNode; id: string }) {
   return (
     <li className="flex gap-3 border-t border-line py-4 first:border-t-0" aria-labelledby={id}>
       <span
@@ -33,13 +47,18 @@ function Step({ n, title, done, optional, hold, children, id }: { n: number; tit
           {optional ? <span className="ml-2 text-[13px] font-normal text-muted">Optional</span> : null}
         </h3>
         <div className="mt-2">{children}</div>
-        {hold ? <p className="mt-2 text-[13px] text-danger">{hold}</p> : null}
+        {problem && 'raw' in problem ? <Trouble id={`${id}-problem`} raw={problem.raw} className="mt-2" /> : null}
+        {problem && 'text' in problem ? (
+          <p role="alert" id={`${id}-problem`} className="mt-2 text-[13px] text-danger">
+            {problem.text}
+          </p>
+        ) : null}
       </div>
     </li>
   )
 }
 
-export function FirstRun({ state, act, starting, startError, onStart, onOpenSettings, onCheckAgain }: Props) {
+export function FirstRun({ state, act, starting, startError, refusal, onStart, onOpenSettings, onCheckAgain }: Props) {
   const ids = useId()
   const [why, setWhy] = useState(false)
   const profileRef = useRef<HTMLInputElement>(null)
@@ -48,19 +67,19 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
 
   // About you: one row, saved on blur.
   const [profile, setProfile] = useState(state.profile)
-  const [profileError, setProfileError] = useState('')
+  const [profileError, setProfileError] = useState<Problem>(null)
   const [profileSaved, setProfileSaved] = useState(false)
   useEffect(() => setProfile(state.profile), [state.profile])
 
   async function saveProfile() {
     const p = state.profile
     if (profile.username === p.username && profile.email === p.email && profile.team === p.team) return
-    setProfileError('')
+    setProfileError(null)
     try {
       await act({ action: 'save-profile', username: profile.username.trim(), email: profile.email.trim(), team: profile.team.trim() })
       setProfileSaved(true)
     } catch (error) {
-      setProfileError(error instanceof Error ? error.message : 'Could not save your details')
+      setProfileError({ raw: errorText(error) })
     }
   }
 
@@ -70,7 +89,7 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
   const [provider, setProvider] = useState<string>(initialProvider)
   const [secret, setSecret] = useState('')
   const [keyBusy, setKeyBusy] = useState(false)
-  const [keyError, setKeyError] = useState('')
+  const [keyError, setKeyError] = useState<Problem>(null)
   const [replacing, setReplacing] = useState(false)
   const saved = state.savedProviders.includes(provider)
   const providerLabel = offered.find((item) => item.id === provider)?.label ?? provider
@@ -93,23 +112,23 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
   async function saveKey() {
     const value = secret.trim()
     if (value === '') {
-      setKeyError(`Paste your ${providerLabel} key first.`)
+      setKeyError({ text: `Paste your ${providerLabel} key first.` })
       keyRef.current?.focus()
       return
     }
     setKeyBusy(true)
-    setKeyError('')
+    setKeyError(null)
     try {
       const next = await act({ action: 'save-key', provider, secret: value })
       if (next.notice) {
-        setKeyError(next.notice)
+        setKeyError({ text: `That key was rejected by ${providerLabel}. Check it and try again` })
         return
       }
       setSecret('')
       setReplacing(false)
       await finishKey(next, provider)
     } catch (error) {
-      setKeyError(error instanceof Error ? error.message : 'Could not save the key')
+      setKeyError({ raw: errorText(error) })
     } finally {
       setKeyBusy(false)
     }
@@ -117,11 +136,11 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
 
   async function useSavedKey() {
     setKeyBusy(true)
-    setKeyError('')
+    setKeyError(null)
     try {
       await finishKey(state, provider)
     } catch (error) {
-      setKeyError(error instanceof Error ? error.message : 'Could not turn the key on')
+      setKeyError({ raw: errorText(error) })
     } finally {
       setKeyBusy(false)
     }
@@ -129,18 +148,29 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
 
   const found = !nothingToLearn(state)
   const [checking, setChecking] = useState(false)
-  const [checkError, setCheckError] = useState('')
+  const [checkError, setCheckError] = useState<Problem>(null)
   const [checked, setChecked] = useState(false)
   const [showFolders, setShowFolders] = useState(false)
   const checkRef = useRef<HTMLButtonElement>(null)
+  const foldersRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!showFolders) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setShowFolders(false)
+      foldersRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showFolders])
   async function checkAgain() {
     setChecking(true)
-    setCheckError('')
+    setCheckError(null)
     try {
       await onCheckAgain()
       setChecked(true)
     } catch (error) {
-      setCheckError(error instanceof Error ? error.message : 'Could not look for chats')
+      setCheckError({ raw: errorText(error) })
     } finally {
       setChecking(false)
     }
@@ -149,6 +179,17 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
   const pHold = profileHold(state)
   const kHold = keyHold(state)
   const todo = firstTodo(state)
+  const refusedAt = refusal ? (stepOf[refusal.code] ?? null) : null
+  const profileProblem: Problem = profileError ?? (refusedAt === 'profile' ? { text: refusal!.notice } : why && pHold ? { text: pHold } : null)
+  const keyProblem: Problem = keyError ?? (refusedAt === 'key' ? { text: refusal!.notice } : why && kHold ? { text: kHold } : null)
+  // A refused start points at its step: show why and move focus there.
+  useEffect(() => {
+    if (!refusedAt) return
+    setWhy(true)
+    if (refusedAt === 'found') checkRef.current?.focus()
+    else if (refusedAt === 'profile') profileRef.current?.focus()
+    else keyRef.current?.focus()
+  }, [refusal])
 
   function start() {
     if (todo) {
@@ -179,7 +220,7 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
           id={`${ids}-found`}
           title={found ? `Found: ${foundSummary(state)}` : 'Found on this PC: nothing yet'}
           done={found}
-          hold={checkError}
+          problem={checkError ?? (refusedAt === 'found' ? { text: refusal!.notice } : null)}
         >
           {found ? (
             <p className="text-[13px] text-muted">Sharlie reads these chats on this PC.</p>
@@ -200,6 +241,7 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
                 </button>
                 {folders.length > 0 ? (
                   <button
+                    ref={foldersRef}
                     type="button"
                     className="h-9 text-[15px] text-focus underline-offset-2 hover:underline"
                     aria-expanded={showFolders}
@@ -227,12 +269,13 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
             </>
           )}
         </Step>
-        <Step n={2} id={`${ids}-profile`} title="About you" done={!pHold} hold={why && pHold ? pHold : profileError}>
+        <Step n={2} id={`${ids}-profile`} title="About you" done={!pHold} problem={profileProblem}>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <label className="text-[13px] text-muted">
               Name
               <input
                 ref={profileRef}
+                aria-describedby={profileProblem ? `${ids}-profile-problem` : undefined}
                 className={`${field} mt-1`}
                 autoComplete="username"
                 value={profile.username}
@@ -267,11 +310,11 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
             </p>
           ) : null}
         </Step>
-        <Step n={3} id={`${ids}-key`} title="AI key" done={!kHold} hold={keyError || (why && kHold ? kHold : '')}>
+        <Step n={3} id={`${ids}-key`} title="AI key" done={!kHold} problem={keyProblem}>
           <div className="flex flex-col gap-2 sm:flex-row">
             <label className="text-[13px] text-muted sm:w-40">
               Provider
-              <select className={`${field} mt-1`} value={provider} disabled={keyBusy} onChange={(e) => { setProvider(e.target.value); setKeyError(''); setReplacing(false) }}>
+              <select className={`${field} mt-1`} value={provider} disabled={keyBusy} onChange={(e) => { setProvider(e.target.value); setKeyError(null); setReplacing(false) }}>
                 {offered.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.label}
@@ -302,7 +345,8 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
                     autoComplete="off"
                     spellCheck={false}
                     value={secret}
-                    aria-invalid={keyError ? true : undefined}
+                    aria-invalid={keyProblem ? true : undefined}
+                    aria-describedby={keyProblem ? `${ids}-key-problem` : undefined}
                     onChange={(e) => setSecret(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -343,11 +387,12 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
             {todo === 'found' ? nothingFound : todo === 'profile' ? 'First add your name, email, and team above.' : 'First add an AI key above.'}
           </p>
         ) : null}
-        {startError ? (
+        {refusal && !refusedAt ? (
           <p role="alert" className="mt-2 text-[13px] text-danger">
-            {startError}
+            {refusal.notice}
           </p>
         ) : null}
+        {startError ? <Trouble raw={startError} className="mt-2" /> : null}
       </div>
     </section>
   )

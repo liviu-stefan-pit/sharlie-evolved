@@ -121,3 +121,17 @@ test('the open drawer is 280 wide and stays inside the window', async ({ page })
   expect(box.x + box.width).toBeLessThanOrEqual(680)
   expect(box.y + box.height).toBeLessThanOrEqual(520)
 })
+
+test('header controls are 36px tall and every one shows the focus ring', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  for (const name of ['Sources', 'Settings']) {
+    const box = await page.getByRole('button', { name, exact: true }).boundingBox()
+    expect(box?.height).toBeGreaterThanOrEqual(36)
+  }
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab')
+    const focused = page.locator(':focus')
+    await expect(focused).toHaveCSS('outline-style', 'solid')
+    await expect(focused).toHaveCSS('outline-width', '2px')
+  }
+})

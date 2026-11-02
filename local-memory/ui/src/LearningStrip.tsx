@@ -1,58 +1,49 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { canCancelLearning, cancelLearning } from './host'
+import { Trouble } from './Trouble'
 import type { PageState } from './types'
+
+export type PassEnd = { seq: number; added: number; error: string; result: PageState['learningResult'] }
 
 type Props = {
   learning: PageState['learning']
-  /** docs/HOST_ACTIONS.md learningResult: set when a pass finishes or is cancelled. */
-  result?: PageState['learningResult']
+  /** The last pass that ended (recorded by the App per snapshot). */
+  ended: PassEnd | null
   /** Adopt the snapshot cancelLearning resolves with. */
   onState: (next: PageState) => void
   waiting: boolean
   lines: string[]
-  /** Lesson cards in the graph right now (to report how many a run added). */
-  cardCount: number
   onSeeLessons: () => void
 }
 
 /** Slim strip under the header: "Learning… 37 of 412 chats", Cancel, then "Done. 58 lessons learned". */
-export function LearningStrip({ learning, result, onState, waiting, lines, cardCount, onSeeLessons }: Props) {
+export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeLessons }: Props) {
   const id = useId()
   const active = waiting || learning?.active === true
-  const startCards = useRef<number | null>(null)
   const [done, setDone] = useState<{ text: string } | null>(null)
-  const lastError = useRef('')
-  if (learning?.error) lastError.current = learning.error
-  // The host clears `learning` after the last event, so keep its error visible after the pass ends.
   const [endError, setEndError] = useState('')
-  const resultRef = useRef(result)
-  resultRef.current = result
   const [details, setDetails] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState('')
   const cancellable = canCancelLearning()
 
+  // `ended` is recorded by the App as snapshots arrive, so a pass that starts and ends between
+  // two renders still reports. A refused start never starts a pass, so it never reports Done.
   useEffect(() => {
-    if (active) {
-      if (startCards.current === null) {
-        startCards.current = cardCount
-        lastError.current = learning?.error ?? ''
-        setEndError('')
-      }
+    if (learning?.active) {
       setDone(null)
-      return
+      setEndError('')
     }
-    if (startCards.current !== null) {
-      // A run just ended. Report it unless it stopped on an error (the error stays visible).
-      const added = Math.max(0, cardCount - startCards.current)
-      startCards.current = null
-      setCancelling(false)
-      setEndError(lastError.current)
-      const r = resultRef.current
-      if (r?.text) setDone({ text: r.text.startsWith('Learning cancelled') ? r.text : `Done. ${r.text}` })
-      else if (!lastError.current) setDone({ text: `Done. ${added} ${added === 1 ? 'lesson' : 'lessons'} learned` })
-    }
-  }, [active, cardCount, learning?.error])
+  }, [learning?.active])
+  useEffect(() => {
+    if (!ended) return
+    setCancelling(false)
+    setEndError(ended.error)
+    const r = ended.result
+    if (r?.text) setDone({ text: r.text.startsWith('Learning cancelled') ? r.text : `Done. ${r.text}` })
+    else if (!ended.error) setDone({ text: `Done. ${ended.added} ${ended.added === 1 ? 'lesson' : 'lessons'} learned` })
+    else setDone(null)
+  }, [ended?.seq])
 
   const logRef = useRef<HTMLDivElement | null>(null)
   const stick = useRef(true)
@@ -88,7 +79,7 @@ export function LearningStrip({ learning, result, onState, waiting, lines, cardC
       if (next && typeof next === 'object' && 'graph' in next) onState(next)
     } catch (e) {
       setCancelling(false)
-      setCancelError(e instanceof Error ? e.message : 'Could not cancel')
+      setCancelError(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -136,9 +127,10 @@ export function LearningStrip({ learning, result, onState, waiting, lines, cardC
           </button>
         ) : null}
       </div>
-      {error || cancelError ? (
+      {cancelError ? <Trouble raw={cancelError} className="px-3 pb-2" /> : null}
+      {error && !cancelError ? (
         <p role="alert" className="px-3 pb-2 text-[13px] text-danger">
-          {cancelError || error}
+          {error}
         </p>
       ) : null}
       {details && lines.length > 0 ? (
