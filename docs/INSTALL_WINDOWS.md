@@ -27,12 +27,10 @@ The window says **"Sharlie learns from your work on this computer"**. It reads t
 3. **AI key.** Pick a provider (Anthropic, OpenAI or Cursor), paste your key, then press **Save key**. The key goes into **Windows Credential Manager** under `sharlie-local-memory`, through the OS keyring. It is never written to a file.
 4. **Team sharing** (optional). It says **Off. Everything stays on this PC.** You can leave it off.
 
-Then press **Start learning**. A strip at the top shows "Learning… 37 of 412 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns.
+Then press **Start learning**. The first pass learns at most your newest 50 chats, newest first. A chat longer than 30,000 characters is cut to its newest 30,000. The strip shows "Learning… 37 of 50 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns. Older chats from before that pass stay unread. After this, Sharlie learns only new chats.
 
 After your first **Start learning**, Sharlie learns new chats on its own every hour while it runs (it starts with Windows, in the tray). The status line at the top says **Learns every hour**, then adds **last learned …** after a pass. **Learn now** on Home learns right away. To learn only when you ask, open **Settings → Advanced → When to learn** and pick **Only when I start it**; the status line then says **Learns when you ask**.
 > **[DEV NOTE]** A 15 or 30 minute choice returns `cadence_too_short`. A saved interval under an hour is kept as one hour.
-
-> **[DEV NOTE]** Coming in this build: the first pass is planned to read only your newest 50 chats and leave older ones for later. Today it reads every new chat, newest first.
 
 ## 4. Team folder (sharing with your team)
 

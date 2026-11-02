@@ -96,6 +96,9 @@ learning: {
   lessons: number
   error?: string
   errorCode?: string
+  cappedChats?: number
+  deferredChats?: number
+  notice?: string
 } | null
 learningResult: { lessons: number; chats: number; text: string } | null
 ```
@@ -104,9 +107,11 @@ learningResult: { lessons: number; chats: number; text: string } | null
 
 `searched` is every folder the scan looked in, including folders that held no chats, in scan order. The first-run screen lists these paths. When `chatsFound` is 0 the start control stays disabled and the screen says Sharlie only learns from AI coding chats (Cursor, Copilot, Claude) and that none were found.
 
-`learning.done` and `learning.total` are chats in the current pass. Copy: `37 of 412 chats`. `learning.lessons` is how many cards this pass has written so far.
+`learning.done` and `learning.total` are chats in the current pass. The first pass reads at most the newest 50, so a backlog of 412 shows `37 of 50 chats`, not `37 of 412`. `chatsFound` stays the full count. `learning.lessons` is how many cards this pass has written so far.
 
-When a pass finishes cleanly, `learning` becomes `null` and `learningResult` is set. `learningResult.text` is `58 lessons learned` (the number is `lessons`, singular when it is 1: `1 lesson learned`). A pass that writes nothing uses `0 lessons learned`. A pass that fails, or does not run, keeps `learning` with `active: false`, `error` (a plain sentence), and `errorCode`. A successful `save-key`, `activate-key`, or `activate-provider` (a provider that actually turns on) clears `learning.error` and `learning.errorCode`. `lastLearnedAt` does not move. A pass that wrote cards and also hit an error still sets `learningResult` for the cards that did land.
+`learning.cappedChats` is how many chats in this pass were cut to their newest 30,000 characters. `learning.deferredChats` is how many older chats the first pass left unread. `learning.notice` is the sentence for those, and it is not the top-level action `notice`. The sentences are exactly `Learned the newest 50 chats. Older chats stay unread; later passes learn only new chats.` and `1 chat was cut to its newest 30,000 characters.` (or `N chats were cut to their newest 30,000 characters.`). When both apply they are joined with a space. A pass that did neither leaves `learning` as `null` when it finishes.
+
+When a pass finishes cleanly and nothing was capped or deferred, `learning` becomes `null` and `learningResult` is set. `learningResult.text` is `58 lessons learned` (the number is `lessons`, singular when it is 1: `1 lesson learned`). A pass that writes nothing uses `0 lessons learned`. A pass that fails, or does not run, keeps `learning` with `active: false`, `error` (a plain sentence), and `errorCode`. A successful `save-key`, `activate-key`, or `activate-provider` (a provider that actually turns on) clears `learning.error` and `learning.errorCode`. `lastLearnedAt` does not move. A pass that wrote cards and also hit an error still sets `learningResult` for the cards that did land.
 
 `scheduled` is true only when the learning timer is actually registered for this knowledge folder. The host registers it when it starts and the saved settings already have a username, email, team, an active key, and a model. It registers again after the save that completes those, with no `register` action from the window. A second start or a second save does not register twice. `scheduled` stays false until that registration is stored.
 
@@ -187,7 +192,7 @@ Unchanged request: `{ "action": "start-learning" }`.
 
 On success the host pushes `learning` events. `sources` and `chatsFound` are filled before the first card write, so the window can show `Cursor, Claude CLI · 412 chats` and then `37 of 412 chats`.
 
-The first pass sends the newest 50 chats, each transcript cut at about 30,000 characters, and the window is usable while that pass runs. Older chats continue in a later background pass with the same progress events. The host does not start that work when `chatsFound` is 0.
+The first pass sends at most the newest 50 chats. Each transcript is cut to its newest 30,000 characters before the model call. Older chats from that backlog are marked seen and are not learned later. A later pass learns only chats that are new or changed. `learning.total` is the number this pass will read. The host does not start that work when `chatsFound` is 0.
 
 ### `recheck-sources`
 

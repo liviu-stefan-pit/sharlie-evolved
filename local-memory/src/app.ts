@@ -190,6 +190,8 @@ const emptyProfile = (): Profile => ({ username: '', email: '', team: '' })
 
 const hourMs = 60 * 60 * 1000
 const importBatchSize = 10
+const firstPassChatLimit = 50
+const transcriptCharCap = 30_000
 
 export type LearningProgress = {
   active: boolean
@@ -198,6 +200,12 @@ export type LearningProgress = {
   lessons?: number
   error?: string
   errorCode?: string
+  /** Chats in this pass whose text was cut to the newest 30,000 characters. */
+  cappedChats?: number
+  /** Older chats left unread on the first pass. Later passes do not come back for them. */
+  deferredChats?: number
+  /** Plain sentence when this pass cut chats or left older ones unread. */
+  notice?: string
   /** Plain sentence for the window, such as "Reading Cursor chats". */
   label?: string
   /** Developer detail: source, file, and card title. */
@@ -291,6 +299,21 @@ function learnedText(lessons: number) {
   return `${lessons} ${lessons === 1 ? 'lesson' : 'lessons'} learned`
 }
 
+function capTranscriptTail(text: string) {
+  if (text.length <= transcriptCharCap) return { text, capped: false }
+  return { text: text.slice(-transcriptCharCap), capped: true }
+}
+
+function learningCapNotice(deferredCount: number, cappedCount: number) {
+  const parts: string[] = []
+  if (deferredCount > 0) {
+    parts.push('Learned the newest 50 chats. Older chats stay unread; later passes learn only new chats.')
+  }
+  if (cappedCount === 1) parts.push('1 chat was cut to its newest 30,000 characters.')
+  else if (cappedCount > 1) parts.push(`${cappedCount} chats were cut to their newest 30,000 characters.`)
+  return parts.join(' ')
+}
+
 function finishEmptyForeground() {
   learningOutcome = { lessons: 0, chats: 0, text: '0 lessons learned' }
   emitLearning({ active: false, done: 0, total: 0 })
@@ -309,6 +332,9 @@ function noteForeground(generation: number, error?: string) {
   if (typeof learningSnapshot.lessons === 'number') next.lessons = learningSnapshot.lessons
   if (learningSnapshot.label) next.label = learningSnapshot.label
   if (learningSnapshot.detail) next.detail = learningSnapshot.detail
+  if (learningSnapshot.cappedChats) next.cappedChats = learningSnapshot.cappedChats
+  if (learningSnapshot.deferredChats) next.deferredChats = learningSnapshot.deferredChats
+  if (learningSnapshot.notice) next.notice = learningSnapshot.notice
   if (message) next.error = message
   learningSnapshot = next
 }
@@ -2320,6 +2346,13 @@ export function openApp(
             settings.importedTranscripts[transcriptKey(transcript)] !== transcriptRevision(transcript),
         ),
       )
+      const firstPass = !settings.initialIngestComplete
+      const selected = firstPass ? readable.slice(0, firstPassChatLimit) : readable
+      const deferred = firstPass ? readable.slice(firstPassChatLimit) : []
+      const keepNamesForCap = [settings.profile.username, settings.profile.email, settings.profile.team].filter(filled)
+      const textForModel = (text: string) => capTranscriptTail(scrubText(text, [], keepNamesForCap))
+      const cappedCount = selected.reduce((count, transcript) => count + (textForModel(transcript.text).capped ? 1 : 0), 0)
+      const capNotice = learningCapNotice(deferred.length, cappedCount)
       const foreground = options?.foreground === true
       const latestTotals = () => {
         const current = readSettings(directory)
@@ -2367,6 +2400,9 @@ export function openApp(
         }
         if (learningSnapshot.error) finished.error = learningSnapshot.error
         if (learningSnapshot.errorCode) finished.errorCode = learningSnapshot.errorCode
+        if (learningSnapshot.cappedChats) finished.cappedChats = learningSnapshot.cappedChats
+        if (learningSnapshot.deferredChats) finished.deferredChats = learningSnapshot.deferredChats
+        if (learningSnapshot.notice) finished.notice = learningSnapshot.notice
         emitLearning(finished)
       }
       const settleIngest = (
@@ -2402,7 +2438,15 @@ export function openApp(
         return { ran: true, model }
       }
       if (!complete) throw new Error('No model')
-      const generation = foreground ? startForeground(readable.length) : 0
+      const generation = foreground ? startForeground(selected.length) : 0
+      if (foreground && learningSnapshot && capNotice) {
+        learningSnapshot = {
+          ...learningSnapshot,
+          ...(cappedCount > 0 ? { cappedChats: cappedCount } : {}),
+          ...(deferred.length > 0 ? { deferredChats: deferred.length } : {}),
+          notice: capNotice,
+        }
+      }
       const stopped = () => generation !== 0 && cancelledGeneration === generation
       let wroteLesson = false
       const failedPass = () => foreground && Boolean(learningSnapshot?.error) && !wroteLesson
@@ -2419,6 +2463,9 @@ export function openApp(
           }
         }
         if (foreground && learningSnapshot && learningSnapshot.done === learningSnapshot.total) {
+          for (const transcript of deferred) {
+            settings.importedTranscripts[transcriptKey(transcript)] = transcriptRevision(transcript)
+          }
           rememberLearned()
           markIngestComplete()
         } else if (!foreground) {
@@ -2438,7 +2485,7 @@ export function openApp(
         throw error
       }
       if (foreground) {
-        queueIngestLine(`Found ${readable.length} transcript${readable.length === 1 ? '' : 's'}`)
+        queueIngestLine(`Found ${selected.length} transcript${selected.length === 1 ? '' : 's'}`)
       }
       try {
         this.activeKey()
@@ -2449,7 +2496,7 @@ export function openApp(
           learningSnapshot = {
             active: false,
             done: 0,
-            total: readable.length,
+            total: selected.length,
             error: message,
             ...(isMissingKeySecret(error) ? { errorCode: 'secret_missing' } : {}),
           }
@@ -2460,8 +2507,8 @@ export function openApp(
       }
       try {
         let chain: Promise<void> | undefined
-        for (let start = 0; start < readable.length; start += importBatchSize) {
-          const batch = readable.slice(start, start + importBatchSize)
+        for (let start = 0; start < selected.length; start += importBatchSize) {
+          const batch = selected.slice(start, start + importBatchSize)
           const work = () => {
             if (stopped()) return undefined
             const projects = knowledgeProjects(directory)
@@ -2482,7 +2529,7 @@ export function openApp(
               original,
               transcript: {
                 ...original,
-                text: scrubText(original.text, [], keepNames),
+                text: textForModel(original.text).text,
                 repo: original.repo ? scrubText(original.repo, [], keepNames) : original.repo,
                 workspace: original.workspace ? scrubText(original.workspace, [], keepNames) : original.workspace,
               },
@@ -2707,7 +2754,7 @@ export function openApp(
         const message = learningErrorMessage(error)
         if (foreground) {
           const done = learningSnapshot?.done ?? 0
-          const total = learningSnapshot?.total ?? readable.length
+          const total = learningSnapshot?.total ?? selected.length
           const lessons = learningSnapshot?.lessons
           learningSnapshot = {
             active: false,

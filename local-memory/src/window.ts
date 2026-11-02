@@ -446,7 +446,10 @@ async function pageState(app: WindowApp, session: Session) {
     chatsFound: session.sourceFolders().reduce((sum, source) => sum + source.chats, 0),
     scheduled: session.jobsRegistered(app.knowledgePath()),
     graph,
-    learning: snapshot && (snapshot.active || snapshot.error) ? { ...snapshot, tokens, unreported } : null,
+    learning:
+      snapshot && (snapshot.active || snapshot.error || snapshot.notice || snapshot.cappedChats || snapshot.deferredChats)
+        ? { ...snapshot, tokens, unreported }
+        : null,
     learningResult: learningResult(),
     learningTokens: tokens,
     learningTokensUnreported: unreported,

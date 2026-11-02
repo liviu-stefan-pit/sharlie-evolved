@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -965,6 +965,89 @@ test('saved 15m and 30m settings load as 1h', async () => {
     }
     assert.equal(saved.learnerIntervalMs, 60 * 60 * 1000)
     assert.equal(saved.publisherIntervalMs, 60 * 60 * 1000)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('the first pass learns the newest 50 chats, cuts a long chat to 30000 characters, and later passes learn only new chats', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  const long = `${'x'.repeat(99_997)}END`
+  for (let index = 0; index < 60; index += 1) {
+    const name = String(index).padStart(2, '0')
+    const chat = join(machine.home, '.cursor', 'projects', 'sharlie', 'agent-transcripts', name, `${name}.jsonl`)
+    mkdirSync(join(chat, '..'), { recursive: true })
+    const body = index === 59 ? long : index < 10 ? `old ${index}` : `new ${index}`
+    writeFileSync(chat, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: body }] } }))
+    const when = new Date(Date.UTC(2020, 0, 1, 0, index))
+    utimesSync(chat, when, when)
+  }
+  const seen: string[] = []
+  const session = openUserSession(
+    'ada',
+    (request) => {
+      seen.push(request.transcript.text)
+      return draft('lesson')
+    },
+    machine,
+    () => readInstalledTranscripts(machine),
+  )
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    await host.line(JSON.stringify({ cmd: 'action', action: 'save-profile', username: 'ada', email: 'ada@example.com', team: 'platform' }))
+    await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-aaaa' }))
+    const progress: { done: number; total: number }[] = []
+    const stop = onLearning((event) => progress.push({ done: event.done, total: event.total }))
+    const reply = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      notice?: string
+      learningResult?: { lessons: number; chats: number; text: string } | null
+      learning?: {
+        active?: boolean
+        done?: number
+        total?: number
+        cappedChats?: number
+        deferredChats?: number
+        notice?: string
+        tokens?: number
+        unreported?: number
+      } | null
+    }
+    stop()
+    assert.equal(seen.length, 50)
+    assert.equal(seen.some((text) => text.startsWith('old ')), false)
+    for (let index = 10; index < 59; index += 1) assert.equal(seen.includes(`new ${index}`), true)
+    const cut = seen.find((text) => text.endsWith('END'))
+    assert.equal(cut, long.slice(-30_000))
+    assert.equal(cut?.length, 30_000)
+    assert.equal(progress.every((event) => event.total === 50), true)
+    assert.equal(progress.some((event) => event.done === 50 && event.total === 50), true)
+    assert.equal(reply.notice, '')
+    assert.deepEqual(reply.learningResult, { lessons: 50, chats: 50, text: '50 lessons learned' })
+    assert.deepEqual(reply.learning, {
+      active: false,
+      done: 50,
+      total: 50,
+      cappedChats: 1,
+      deferredChats: 10,
+      notice: 'Learned the newest 50 chats. Older chats stay unread; later passes learn only new chats. 1 chat was cut to its newest 30,000 characters.',
+      tokens: 0,
+      unreported: 0,
+    })
+
+    await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))
+    assert.equal(seen.length, 50)
+
+    const added = join(machine.home, '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'fresh', 'fresh.jsonl')
+    mkdirSync(join(added, '..'), { recursive: true })
+    writeFileSync(added, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'brand new chat' }] } }))
+    const later = new Date(Date.UTC(2024, 0, 1))
+    utimesSync(added, later, later)
+    await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))
+    assert.deepEqual(seen.slice(50), ['brand new chat'])
   } finally {
     discardVault(directory)
     rmSync(directory, { recursive: true, force: true })
