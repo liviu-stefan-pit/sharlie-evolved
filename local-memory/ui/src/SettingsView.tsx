@@ -227,8 +227,9 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
   const [theme, setTheme] = useState<ThemeChoice>(readTheme())
   const chosen = state.models.find((item) => item.id === state.model)
   // The host's real value; the timed option names a schedule only when the host reports one running.
-  const cadence = state.cadence
-  const timed = cadence === 'manual' ? '1h' : cadence
+  // Only 1h and manual can be set; an older host's 15m or 30m shows as the hourly option.
+  const cadence = state.cadence === 'manual' ? 'manual' : '1h'
+  const timed = '1h'
   const timedText = state.scheduled === true ? everyText(timed).replace(/^e/, 'E') : 'When I open Sharlie'
   const shareable = canShare(state)
   async function advanced(at: string, body: Record<string, unknown>) {

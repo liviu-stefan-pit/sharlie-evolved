@@ -36,8 +36,9 @@ export function cadenceLabel(state: Pick<PageState, 'cadence' | 'scheduled'>) {
   return `Learns ${everyText(state.cadence)}`
 }
 
-export function everyText(cadence: PageState['cadence']) {
-  return cadence === '15m' ? 'every 15 minutes' : cadence === '30m' ? 'every 30 minutes' : 'every hour'
+// One hour is the shortest schedule (host 7d3ad3a). A 15m or 30m from an older host is shown as every hour.
+export function everyText(_cadence: PageState['cadence']) {
+  return 'every hour'
 }
 
 /** Team sharing needs the `share` field and the set-share / pick-folder actions; a host without `share` lacks them. */

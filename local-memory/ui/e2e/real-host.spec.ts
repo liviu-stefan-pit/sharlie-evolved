@@ -24,16 +24,35 @@ test('real fresh snapshot: not set up, no schedule claimed', async ({ page }) =>
   await expect(status(page)).toHaveAccessibleName('Not set up yet')
 })
 
-test('real snapshot after the key: scheduled true and cadence 30m reads "Learns every 30 minutes"', async ({ page }) => {
+test('real snapshot after the key: scheduled true and default cadence 1h reads "Learns every hour"', async ({ page }) => {
+  expect(real['01-fresh']!.cadence).toBe('1h')
   expect(real['02-recheck']!.scheduled).toBe(false)
   expect(real['06b-state']!.scheduled).toBe(true)
+  expect(real['06b-state']!.cadence).toBe('1h')
   await openApp(page, snap('06b-state'))
-  await expect(status(page)).toHaveAccessibleName('Learns every 30 minutes')
+  await expect(status(page)).toHaveAccessibleName('Learns every hour')
+})
+
+test('real set-cadence 15m refusal: cadence_too_short, host sentence, cadence stays 1h', async ({ page }) => {
+  const refused = real['21-cadence-15m']!
+  expect(refused.errorCode).toBe('cadence_too_short')
+  expect(refused.notice).toBe('The schedule cannot be shorter than 1 hour.')
+  expect(refused.cadence).toBe('1h')
+  await openApp(page, snap('19-cadence-manual'))
+  await openSettings(page)
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  const learn = page.getByLabel('When to learn')
+  await learn.selectOption('1h')
+  await page.waitForFunction(() => window.__sharlieCalls.some((call) => call.cmd === 'action' && !call.done))
+  await reply(page, 'action', snap('21-cadence-15m', { cadence: 'manual' }))
+  await expect(page.getByText('The schedule cannot be shorter than 1 hour.')).toHaveCount(1)
+  await page.waitForTimeout(200)
+  await expect(page.getByText('✓ Saved')).toHaveCount(0)
 })
 
 test('real finished pass: host lastLearnedAt drives the status line', async ({ page }) => {
   await openApp(page, snap('08-finished'))
-  await expect(status(page)).toHaveAccessibleName(/^Learns every 30 minutes · last learned /)
+  await expect(status(page)).toHaveAccessibleName(/^Learns every hour · last learned /)
 })
 
 test('real finished pass without a schedule says Last learned, never a cadence', async ({ page }) => {

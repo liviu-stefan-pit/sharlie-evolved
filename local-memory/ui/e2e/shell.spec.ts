@@ -54,8 +54,9 @@ test('a set-up app says it learns every hour, in the success colour, only when t
 })
 
 for (const [cadence, scheduled, label] of [
-  ['30m', true, 'Learns every 30 minutes'],
-  ['15m', true, 'Learns every 15 minutes'],
+  // An older host may still send 15m or 30m; one hour is now the shortest schedule, so both read every hour.
+  ['30m', true, 'Learns every hour'],
+  ['15m', true, 'Learns every hour'],
   ['1h', undefined, 'Learns when you open Sharlie'],
   ['30m', false, 'Learns when you open Sharlie'],
   ['manual', true, 'Learns when you ask'],

@@ -27,7 +27,7 @@
   "share": false,
   "lastSharedAt": null,
   "lastLearnedAt": null,
-  "cadence": "30m",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [],
   "searched": [
@@ -116,7 +116,7 @@
   "share": false,
   "lastSharedAt": null,
   "lastLearnedAt": null,
-  "cadence": "30m",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -227,7 +227,7 @@
   "share": false,
   "lastSharedAt": null,
   "lastLearnedAt": null,
-  "cadence": "30m",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -338,7 +338,7 @@
   "share": false,
   "lastSharedAt": null,
   "lastLearnedAt": null,
-  "cadence": "30m",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -448,7 +448,7 @@
   "share": false,
   "lastSharedAt": null,
   "lastLearnedAt": null,
-  "cadence": "30m",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -580,8 +580,8 @@
   "autoDrop": false,
   "share": false,
   "lastSharedAt": null,
-  "lastLearnedAt": "2026-11-02T10:08:19.168Z",
-  "cadence": "30m",
+  "lastLearnedAt": "2026-11-02T10:25:56.771Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -641,7 +641,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -649,7 +649,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -693,7 +693,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -701,7 +701,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -710,7 +710,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -718,7 +718,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -727,7 +727,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -735,7 +735,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -751,7 +751,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -759,7 +759,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -768,7 +768,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -776,7 +776,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -788,122 +788,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -960,8 +960,8 @@
   "autoDrop": false,
   "share": false,
   "lastSharedAt": null,
-  "lastLearnedAt": "2026-11-02T10:08:19.426Z",
-  "cadence": "30m",
+  "lastLearnedAt": "2026-11-02T10:25:57.024Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -1021,7 +1021,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1029,7 +1029,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -1073,7 +1073,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1081,7 +1081,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -1090,7 +1090,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1098,7 +1098,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -1107,7 +1107,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1115,7 +1115,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -1131,7 +1131,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1139,7 +1139,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -1148,7 +1148,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1156,7 +1156,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -1168,122 +1168,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -1341,8 +1341,8 @@
   "autoDrop": false,
   "share": false,
   "lastSharedAt": null,
-  "lastLearnedAt": "2026-11-02T10:08:19.426Z",
-  "cadence": "30m",
+  "lastLearnedAt": "2026-11-02T10:25:57.024Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -1402,7 +1402,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1410,7 +1410,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -1454,7 +1454,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1462,7 +1462,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -1471,7 +1471,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1479,7 +1479,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -1488,7 +1488,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1496,7 +1496,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -1512,7 +1512,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1520,7 +1520,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -1529,7 +1529,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1537,7 +1537,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -1549,122 +1549,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -1723,8 +1723,8 @@
   "autoDrop": false,
   "share": false,
   "lastSharedAt": null,
-  "lastLearnedAt": "2026-11-02T10:08:19.426Z",
-  "cadence": "30m",
+  "lastLearnedAt": "2026-11-02T10:25:57.024Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -1784,7 +1784,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1792,7 +1792,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -1836,7 +1836,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1844,7 +1844,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -1853,7 +1853,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1861,7 +1861,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -1870,7 +1870,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1878,7 +1878,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -1894,7 +1894,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1902,7 +1902,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -1911,7 +1911,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -1919,7 +1919,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -1931,122 +1931,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -2104,8 +2104,8 @@
   "autoDrop": false,
   "share": false,
   "lastSharedAt": null,
-  "lastLearnedAt": "2026-11-02T10:08:19.426Z",
-  "cadence": "30m",
+  "lastLearnedAt": "2026-11-02T10:25:57.024Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -2165,7 +2165,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2173,7 +2173,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -2217,7 +2217,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2225,7 +2225,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -2234,7 +2234,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2242,7 +2242,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -2251,7 +2251,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2259,7 +2259,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -2275,7 +2275,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2283,7 +2283,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -2292,7 +2292,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2300,7 +2300,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -2312,122 +2312,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -2486,8 +2486,8 @@
   "autoDrop": false,
   "share": false,
   "lastSharedAt": null,
-  "lastLearnedAt": "2026-11-02T10:08:19.426Z",
-  "cadence": "30m",
+  "lastLearnedAt": "2026-11-02T10:25:57.024Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -2547,7 +2547,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2555,7 +2555,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -2599,7 +2599,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2607,7 +2607,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -2616,7 +2616,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2624,7 +2624,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -2633,7 +2633,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2641,7 +2641,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -2657,7 +2657,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2665,7 +2665,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -2674,7 +2674,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2682,7 +2682,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -2694,122 +2694,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -2867,8 +2867,8 @@
   "autoDrop": true,
   "share": true,
   "lastSharedAt": null,
-  "lastLearnedAt": "2026-11-02T10:08:19.426Z",
-  "cadence": "30m",
+  "lastLearnedAt": "2026-11-02T10:25:57.024Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -2928,7 +2928,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2936,7 +2936,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -2980,7 +2980,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -2988,7 +2988,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -2997,7 +2997,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -3005,7 +3005,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -3014,7 +3014,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -3022,7 +3022,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -3038,7 +3038,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -3046,7 +3046,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -3055,7 +3055,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#b89a6a",
@@ -3063,7 +3063,7 @@
      "synced": false,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -3075,122 +3075,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -3247,9 +3247,9 @@
   "drivePath": "G:\\My Drive\\Team",
   "autoDrop": true,
   "share": true,
-  "lastSharedAt": "2026-11-02T10:08:19.703Z",
-  "lastLearnedAt": "2026-11-02T10:08:19.702Z",
-  "cadence": "30m",
+  "lastSharedAt": "2026-11-02T10:25:57.294Z",
+  "lastLearnedAt": "2026-11-02T10:25:57.293Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -3309,7 +3309,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3317,7 +3317,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -3361,7 +3361,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3369,7 +3369,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -3378,7 +3378,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3386,7 +3386,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -3395,7 +3395,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3403,7 +3403,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -3419,7 +3419,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3427,7 +3427,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -3436,7 +3436,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3444,7 +3444,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -3456,122 +3456,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -3627,9 +3627,9 @@
   "drivePath": "G:\\My Drive\\Team",
   "autoDrop": false,
   "share": false,
-  "lastSharedAt": "2026-11-02T10:08:19.703Z",
-  "lastLearnedAt": "2026-11-02T10:08:19.702Z",
-  "cadence": "30m",
+  "lastSharedAt": "2026-11-02T10:25:57.294Z",
+  "lastLearnedAt": "2026-11-02T10:25:57.293Z",
+  "cadence": "1h",
   "customBaseUrl": "",
   "sources": [
    {
@@ -3689,7 +3689,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3697,7 +3697,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -3741,7 +3741,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3749,7 +3749,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -3758,7 +3758,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3766,7 +3766,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -3775,7 +3775,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3783,7 +3783,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -3799,7 +3799,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3807,7 +3807,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -3816,7 +3816,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -3824,7 +3824,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -3836,122 +3836,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -4008,8 +4008,8 @@
   "drivePath": "G:\\My Drive\\Team",
   "autoDrop": false,
   "share": false,
-  "lastSharedAt": "2026-11-02T10:08:19.703Z",
-  "lastLearnedAt": "2026-11-02T10:08:19.702Z",
+  "lastSharedAt": "2026-11-02T10:25:57.294Z",
+  "lastLearnedAt": "2026-11-02T10:25:57.293Z",
   "cadence": "manual",
   "customBaseUrl": "",
   "sources": [
@@ -4070,7 +4070,7 @@
    "pending": "#b89a6a",
    "nodes": [
     {
-     "id": "card:card_20261102_100819",
+     "id": "card:card_20261102_102556",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -4078,7 +4078,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.122Z",
+     "created_at": "2026-11-02T10:25:56.767Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 5; the lock was held. mail [redacted]",
@@ -4122,7 +4122,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_2",
+     "id": "card:card_20261102_102556_2",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -4130,7 +4130,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.124Z",
+     "created_at": "2026-11-02T10:25:56.768Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 3; the lock was held. mail [redacted]",
@@ -4139,7 +4139,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_3",
+     "id": "card:card_20261102_102556_3",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -4147,7 +4147,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.163Z",
+     "created_at": "2026-11-02T10:25:56.769Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 1; the lock was held. mail [redacted]",
@@ -4156,7 +4156,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_4",
+     "id": "card:card_20261102_102556_4",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -4164,7 +4164,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.165Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 4; the lock was held. mail [redacted]",
@@ -4180,7 +4180,7 @@
      "degree": 3
     },
     {
-     "id": "card:card_20261102_100819_5",
+     "id": "card:card_20261102_102556_5",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -4188,7 +4188,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.166Z",
+     "created_at": "2026-11-02T10:25:56.770Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 2; the lock was held. mail [redacted]",
@@ -4197,7 +4197,7 @@
      ]
     },
     {
-     "id": "card:card_20261102_100819_6",
+     "id": "card:card_20261102_102556_6",
      "kind": "card",
      "label": "Retry the deploy once",
      "color": "#6f8f78",
@@ -4205,7 +4205,7 @@
      "synced": true,
      "scope": "work",
      "title": "Retry the deploy once",
-     "created_at": "2026-11-02T10:08:19.167Z",
+     "created_at": "2026-11-02T10:25:56.771Z",
      "solution": "Retry the deploy once, then read the log.",
      "failure_modes": [
       "retry the deploy number 0; the lock was held. mail [redacted]",
@@ -4217,122 +4217,122 @@
    "links": [
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819"
+     "target": "card:card_20261102_102556"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819",
+     "source": "card:card_20261102_102556",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_2"
+     "target": "card:card_20261102_102556_2"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_2",
+     "source": "card:card_20261102_102556_2",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_3"
+     "target": "card:card_20261102_102556_3"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_3",
+     "source": "card:card_20261102_102556_3",
      "target": "issue:proj1"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_4"
+     "target": "card:card_20261102_102556_4"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_4",
+     "source": "card:card_20261102_102556_4",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_5"
+     "target": "card:card_20261102_102556_5"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_5",
+     "source": "card:card_20261102_102556_5",
      "target": "issue:proj0"
     },
     {
      "source": "developer:ada@example.com",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
      "source": "team:platform",
-     "target": "card:card_20261102_100819_6"
+     "target": "card:card_20261102_102556_6"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "topic:deploys"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "tool:cursor"
     },
     {
-     "source": "card:card_20261102_100819_6",
+     "source": "card:card_20261102_102556_6",
      "target": "issue:proj0"
     }
    ]
@@ -4347,5 +4347,387 @@
   "learningTokensUnreported": 0,
   "ingest": null,
   "notice": ""
+ },
+ "21-cadence-15m": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "G:\\My Drive\\Team",
+  "autoDrop": false,
+  "share": false,
+  "lastSharedAt": "2026-11-02T10:25:57.294Z",
+  "lastLearnedAt": "2026-11-02T10:25:57.293Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 6
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 6,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_102556",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#6f8f78",
+     "degree": 5,
+     "synced": true,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:25:56.767Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 5; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "issue:proj1",
+     "kind": "issue",
+     "label": "proj1",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102556_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#6f8f78",
+     "degree": 5,
+     "synced": true,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:25:56.768Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 3; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102556_3",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#6f8f78",
+     "degree": 5,
+     "synced": true,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:25:56.769Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102556_4",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#6f8f78",
+     "degree": 5,
+     "synced": true,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:25:56.770Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 4; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "issue:proj0",
+     "kind": "issue",
+     "label": "proj0",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102556_5",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#6f8f78",
+     "degree": 5,
+     "synced": true,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:25:56.770Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 2; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102556_6",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#6f8f78",
+     "degree": 5,
+     "synced": true,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:25:56.771Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102556"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102556"
+    },
+    {
+     "source": "card:card_20261102_102556",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102556",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102556",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102556_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102556_2"
+    },
+    {
+     "source": "card:card_20261102_102556_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102556_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102556_2",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102556_3"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102556_3"
+    },
+    {
+     "source": "card:card_20261102_102556_3",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102556_3",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102556_3",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102556_4"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102556_4"
+    },
+    {
+     "source": "card:card_20261102_102556_4",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102556_4",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102556_4",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102556_5"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102556_5"
+    },
+    {
+     "source": "card:card_20261102_102556_5",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102556_5",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102556_5",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102556_6"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102556_6"
+    },
+    {
+     "source": "card:card_20261102_102556_6",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102556_6",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102556_6",
+     "target": "issue:proj0"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 0,
+   "chats": 0,
+   "text": "0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null,
+  "notice": "The schedule cannot be shorter than 1 hour.",
+  "errorCode": "cadence_too_short"
  }
 }

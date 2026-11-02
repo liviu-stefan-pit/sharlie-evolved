@@ -36,7 +36,7 @@ export function pageState(overrides: Partial<PageState> = {}): PageState {
     vaultPath: 'C:\\vault',
     drivePath: 'C:\\drive',
     autoDrop: false,
-    cadence: '30m',
+    cadence: '1h',
     customBaseUrl: '',
     sources: [{ tool: 'Cursor', path: 'C:\\Users\\ada\\.cursor' }],
     learning: null,

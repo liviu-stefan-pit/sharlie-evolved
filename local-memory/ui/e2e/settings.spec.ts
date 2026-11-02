@@ -174,11 +174,38 @@ test('turning sharing off sends set-share false', async ({ page }) => {
 })
 
 test('When to learn names the real cadence once the host reports it scheduled', async ({ page }) => {
-  await settings(page, pageState({ cadence: '30m', scheduled: true }))
+  await settings(page, pageState({ cadence: '1h', scheduled: true }))
   await page.getByRole('button', { name: 'Advanced' }).click()
   const learn = page.getByLabel('When to learn')
-  expect(await learn.locator('option').allTextContents()).toEqual(['Every 30 minutes', 'Only when I start it'])
-  await expect(learn).toHaveValue('30m')
+  expect(await learn.locator('option').allTextContents()).toEqual(['Every hour', 'Only when I start it'])
+  await expect(learn).toHaveValue('1h')
+})
+
+for (const old of ['15m', '30m'] as const) {
+  test(`an older host sending ${old} shows Every hour and offers only 1h or manual`, async ({ page }) => {
+    await settings(page, pageState({ cadence: old, scheduled: true }))
+    await page.getByRole('button', { name: 'Advanced' }).click()
+    const learn = page.getByLabel('When to learn')
+    expect(await learn.locator('option').allTextContents()).toEqual(['Every hour', 'Only when I start it'])
+    expect(await learn.locator('option').evaluateAll((items) => items.map((item) => (item as HTMLOptionElement).value))).toEqual(['1h', 'manual'])
+    await expect(learn).toHaveValue('1h')
+  })
+}
+
+test('a cadence_too_short refusal shows the host sentence under When to learn, with no Saved', async ({ page }) => {
+  await settings(page, pageState({ cadence: 'manual', scheduled: true }))
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  const learn = page.getByLabel('When to learn')
+  await learn.selectOption('1h')
+  expect(await nextAction(page)).toEqual({ action: 'set-cadence', cadence: '1h' })
+  // Sentence and code as sent by src/window.ts set-cadence on main (7d3ad3a).
+  await reply(page, 'action', pageState({ cadence: 'manual', scheduled: true, errorCode: 'cadence_too_short', notice: 'The schedule cannot be shorter than 1 hour.' }))
+  const inline = page.getByText('The schedule cannot be shorter than 1 hour.')
+  await expect(inline).toHaveCount(1)
+  await expect(learn).toHaveAttribute('aria-describedby', await inline.getAttribute('id') ?? 'missing')
+  await expect(learn).toHaveValue('manual')
+  await page.waitForTimeout(200)
+  await expect(page.getByText('✓ Saved')).toHaveCount(0)
 })
 
 test('without host sharing support the switch is disabled, says so, and never shows Saved', async ({ page }) => {
@@ -205,7 +232,7 @@ test('a host reply without the share field turns sharing off as unsupported, wit
 
 test('Advanced holds model, options, cadence, folder, and theme', async ({ page }) => {
   const models = [{ id: 'sonnet', displayName: 'Sonnet', parameters: [{ id: 'effort', displayName: 'Effort', values: [{ value: 'low' }, { value: 'high' }] }, { id: 'fast', displayName: 'Fast', values: [{ value: 'true' }, { value: 'false' }] }] }]
-  await settings(page, pageState({ models, model: 'sonnet', modelParams: [{ id: 'effort', value: 'low' }], cadence: '30m', chatsFound: 412 }))
+  await settings(page, pageState({ models, model: 'sonnet', modelParams: [{ id: 'effort', value: 'low' }], cadence: '1h', chatsFound: 412 }))
   await page.getByRole('button', { name: 'Advanced' }).click()
   await expect(page.getByLabel('Model')).toHaveValue('sonnet')
   await page.getByLabel('Effort').selectOption('high')
@@ -219,7 +246,7 @@ test('Advanced holds model, options, cadence, folder, and theme', async ({ page 
   const learn = page.getByLabel('When to learn')
   // No registered schedule reported: the timed option promises only what runs.
   expect(await learn.locator('option').allTextContents()).toEqual(['When I open Sharlie', 'Only when I start it'])
-  await expect(learn).toHaveValue('30m')
+  await expect(learn).toHaveValue('1h')
   await learn.selectOption('manual')
   expect(await nextAction(page)).toEqual({ action: 'set-cadence', cadence: 'manual' })
   await reply(page, 'action', pageState({ cadence: 'manual' }))

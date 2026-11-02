@@ -85,6 +85,7 @@ export type PageState = {
   vaultPath: string
   drivePath: string
   autoDrop: boolean
+  /** The host sends '1h' or 'manual'. '15m' and '30m' are tolerated from older hosts and shown as every hour. */
   cadence: '15m' | '30m' | '1h' | 'manual'
   customBaseUrl: string
   sources: SourceFolder[]
@@ -141,4 +142,5 @@ export const providers = [
   { id: 'openai', label: 'OpenAI' },
 ] as const
 
-export const cadences = ['15m', '30m', '1h', 'manual'] as const
+/** What the UI may send to set-cadence; anything shorter is refused with cadence_too_short. */
+export const cadences = ['1h', 'manual'] as const
