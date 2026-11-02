@@ -769,6 +769,7 @@ function redactSecrets(text: string) {
     .replace(/\b172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
     .replace(/\b192\.168\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
     .replace(/\b169\.254\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[redacted]')
     .replace(
       /(?<![\w:])(?:(?:fc|fd)[0-9a-f]{2}|fe[89ab][0-9a-f])(?::[0-9a-f]{0,4}){1,7}(?![\w:])/gi,
       '[redacted]',

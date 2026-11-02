@@ -205,6 +205,71 @@ test('a model reply with no scope stays personal and is not copied to the share 
   }
 })
 
+test('a stranger email is redacted before the model sees the chat and on the written card', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-host-'))
+  const machine = machineWith(join(directory, 'machine'), ['cursor'])
+  let prompt = ''
+  let timer: ReturnType<typeof setInterval> | undefined
+  try {
+    const harness = await openDesktopHarness({
+      person: 'ada',
+      directory,
+      machine,
+      readTranscripts: () => [],
+      fetchImpl: async (_url, init) => {
+        const body = JSON.parse(init?.body ?? '{}') as { messages?: { content?: string }[] }
+        prompt = body.messages?.[0]?.content ?? ''
+        const lesson = {
+          scope: 'personal',
+          title: 'Retry failed deploys',
+          topics: ['deploys'],
+          summary: 'Retry a failed deploy once.',
+          situation: 'A deploy failed after the lock timed out.',
+          whatToDo: 'Retry the deploy once, then read the log.',
+          why: 'The lock clears on its own within a minute.',
+          apply: 'Mail ada@example.com when a deploy fails on a lock.',
+          otherNames: [],
+          belongsToProject: null,
+          clearlyOneProduct: true,
+          subjectProject: null,
+          generalTechnique: false,
+          solution: 'Tell bob@corp.com and run `retry(build)` once.',
+          failure_modes: ['bob@corp.com saw the lock time out.'],
+          context: { os: 'win32', tool_version: '1', framework: 'sharlie-evolved' },
+        }
+        return new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify(lesson) }] }))
+      },
+    })
+    timer = harness.timer
+    const window = harness.session.openWindow(directory)
+    window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    const learned = await window.runLearner([
+      {
+        source: 'cursor',
+        text: 'ask bob@corp.com, keep ada@example.com, and run `retry(build)` once',
+        repo: 'sharlie-evolved',
+      },
+    ])
+    assert.equal(learned.ran, true)
+    assert.equal(prompt.includes('bob@corp.com'), false)
+    assert.equal(prompt.includes('ada@example.com'), true)
+    assert.equal(prompt.includes('`retry(build)`'), true)
+    const folder = join(directory, 'cards')
+    const published = readdirSync(folder)
+      .filter((name) => name.endsWith('.md') || (name.endsWith('.json') && name !== '.claims.json'))
+      .map((name) => readFileSync(join(folder, name), 'utf8'))
+      .join('\n')
+    assert.equal(published.includes('bob@corp.com'), false)
+    assert.match(published, /email: ada@example\.com/)
+    assert.match(published, /Tell \[redacted\] and run `retry\(build\)` once\./)
+  } finally {
+    if (timer) clearInterval(timer)
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
 test('Cursor uses Agent.prompt with the saved key, model id, and vault cwd', async () => {
   let seen:
     | { text: string; apiKey?: string; model?: { id: string; params?: { id: string; value: string }[] }; local?: { cwd: string } }
