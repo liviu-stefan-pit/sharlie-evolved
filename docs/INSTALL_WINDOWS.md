@@ -29,22 +29,19 @@ The window says **"Sharlie learns from your work on this computer"**. It reads t
 
 Then press **Start learning**. A strip at the top shows "Learning… 37 of 412 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns.
 
-After that, Home has a **Learn now** button to learn your newest chats again; the status line says **Learns when you open Sharlie** until the first pass of the session, then **Last learned …**.
-> **[DEV NOTE]** Once name, email, team, a key, and a model are saved, the host registers its learning timer. The snapshot field `scheduled` is true only then. The first pass still waits for **Start learning**. Later passes run on that timer. The window may still accept a cadence under one hour until that host change lands.
+After your first **Start learning**, Sharlie learns new chats on its own every 30 minutes while it runs (it starts with Windows, in the tray). The status line at the top says **Learns every 30 minutes**, then adds **last learned …** after a pass. **Learn now** on Home learns right away. To learn only when you ask, open **Settings → Advanced → When to learn** and pick **Only when I start it**; the status line then says **Learns when you ask**.
 
 > **[DEV NOTE]** Coming in this build: the first pass is planned to read only your newest 50 chats and leave older ones for later. Today it reads every new chat, newest first.
 
 ## 4. Team folder (sharing with your team)
 
-Sharlie never talks to Google Drive itself. The plan:
+Sharlie never talks to Google Drive itself. **Team sharing is off until you turn it on.**
 
 1. Install **Google Drive for Desktop** and let it sync your team's shared folder to this PC (for example `G:\My Drive\Sharlie`).
-2. In Sharlie's **Settings**, choose that synced folder as the **Team folder**.
-3. Turn on sharing. **Team sharing is off until you turn it on.**
+2. In Sharlie, open **Settings → Team sharing** and turn on **Share work lessons with my team's Drive folder**.
+3. A folder picker opens: choose that synced folder as your Team folder. Sharing turns on and Settings shows **Sharing to G:\My Drive\Sharlie**. Use **Change folder** to pick another.
 
-When it is on, only lessons marked **work** are copied into a folder for you inside the Team folder. **Personal lessons never leave this PC.** A lesson that isn't marked work counts as personal. Drive for Desktop does the uploading.
-
-> **[DEV NOTE]** Coming in this build: the host already copies only work lessons, and only while sharing is on. But the **Settings** controls for choosing the Team folder and switching sharing on haven't landed yet. Until they do, Settings says "Team sharing isn't available in this version yet", and nothing is shared.
+When it is on, only lessons marked **work** are copied, into `Dropzone\<your Name>` inside the Team folder (for example `G:\My Drive\Sharlie\Dropzone\Liviu`). **Personal lessons never leave this PC.** A lesson that isn't marked work counts as personal. Drive for Desktop does the uploading. Each lesson shows **Only on this PC**, **Waiting to share** or **Shared**. Turning sharing off stops new copies; lessons already copied stay in the Team folder.
 
 ## 5. What Sharlie writes, and where
 
