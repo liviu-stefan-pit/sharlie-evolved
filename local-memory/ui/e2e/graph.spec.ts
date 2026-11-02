@@ -466,3 +466,20 @@ test('zooming the map moves a label', async ({ page }) => {
     }, { timeout: 5000 })
     .toBeGreaterThan(1)
 })
+
+test('the local badge is a neutral lock, never the amber dot, and Close is a 36px target', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.getByRole('button', { name: 'List' }).click()
+  await page.locator('[data-lesson-list]').getByRole('button', { name: 'Retry the deploy' }).click()
+  const badge = page.locator('[data-local-badge]')
+  await expect(badge).toHaveText('Only on this PC')
+  await expect(badge.locator('svg')).toHaveCount(1)
+  await expect(badge).toHaveCSS('color', 'rgb(163, 169, 184)')
+  const amber = await badge.evaluate((el) =>
+    [...el.querySelectorAll('*')].some((child) => getComputedStyle(child).backgroundColor === 'rgb(184, 154, 106)'),
+  )
+  expect(amber).toBe(false)
+  const close = await page.getByRole('dialog').getByRole('button', { name: 'Close' }).boundingBox()
+  expect(close?.height).toBeGreaterThanOrEqual(36)
+  expect(close?.width).toBeGreaterThanOrEqual(36)
+})

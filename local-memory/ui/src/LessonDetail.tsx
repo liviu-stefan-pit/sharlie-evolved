@@ -108,7 +108,7 @@ export function LessonDetail({
             {node.title || node.label}
           </h2>
         </div>
-        <button type="button" className="h-9 shrink-0 rounded-[10px] px-3 text-[15px] text-muted hover:bg-field hover:text-ink" onClick={onClose}>
+        <button type="button" className="inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-[10px] border border-line px-3 text-[15px] text-ink hover:bg-field" onClick={onClose}>
           Close
         </button>
       </div>
@@ -118,8 +118,11 @@ export function LessonDetail({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
               {fromLine ? <p>From: {fromLine}</p> : null}
               {node.scope !== 'work' ? (
-                <p className="inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-[13px] text-muted">
-                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-amber" />
+                <p data-local-badge className="inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-[13px] text-muted">
+                  <svg aria-hidden="true" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                    <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+                  </svg>
                   Only on this PC
                 </p>
               ) : null}
