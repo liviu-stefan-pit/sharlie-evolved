@@ -407,6 +407,7 @@ async function pageState(app: WindowApp, session: Session) {
     autoDrop: app.share(),
     share: app.share(),
     lastSharedAt: app.lastSharedAt() === '' ? null : app.lastSharedAt(),
+    lastLearnedAt: app.lastLearnedAt() === '' ? null : app.lastLearnedAt(),
     cadence: app.cadence(),
     customBaseUrl: app.customBaseUrl(),
     sources: session.sourceFolders(),

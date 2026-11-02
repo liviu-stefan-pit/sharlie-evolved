@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { discardVault, openApp, openUserSession, readInstalledTranscripts, type LessonDraft } from '../src/app.ts'
+import { discardVault, onLearning, openApp, openUserSession, readInstalledTranscripts, type LessonDraft } from '../src/app.ts'
 import { openDesktopHost, setFolderPicker, setKeyProbe } from '../src/window.ts'
 import { machineWith } from './machine.ts'
 
@@ -422,6 +422,70 @@ test('sharing stays off until a usable team folder is chosen, and only a work ca
     assert.equal(existsSync(join(drop, 'card_plain.json')), false)
   } finally {
     setFolderPicker(null)
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('an empty rerun finishes with 0 lessons, no model call, and lastLearnedAt', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  const chat = join(machine.home, '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'chat', 'chat.jsonl')
+  mkdirSync(join(chat, '..'), { recursive: true })
+  writeFileSync(chat, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'retry the deploy' }] } }))
+  let calls = 0
+  const session = openUserSession(
+    'ada',
+    (request) => {
+      calls += 1
+      return draft(request.transcript.text)
+    },
+    machine,
+    () => readInstalledTranscripts(machine),
+  )
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    await host.line(
+      JSON.stringify({
+        cmd: 'action',
+        action: 'save-profile',
+        username: 'ada',
+        email: 'ada@example.com',
+        team: 'platform',
+      }),
+    )
+    await host.line(
+      JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-aaaa' }),
+    )
+    const first = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      learning?: { active?: boolean } | null
+      learningResult?: { lessons: number; chats: number; text: string } | null
+      lastLearnedAt?: string | null
+    }
+    assert.equal(first.learning, null)
+    assert.equal(calls, 1)
+    assert.deepEqual(first.learningResult, { lessons: 1, chats: 1, text: '1 lesson learned' })
+    assert.match(first.lastLearnedAt ?? '', /^\d{4}-\d{2}-\d{2}T/)
+
+    const seen: boolean[] = []
+    const stop = onLearning((progress) => seen.push(progress.active))
+    const again = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      learning?: { active?: boolean } | null
+      learningResult?: { lessons: number; chats: number; text: string } | null
+      lastLearnedAt?: string | null
+    }
+    stop()
+    assert.equal(seen.includes(true), false)
+    assert.equal(calls, 1)
+    assert.equal(again.learning, null)
+    assert.deepEqual(again.learningResult, { lessons: 0, chats: 0, text: '0 lessons learned' })
+    assert.match(again.lastLearnedAt ?? '', /^\d{4}-\d{2}-\d{2}T/)
+
+    const reopened = openApp(directory, () => draft('unused'), machine)
+    assert.equal(reopened.lastLearnedAt(), again.lastLearnedAt)
+  } finally {
     discardVault(directory)
     rmSync(directory, { recursive: true, force: true })
     rmSync(machineRoot(directory), { recursive: true, force: true })

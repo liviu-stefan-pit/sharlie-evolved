@@ -182,6 +182,7 @@ type Settings = {
   autoDrop: boolean
   share: boolean
   lastSharedAt: string
+  lastLearnedAt: string
 }
 
 const emptyProfile = (): Profile => ({ username: '', email: '', team: '' })
@@ -272,8 +273,12 @@ function startForeground(total: number) {
   return learningGeneration
 }
 
+function learnedText(lessons: number) {
+  return `${lessons} ${lessons === 1 ? 'lesson' : 'lessons'} learned`
+}
+
 function finishEmptyForeground() {
-  startForeground(0)
+  learningOutcome = { lessons: 0, chats: 0, text: '0 lessons learned' }
   emitLearning({ active: false, done: 0, total: 0 })
 }
 
@@ -488,6 +493,7 @@ function emptySettings(): Settings {
     autoDrop: false,
     share: false,
     lastSharedAt: '',
+    lastLearnedAt: '',
   }
 }
 
@@ -585,6 +591,7 @@ function readSettings(directory: string): Settings {
       share: parsed.share === true,
       autoDrop: parsed.share === true,
       lastSharedAt: typeof parsed.lastSharedAt === 'string' ? parsed.lastSharedAt : '',
+      lastLearnedAt: typeof parsed.lastLearnedAt === 'string' ? parsed.lastLearnedAt : '',
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptySettings()
@@ -1896,6 +1903,10 @@ export function openApp(
     settings.lastSharedAt = new Date().toISOString()
     writeSettings(directory, settings)
   }
+  function rememberLearned() {
+    settings.lastLearnedAt = new Date().toISOString()
+    writeSettings(directory, settings)
+  }
   return {
     saveProfile(profile: Profile) {
       settings.profile = {
@@ -2007,6 +2018,9 @@ export function openApp(
     },
     lastSharedAt() {
       return settings.lastSharedAt
+    },
+    lastLearnedAt() {
+      return settings.lastLearnedAt
     },
     setAutoDrop(enabled: boolean) {
       settings.autoDrop = enabled
@@ -2293,6 +2307,12 @@ export function openApp(
         if (!learningSnapshot) return
         emitLearning(learningSnapshot)
         if (!learningSnapshot.active || learningSnapshot.done !== learningSnapshot.total) return
+        const lessons = learningSnapshot.lessons ?? 0
+        learningOutcome = {
+          lessons,
+          chats: learningSnapshot.done,
+          text: learnedText(lessons),
+        }
         const finished: LearningProgress = {
           active: false,
           done: learningSnapshot.done,
@@ -2328,10 +2348,9 @@ export function openApp(
         writeSettings(directory, settings)
       }
       if (readable.length === 0) {
-        if (foreground) {
-          finishEmptyForeground()
-          markIngestComplete()
-        }
+        if (foreground) finishEmptyForeground()
+        rememberLearned()
+        if (foreground) markIngestComplete()
         return { ran: true, model }
       }
       if (!complete) throw new Error('No model')
@@ -2339,7 +2358,10 @@ export function openApp(
       const stopped = () => generation !== 0 && cancelledGeneration === generation
       const finishOk = () => {
         if (foreground && learningSnapshot && learningSnapshot.done === learningSnapshot.total) {
+          rememberLearned()
           markIngestComplete()
+        } else if (!foreground) {
+          rememberLearned()
         }
         return { ran: true as const, model }
       }
