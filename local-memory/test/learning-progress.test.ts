@@ -735,3 +735,64 @@ test('staggered foreground batches flush the ingest log and learning snapshot on
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('cancel stops before the next card write and keeps the card already written', async () => {
+  const { cancelLearning, discardVault, learningProgress, learningResult, openApp } = await import('../src/app.ts')
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-cancel-'))
+  try {
+    const first = hold<ReturnType<typeof draft>>()
+    const second = hold<ReturnType<typeof draft>>()
+    const lessons = [first, second]
+    let next = 0
+    const app = openApp(
+      directory,
+      () => {
+        const pending = lessons[next]
+        next += 1
+        return pending.promise
+      },
+      machineWith(directory, ['cursor']),
+    )
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    const running = app.runLearner(
+      [
+        { id: 'kept', source: 'cursor', text: 'keep this chat', changedAt: '2024-01-02T00:00:00.000Z' },
+        { id: 'skipped', source: 'cursor', text: 'skip this chat', changedAt: '2024-01-01T00:00:00.000Z' },
+      ],
+      { foreground: true },
+    )
+    assert.equal(running instanceof Promise, true)
+    first.resolve(draft('Keep the written card'))
+    const started = Date.now()
+    let written = false
+    while (!written && Date.now() - started < 1000) {
+      await new Promise((resolve) => setImmediate(resolve))
+      try {
+        written = readdirSync(join(directory, 'cards')).some((name) => name.endsWith('.md'))
+      } catch {
+        written = false
+      }
+    }
+    assert.equal(written, true)
+    cancelLearning()
+    assert.equal(learningProgress(), null)
+    assert.equal(learningResult()?.text, 'Learning cancelled · 1 lesson learned')
+    second.resolve(draft('Do not write this card'))
+    const learned = await running
+    assert.equal(learned.ran, true)
+    const cards = readdirSync(join(directory, 'cards')).filter((name) => name.endsWith('.md'))
+    assert.equal(cards.length, 1)
+    const card = readFileSync(join(directory, 'cards', cards[0] ?? ''), 'utf8')
+    assert.match(card, /Keep the written card/)
+    assert.equal(card.includes('Do not write this card'), false)
+    const settings = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as {
+      importedTranscripts: Record<string, string>
+    }
+    assert.equal(typeof settings.importedTranscripts.kept, 'string')
+    assert.equal(settings.importedTranscripts.skipped, undefined)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+  }
+})

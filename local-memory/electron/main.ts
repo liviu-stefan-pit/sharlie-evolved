@@ -221,6 +221,7 @@ if (registerFlag || unregisterFlag) {
       ipcMain.handle('state', () => ask({ cmd: 'state' }))
       ipcMain.handle('action', (_event, body: Record<string, unknown>) => ask({ ...body, cmd: 'action' }))
       ipcMain.handle('lookup', (_event, query: string) => ask({ cmd: 'lookup', query }))
+      ipcMain.handle('cancel-learning', () => ask({ cmd: 'cancel-learning' }))
       try {
         createWindow()
         createTray()

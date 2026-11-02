@@ -1,4 +1,4 @@
-import { learningProgress, openUserSession, type Provider } from './app.ts'
+import { cancelLearning, learningProgress, learningResult, openUserSession, type Provider } from './app.ts'
 import { listCopilotModels, listCursorCatalog } from './exchange.ts'
 import { runningUnderTest } from './login-item.ts'
 import { localGraph } from './synapse.ts'
@@ -126,6 +126,7 @@ function applyWindow(app: WindowApp, params: URLSearchParams): string | Promise<
     app.setDrivePath(params.get('path') ?? '')
   }
   if (action === 'start-learning') return app.startLearning()
+  if (action === 'cancel-learning') cancelLearning()
   if (action === 'select-model') {
     const model = params.get('model') ?? ''
     try {
@@ -195,7 +196,8 @@ async function pageState(app: WindowApp, session: Session) {
     customBaseUrl: app.customBaseUrl(),
     sources: session.sourceFolders(),
     graph,
-    learning: snapshot ? { ...snapshot, tokens, unreported } : null,
+    learning: snapshot?.active ? { ...snapshot, tokens, unreported } : null,
+    learningResult: learningResult(),
     learningTokens: tokens,
     learningTokensUnreported: unreported,
     ingest: app.ingestView(graph.nodes.length, app.recentTranscripts()),
@@ -228,6 +230,10 @@ export async function openDesktopHost(options: { directory: string; session: Ses
         return JSON.stringify(await pageState(holder.app, options.session))
       }
       if (message.cmd === 'learning-view') {
+        return JSON.stringify(await pageState(holder.app, options.session))
+      }
+      if (message.cmd === 'cancel-learning') {
+        cancelLearning()
         return JSON.stringify(await pageState(holder.app, options.session))
       }
       if (message.cmd === 'lookup') {

@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld('sharlie', {
     ipcRenderer.on('learning', handler)
     return () => ipcRenderer.removeListener('learning', handler)
   },
+  cancelLearning: () => ipcRenderer.invoke('cancel-learning'),
 })

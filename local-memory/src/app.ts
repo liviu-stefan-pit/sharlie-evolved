@@ -191,7 +191,14 @@ export type LearningProgress = {
   active: boolean
   done: number
   total: number
+  lessons?: number
   error?: string
+}
+
+export type LearningResult = {
+  lessons: number
+  chats: number
+  text: string
 }
 
 export type IngestLog = {
@@ -209,11 +216,34 @@ export type IngestView = {
 
 let learningSnapshot: LearningProgress | null = null
 let learningGeneration = 0
+let cancelledGeneration = 0
+let learningOutcome: LearningResult | null = null
 const learningListeners = new Set<(progress: LearningProgress) => void>()
 let lessonWriteQueue: Promise<void> = Promise.resolve()
 
 export function learningProgress(): LearningProgress | null {
   return learningSnapshot
+}
+
+export function learningResult(): LearningResult | null {
+  return learningOutcome
+}
+
+/** Stop the current foreground pass before the next card write. Cards already written stay. */
+export function cancelLearning() {
+  if (!learningSnapshot?.active) return
+  const lessons = learningSnapshot.lessons ?? 0
+  const chats = learningSnapshot.done
+  const total = learningSnapshot.total
+  cancelledGeneration = learningGeneration
+  learningOutcome = {
+    lessons,
+    chats,
+    text: `Learning cancelled · ${lessons} ${lessons === 1 ? 'lesson' : 'lessons'} learned`,
+  }
+  learningSnapshot = null
+  const notice: LearningProgress = { active: false, done: chats, total }
+  for (const listener of [...learningListeners]) listener(notice)
 }
 
 export function onLearning(listener: (progress: LearningProgress) => void): () => void {
@@ -230,7 +260,8 @@ function emitLearning(progress: LearningProgress) {
 
 function startForeground(total: number) {
   learningGeneration += 1
-  learningSnapshot = { active: true, done: 0, total }
+  learningOutcome = null
+  learningSnapshot = { active: true, done: 0, total, lessons: 0 }
   return learningGeneration
 }
 
@@ -249,6 +280,7 @@ function noteForeground(generation: number, error?: string) {
   const total = learningSnapshot.total
   const message = error ?? learningSnapshot.error
   const next: LearningProgress = { active: true, done, total }
+  if (typeof learningSnapshot.lessons === 'number') next.lessons = learningSnapshot.lessons
   if (message) next.error = message
   learningSnapshot = next
 }
@@ -2269,6 +2301,7 @@ export function openApp(
       }
       if (!complete) throw new Error('No model')
       const generation = foreground ? startForeground(readable.length) : 0
+      const stopped = () => generation !== 0 && cancelledGeneration === generation
       const finishOk = () => {
         if (foreground && learningSnapshot && learningSnapshot.done === learningSnapshot.total) {
           markIngestComplete()
@@ -2310,6 +2343,7 @@ export function openApp(
         for (let start = 0; start < readable.length; start += importBatchSize) {
           const batch = readable.slice(start, start + importBatchSize)
           const work = () => {
+            if (stopped()) return undefined
             const projects = knowledgeProjects(directory)
             const stored = readStoredCards(directory)
             const cards: KnownCard[] = stored.map((card) => ({
@@ -2473,11 +2507,20 @@ export function openApp(
               return { status: 'processed', detail: scrubbed.title }
             }
             const applyLesson = (original: Transcript, transcript: Transcript, lesson: LessonDraft) => {
+              if (stopped()) return
               try {
                 const outcome = writeOneLesson(original, transcript, lesson)
                 settings.importedTranscripts[transcriptKey(original)] = transcriptRevision(original)
                 writeSettings(directory, settings)
                 settleIngest(original, outcome.status, outcome.detail)
+                if (
+                  foreground &&
+                  outcome.status === 'processed' &&
+                  learningSnapshot?.active &&
+                  generation === learningGeneration
+                ) {
+                  learningSnapshot = { ...learningSnapshot, lessons: (learningSnapshot.lessons ?? 0) + 1 }
+                }
                 if (foreground) noteForeground(generation)
               } catch (error) {
                 const message = learningErrorMessage(error)

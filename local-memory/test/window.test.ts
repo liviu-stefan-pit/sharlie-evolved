@@ -158,4 +158,35 @@ test('the desktop window is an Electron shell titled Sharlie', () => {
   assert.equal(pkg.build.linux, undefined)
   assert.match(installer, /--register-login/)
   assert.match(installer, /--unregister-login/)
+  assert.match(main, /cancel-learning/)
+  const preload = readFileSync(new URL('../electron/preload.cjs', import.meta.url), 'utf8')
+  assert.match(preload, /cancelLearning:\s*\(\)\s*=>\s*ipcRenderer\.invoke\('cancel-learning'\)/)
+})
+
+test('cancel-learning while nothing is running returns the snapshot and no error', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession(
+    'ada',
+    (request) => draft(request.transcript.text),
+    machineWith(machineRoot(directory), ['cursor']),
+    () => [],
+  )
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const reply = JSON.parse(await host.line(JSON.stringify({ cmd: 'cancel-learning' }))) as {
+      notice?: string
+      errorCode?: string
+      learning: unknown
+      learningResult: unknown
+    }
+    assert.equal(reply.notice ?? '', '')
+    assert.equal(reply.errorCode ?? '', '')
+    assert.equal(reply.learning, null)
+    assert.equal(reply.learningResult, null)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
 })
