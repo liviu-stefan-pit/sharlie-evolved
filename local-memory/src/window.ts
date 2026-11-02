@@ -6,6 +6,7 @@ import { listCopilotModels, listCursorCatalog } from './exchange.ts'
 import { mockModelEnabled } from './host.ts'
 import { runningUnderTest } from './login-item.ts'
 import { localGraph } from './synapse.ts'
+import { TEAM_SHARING_AVAILABLE } from './team-sharing.ts'
 
 const require = createRequire(import.meta.url)
 
@@ -108,6 +109,9 @@ async function chooseFolder(purpose: 'knowledge' | 'share'): Promise<string | nu
 }
 
 function applyShare(app: WindowApp, params: URLSearchParams): ActionResult {
+  if (!TEAM_SHARING_AVAILABLE) {
+    return refused('share_unavailable', 'Team sharing is not available in this version.')
+  }
   const enabled = params.get('enabled') === 'true'
   if (!enabled) {
     app.setAutoDrop(false)
@@ -418,6 +422,7 @@ async function pageState(app: WindowApp, session: Session) {
     drivePath: app.drivePath(),
     autoDrop: app.share(),
     share: app.share(),
+    shareAvailable: TEAM_SHARING_AVAILABLE,
     lastSharedAt: app.lastSharedAt() === '' ? null : app.lastSharedAt(),
     lastLearnedAt: app.lastLearnedAt() === '' ? null : app.lastLearnedAt(),
     cadence: app.cadence(),

@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { registerLoginItem, unregisterLoginItem } from './login-item.ts'
 import { isFileMention, isLearningSource } from './graph-rules.ts'
 import { localGraph, publishCard, readCards, type CardRelation } from './synapse.ts'
+import { TEAM_SHARING_AVAILABLE } from './team-sharing.ts'
 import {
   catalogParameters,
   catalogVariants,
@@ -2700,6 +2701,7 @@ export function openApp(
       writeSettings(directory, settings)
     },
     runPublisher() {
+      if (!TEAM_SHARING_AVAILABLE) return { ran: false }
       if (!settings.autoDrop) return { ran: false }
       if (settings.drivePath.trim() === '') return { ran: false }
       const username = settings.profile.username.trim()

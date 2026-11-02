@@ -488,11 +488,11 @@ test('a learn pass writes nothing outside the Sharlie data folder and the config
       { source: 'cursor', text: 'the deploy failed after the lock timed out', repo: 'sharlie-evolved' },
     ]))
     assert.equal(learned.ran, true)
-    assert.equal(app.runPublisher().ran, true)
+    assert.equal(app.runPublisher().ran, false)
     const allowed = [knowledge, share, join(machine.home, '.sharlie')]
     const fresh = filesUnder(root).filter((file) => !before.has(file))
     assert.ok(fresh.some((file) => insideFolder(file, knowledge)))
-    assert.ok(fresh.some((file) => insideFolder(file, share)))
+    assert.equal(fresh.some((file) => insideFolder(file, share)), false)
     for (const file of fresh) {
       assert.equal(allowed.some((folder) => insideFolder(file, folder)), true, file)
     }

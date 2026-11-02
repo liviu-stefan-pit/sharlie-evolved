@@ -320,7 +320,7 @@ test('a host started with a saved profile, key, and model is scheduled without a
   }
 })
 
-test('sharing stays off until a usable team folder is chosen, and only a work card is copied', async () => {
+test('team sharing is unavailable, so set-share writes nothing even after a folder is chosen', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const machine = machineWith(machineRoot(directory), ['cursor'])
   const share = join(directory, 'share')
@@ -340,18 +340,20 @@ test('sharing stays off until a usable team folder is chosen, and only a work ca
     const host = await openDesktopHost({ directory, session })
     const first = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as {
       share?: boolean
+      shareAvailable?: boolean
       lastSharedAt?: string | null
       drivePath?: string
     }
     assert.equal(first.share, false)
+    assert.equal(first.shareAvailable, false)
     assert.equal(first.lastSharedAt, null)
     assert.equal(first.drivePath, '')
 
     const missing = JSON.parse(
       await host.line(JSON.stringify({ cmd: 'action', action: 'set-share', enabled: 'true' })),
     ) as { errorCode?: string; notice?: string; share?: boolean }
-    assert.equal(missing.errorCode, 'share_needs_path')
-    assert.equal(missing.notice, 'Choose a team Drive folder before sharing.')
+    assert.equal(missing.errorCode, 'share_unavailable')
+    assert.equal(missing.notice, 'Team sharing is not available in this version.')
     assert.equal(missing.share, false)
 
     const blocked = JSON.parse(
@@ -388,9 +390,10 @@ test('sharing stays off until a usable team folder is chosen, and only a work ca
 
     const enabled = JSON.parse(
       await host.line(JSON.stringify({ cmd: 'action', action: 'set-auto-drop', enabled: 'true' })),
-    ) as { errorCode?: string; share?: boolean }
-    assert.equal(enabled.errorCode, undefined)
-    assert.equal(enabled.share, true)
+    ) as { errorCode?: string; notice?: string; share?: boolean }
+    assert.equal(enabled.errorCode, 'share_unavailable')
+    assert.equal(enabled.notice, 'Team sharing is not available in this version.')
+    assert.equal(enabled.share, false)
 
     mkdirSync(join(directory, 'cards'))
     const card = (id: string, scope?: string) =>
@@ -413,14 +416,14 @@ test('sharing stays off until a usable team folder is chosen, and only a work ca
     const after = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as {
       lastSharedAt?: string | null
       share?: boolean
+      shareAvailable?: boolean
     }
-    assert.equal(after.share, true)
-    assert.match(after.lastSharedAt ?? '', /^\d{4}-\d{2}-\d{2}T/)
-    const drop = join(share, 'Dropzone', 'ada')
-    assert.equal(existsSync(join(drop, 'card_work.json')), true)
-    assert.equal(existsSync(join(drop, 'card_work.md')), true)
-    assert.equal(existsSync(join(drop, 'card_personal.json')), false)
-    assert.equal(existsSync(join(drop, 'card_plain.json')), false)
+    assert.equal(after.share, false)
+    assert.equal(after.shareAvailable, false)
+    assert.equal(after.lastSharedAt, null)
+    const names = readdirSync(share)
+    assert.equal(names.includes('Dropzone'), false)
+    assert.equal(names.some((name) => name.startsWith('card_')), false)
   } finally {
     setFolderPicker(null)
     discardVault(directory)

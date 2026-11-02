@@ -126,7 +126,7 @@ test('manual cadence does not tick, and sync now runs one learner pass and one p
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
       true,
     )
-    assert.equal(readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'), 'a work card added while manual')
+    assert.equal(existsSync(drive), false)
   })
 })
 
@@ -190,7 +190,7 @@ test('installing registers the learner and the publisher, and both run with the 
     assert.equal(files.length, 1)
     const local = readFileSync(join(folder, files[0]))
     assert.equal(local.toString().includes('title: retry the deploy'), true)
-    assert.deepEqual(readFileSync(join(drive, 'Dropzone', 'ada', files[0])), local)
+    assert.equal(existsSync(drive), false)
   })
 })
 
@@ -256,7 +256,7 @@ test('the window can register both jobs', () => {
     assert.equal(files.length, 1)
     const local = readFileSync(join(folder, files[0]))
     assert.equal(local.toString().includes('title: retry the deploy'), true)
-    assert.deepEqual(readFileSync(join(drive, 'Dropzone', 'ada', files[0])), local)
+    assert.equal(existsSync(drive), false)
   })
 })
 
@@ -305,10 +305,7 @@ test('the window can unregister both jobs and pause the system without uninstall
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
       true,
     )
-    assert.equal(
-      readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
-      'a work card added while paused',
-    )
+    assert.equal(existsSync(drive), false)
   })
 })
 
@@ -333,7 +330,7 @@ test('the jobs start when the person logs in and stop when they log out', () => 
     ada.logIn()
     const files = cardFiles(folder)
     assert.equal(files.length, 1)
-    assert.deepEqual(readFileSync(join(drive, 'Dropzone', 'ada', files[0])), readFileSync(join(folder, files[0])))
+    assert.equal(existsSync(drive), false)
 
     transcripts.push({
       id: 'later',
@@ -357,10 +354,7 @@ test('the jobs start when the person logs in and stop when they log out', () => 
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
       true,
     )
-    assert.equal(
-      readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
-      'a work card added after logout',
-    )
+    assert.equal(existsSync(drive), false)
   })
 })
 
@@ -401,10 +395,7 @@ test('the jobs stop when the machine shuts down', () => {
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
       true,
     )
-    assert.equal(
-      readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
-      'a work card added after shutdown',
-    )
+    assert.equal(existsSync(drive), false)
   })
 })
 
@@ -487,7 +478,7 @@ test('opening or closing the window leaves the jobs as they are', () => {
     const folder = join(directory, 'cards')
     const first = cardFiles(folder)
     assert.equal(first.length, 1)
-    assert.equal(existsSync(join(drive, 'Dropzone', 'ada', first[0])), true)
+    assert.equal(existsSync(drive), false)
 
     transcripts.push({
       id: 'later',
@@ -512,12 +503,7 @@ test('opening or closing the window leaves the jobs as they are', () => {
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
       true,
     )
-    assert.equal(
-      cardFiles(join(drive, 'Dropzone', 'ada')).some((file) =>
-        readFileSync(join(drive, 'Dropzone', 'ada', file), 'utf8').includes('title: read the lock log'),
-      ),
-      true,
-    )
+    assert.equal(existsSync(drive), false)
   })
 })
 
@@ -566,7 +552,7 @@ test('the learner job imports history newest first, then reads only what changed
   )
 })
 
-test('the publisher job copies work cards and leaves personal cards on the machine', () => {
+test('the publisher job leaves work and personal cards on the machine and does not create the team folder', () => {
   withPerson(
     'ada',
     (ada, directory, transcripts) => {
@@ -598,20 +584,15 @@ test('the publisher job copies work cards and leaves personal cards on the machi
       ada.install(directory)
 
       const work = join(directory, 'cards')
-      const drop = join(drive, 'Dropzone', 'ada')
       assert.equal(
         cardFiles(work).some((file) => readFileSync(join(work, file), 'utf8').includes('title: my scratch note')),
         true,
       )
-      assert.equal(existsSync(join(drive, 'personal')), false)
       assert.equal(
-        cardFiles(drop).some((file) => readFileSync(join(drop, file), 'utf8').includes('title: retry the deploy')),
+        cardFiles(work).some((file) => readFileSync(join(work, file), 'utf8').includes('title: retry the deploy')),
         true,
       )
-      assert.equal(
-        cardFiles(drop).some((file) => readFileSync(join(drop, file), 'utf8').includes('title: my scratch note')),
-        false,
-      )
+      assert.equal(existsSync(drive), false)
       plantWorkNote(work, 'a work card added for the publisher')
       assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
 
@@ -627,18 +608,8 @@ test('the publisher job copies work cards and leaves personal cards on the machi
         cardFiles(work).some((file) => readFileSync(join(work, file), 'utf8').includes('title: read the lock log')),
         true,
       )
-      assert.equal(
-        cardFiles(join(drive, 'Dropzone', 'ada')).some((file) =>
-          readFileSync(join(drive, 'Dropzone', 'ada', file), 'utf8').includes('title: read the lock log'),
-        ),
-        true,
-      )
-      assert.equal(
-        readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
-        'a work card added for the publisher',
-      )
-      assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.json')), true)
-      assert.equal(existsSync(join(drive, 'personal')), false)
+      assert.equal(existsSync(drive), false)
+      assert.equal(existsSync(join(work, 'extra-note.md')), true)
     },
     (request) => draft(request.transcript.text, request.transcript.text === 'my scratch note' ? 'personal' : 'work'),
   )
@@ -672,6 +643,46 @@ test('logIn and syncNow write nothing to the share folder while sharing is off',
     assert.equal(existsSync(join(drive, 'Dropzone')), false)
     ada.logOut()
     ada.logIn()
+    assert.equal(existsSync(join(drive, 'Dropzone')), false)
+  })
+})
+
+test('sharing settings on still write nothing after a restart, sync, and timer tick', () => {
+  withPerson('ada', (ada, directory, transcripts) => {
+    const drive = join(directory, 'drive')
+    ada.logIn()
+    const window = ada.openWindow(directory)
+    window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    window.setDrivePath(drive)
+    window.setAutoDrop(true)
+    window.startLearning()
+    transcripts.push({
+      id: 'deploy',
+      source: 'cursor',
+      text: 'retry the deploy',
+      changedAt: '2024-06-01T00:00:00.000Z',
+      repo: 'sharlie-evolved',
+    })
+    ada.install(directory)
+    const folder = join(directory, 'cards')
+    assert.equal(
+      cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: retry the deploy')),
+      true,
+    )
+    assert.equal(existsSync(drive), false)
+    ada.logOut()
+
+    const restarted = openUserSession(
+      'ada',
+      (request) => draft(request.transcript.text),
+      machineWith(directory, ['cursor']),
+      () => transcripts,
+    )
+    restarted.logIn()
+    restarted.syncNow()
+    restarted.pass(hour)
+    assert.equal(existsSync(drive), false)
     assert.equal(existsSync(join(drive, 'Dropzone')), false)
   })
 })

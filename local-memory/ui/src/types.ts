@@ -102,6 +102,8 @@ export type PageState = {
   chatsFound?: number
   /** docs/HOST_ACTIONS.md: the one team-Drive switch, false by default. */
   share?: boolean
+  /** docs/HOST_ACTIONS.md: false while team sharing is not available in this version. */
+  shareAvailable?: boolean
   /** Assumed (not in docs/HOST_ACTIONS.md yet): ISO time of the last copy to the team folder. */
   lastSharedAt?: string | null
   /**

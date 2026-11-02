@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -94,7 +94,7 @@ test('sharing off writes a work card nowhere in the share folder', () => {
   })
 })
 
-test('sharing on copies a work card and leaves personal and unscoped cards on this PC', () => {
+test('sharing on still keeps work, personal, and unscoped cards on this PC', () => {
   withDirectory((directory) => {
     const drive = join(directory, 'drive')
     const lessons: Record<string, Partial<LessonDraft>> = {
@@ -124,31 +124,19 @@ test('sharing on copies a work card and leaves personal and unscoped cards on th
       }),
     )
     writeFileSync(join(cards, 'noscope.md'), 'No scope')
-    assert.equal(app.runPublisher().ran, true)
-    assert.equal(existsSync(join(drive, 'Dropzone')), false)
+    assert.equal(app.runPublisher().ran, false)
+    assert.equal(existsSync(drive), false)
 
     app.runLearner([{ source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' }])
-    const drop = join(drive, 'Dropzone', 'ada')
-    const copied = readdirSync(drop)
-    const jsonName = copied.find((name) => name.endsWith('.json'))
-    const mdName = copied.find((name) => name.endsWith('.md'))
-    assert.ok(jsonName)
-    assert.ok(mdName)
-    assert.equal(jsonName.replace(/\.json$/, ''), mdName.replace(/\.md$/, ''))
-    const shared = JSON.parse(readFileSync(join(drop, jsonName), 'utf8')) as { scope?: string; title?: string }
-    assert.equal(shared.scope, 'work')
-    assert.equal(shared.title, 'Retry failed deploys')
-    assert.equal(readFileSync(join(drop, mdName), 'utf8').includes('Retry failed deploys'), true)
-    assert.equal(
-      copied.some((name) => readFileSync(join(drop, name), 'utf8').includes('My scratch note')),
-      false,
-    )
-    assert.equal(copied.includes('noscope.json') || copied.includes('noscope.md'), false)
-    assert.equal(existsSync(join(drive, 'personal')), false)
+    assert.equal(existsSync(drive), false)
+    const local = readdirSync(join(directory, 'cards')).filter((name) => name.endsWith('.json') && name !== '.claims.json')
+    const titles = local.map((name) => JSON.parse(readFileSync(join(directory, 'cards', name), 'utf8')) as { title?: string })
+    assert.equal(titles.some((card) => card.title === 'Retry failed deploys'), true)
+    assert.equal(titles.some((card) => card.title === 'My scratch note'), true)
   })
 })
 
-test('auto-drop copies the inbox file into Dropzone and then files it under cards', () => {
+test('auto-drop files the card locally and does not create the team folder', () => {
   withDirectory((directory) => {
     const drive = join(directory, 'drive')
     const app = ready(directory, () => draft())
@@ -158,11 +146,8 @@ test('auto-drop copies the inbox file into Dropzone and then files it under card
     const file = readdirSync(join(directory, 'cards')).find((name) => name.endsWith('.md'))
     assert.ok(file)
     assert.equal(readdirSync(join(directory, 'inbox')).length, 0)
-    assert.deepEqual(
-      readFileSync(join(drive, 'Dropzone', 'ada', file)),
-      readFileSync(join(directory, 'cards', file)),
-    )
-    assert.equal(app.runPublisher().ran, true)
+    assert.equal(existsSync(drive), false)
+    assert.equal(app.runPublisher().ran, false)
   })
 })
 
@@ -194,14 +179,54 @@ test('publishing continues after the model key is removed', () => {
     )
     assert.throws(() => reopened.activeKey(), /No active key/)
     reopened.setAutoDrop(true)
-    assert.equal(reopened.runPublisher().ran, true)
+    assert.equal(reopened.runPublisher().ran, false)
     assert.equal(modelCalls, learned)
+    assert.equal(existsSync(drive), false)
 
     const file = readdirSync(join(directory, 'cards')).find((name) => name.endsWith('.md'))
     assert.ok(file)
-    assert.deepEqual(
-      readFileSync(join(drive, 'Dropzone', 'ada', file)),
-      readFileSync(join(directory, 'cards', file)),
+  })
+})
+
+test('a restart with sharing already on writes nothing and does not create the team folder', () => {
+  withDirectory((directory) => {
+    const drive = join(directory, 'drive')
+    mkdirSync(join(directory, 'cards'), { recursive: true })
+    writeFileSync(
+      join(directory, 'cards', 'card_work.json'),
+      JSON.stringify({
+        id: 'card_work',
+        title: 'Retry failed deploys',
+        scope: 'work',
+        topics: [],
+        context: { os: '', tool_version: '', framework: '' },
+        solution: 'Retry the deploy once.',
+        failure_modes: [],
+        relations: [],
+        sources: ['cursor'],
+        created_at: '2024-01-01T00:00:00.000Z',
+        author: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+      }),
     )
+    writeFileSync(join(directory, 'cards', 'card_work.md'), 'Retry failed deploys')
+    writeFileSync(
+      join(directory, 'settings.json'),
+      JSON.stringify({
+        share: true,
+        drivePath: drive,
+        profile: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+      }),
+    )
+
+    const app = openApp(directory)
+    assert.equal(app.share(), true)
+    assert.equal(app.runPublisher().ran, false)
+    assert.equal(existsSync(drive), false)
+
+    const restarted = openApp(directory)
+    assert.equal(restarted.share(), true)
+    assert.equal(restarted.runPublisher().ran, false)
+    assert.equal(existsSync(drive), false)
+    assert.equal(existsSync(join(drive, 'Dropzone')), false)
   })
 })

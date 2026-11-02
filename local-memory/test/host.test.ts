@@ -194,10 +194,9 @@ test('a model reply with no scope stays personal and is not copied to the share 
     assert.equal(cards.length, 1)
     const stored = JSON.parse(readFileSync(join(directory, 'cards', cards[0]), 'utf8')) as { scope?: string }
     assert.equal(stored.scope, 'personal')
-    assert.equal(window.runPublisher().ran, true)
-    const drop = join(drive, 'Dropzone', 'ada')
-    const copied = existsSync(drop) ? readdirSync(drop) : []
-    assert.deepEqual(copied, [])
+    assert.equal(window.runPublisher().ran, false)
+    assert.equal(existsSync(drive), false)
+    assert.equal(existsSync(join(drive, 'Dropzone', 'ada')), false)
   } finally {
     if (timer) clearInterval(timer)
     discardVault(directory)

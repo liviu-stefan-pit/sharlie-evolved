@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isFileMention, isLearningSource } from './graph-rules.ts'
+import { TEAM_SHARING_AVAILABLE } from './team-sharing.ts'
 
 export type CardRelation = {
   entity: string
@@ -169,7 +170,13 @@ function place(
   mkdirSync(cards, { recursive: true })
   const inboxFile = join(inbox, name)
   writeFileSync(inboxFile, body)
-  if (drop.enabled && drop.scope === 'work' && drop.drivePath.trim() !== '' && drop.username.trim() !== '') {
+  if (
+    TEAM_SHARING_AVAILABLE &&
+    drop.enabled &&
+    drop.scope === 'work' &&
+    drop.drivePath.trim() !== '' &&
+    drop.username.trim() !== ''
+  ) {
     const dest = join(drop.drivePath, 'Dropzone', drop.username)
     mkdirSync(dest, { recursive: true })
     copyFileSync(inboxFile, join(dest, name))

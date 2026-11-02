@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -155,7 +155,7 @@ test('a card that has not been copied does not show as synced', () => {
   })
 })
 
-test('a work card the publisher has copied shows as synced', () => {
+test('team sharing unavailable leaves a work card unsynced after the publisher', () => {
   withDirectory((directory) => {
     const lessons: Record<string, Partial<LessonDraft>> = {
       'shared deploy lesson': { scope: 'work', title: 'Retry failed deploys' },
@@ -175,8 +175,9 @@ test('a work card the publisher has copied shows as synced', () => {
       assert.ok(node)
       return node.synced
     }
-    assert.equal(synced('Retry failed deploys'), true)
+    assert.equal(synced('Retry failed deploys'), false)
     assert.equal(synced('My scratch note'), false)
+    assert.equal(existsSync(join(directory, 'drive')), false)
   })
 })
 
@@ -234,7 +235,7 @@ test('the graph keeps the zinc palette, and green is only the synced card color'
     assert.equal(graph.accent, '#5c5c5c')
     assert.equal(
       graph.nodes.find((node) => node.label === 'Retry failed deploys')?.color,
-      '#6f8f78',
+      '#b89a6a',
     )
     for (const node of graph.nodes) {
       assert.equal(node.color, node.synced ? '#6f8f78' : node.kind === 'card' ? '#b89a6a' : '#9d9d9d')
