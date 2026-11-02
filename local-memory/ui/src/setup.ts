@@ -21,12 +21,18 @@ export function refusalCode(errorCode: string | undefined, notice: string) {
  */
 export const DID_NOT_RUN = "Learning didn't run, and Sharlie gave no reason. Check your AI key in Settings, then press Learn now again."
 
-export function learnProblem(text: string, code = ''): { text: string; settings: boolean } {
+/**
+ * Host codes (docs/HOST_ACTIONS.md, 84fcd42): key_missing, secret_missing, model_missing, profile_incomplete
+ * need Settings; model_error is the model's own one-line error, worth another try.
+ */
+export function learnProblem(text: string, code = ''): { text: string; settings: boolean; retry?: boolean } {
   if (text === DID_NOT_RUN) return { text, settings: true }
   if (/secret_missing|missing_secret|key_secret/i.test(code) || /no secret stored|secret (is )?missing|key secret/i.test(text)) {
     return { text: 'Add your AI key again in Settings.', settings: true }
   }
-  if (code === 'key_missing' || code === 'model_missing') return { text, settings: true }
+  if (code === 'key_missing' || (!code && /^turn on a provider/i.test(text))) return { text: 'Add your AI key in Settings.', settings: true }
+  if (code === 'model_missing') return { text, settings: true }
+  if (code === 'model_error') return { text, settings: false, retry: true }
   return { text, settings: false }
 }
 

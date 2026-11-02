@@ -1,0 +1,2042 @@
+{
+ "key-missing-before": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "",
+  "modelParams": [],
+  "models": [],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:25.943Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104125",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:25.942Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104125_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:25.943Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104125"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104125"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104125_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104125_2"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 2,
+   "chats": 2,
+   "text": "2 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "key-missing-start": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "",
+  "modelParams": [],
+  "models": [],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:25.943Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104125",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:25.942Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104125_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:25.943Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104125"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104125"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104125_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104125_2"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": {
+   "active": false,
+   "done": 0,
+   "total": 0,
+   "error": "Turn on a provider before learning can write cards.",
+   "errorCode": "key_missing",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null,
+  "notice": "Turn on a provider before learning can write cards.",
+  "errorCode": "key_missing"
+ },
+ "key-missing-after": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "",
+  "modelParams": [],
+  "models": [],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:25.943Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104125",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:25.942Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104125_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:25.943Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104125"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104125"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104125",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104125_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104125_2"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104125_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": {
+   "active": false,
+   "done": 0,
+   "total": 0,
+   "error": "Turn on a provider before learning can write cards.",
+   "errorCode": "key_missing",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "secret-missing-before": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:26.576Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104126",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:26.574Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104126_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:26.575Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104126"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104126"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104126_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104126_2"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 2,
+   "chats": 2,
+   "text": "2 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "secret-missing-start": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:26.576Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104126",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:26.574Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104126_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:26.575Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104126"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104126"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104126_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104126_2"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": {
+   "active": false,
+   "done": 0,
+   "total": 3,
+   "error": "No secret stored for key cf6a5dca-7a44-4603-93ed-49a175f2a92a",
+   "errorCode": "secret_missing",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null,
+  "notice": "No secret stored for key cf6a5dca-7a44-4603-93ed-49a175f2a92a",
+  "errorCode": "secret_missing"
+ },
+ "secret-missing-after": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:26.576Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104126",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:26.574Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104126_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:26.575Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104126"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104126"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104126",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104126_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104126_2"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104126_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": {
+   "active": false,
+   "done": 0,
+   "total": 3,
+   "error": "No secret stored for key cf6a5dca-7a44-4603-93ed-49a175f2a92a",
+   "errorCode": "secret_missing",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "model-error-before": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:27.201Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104127",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:27.198Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104127_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:27.200Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104127"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104127"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104127_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104127_2"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 2,
+   "chats": 2,
+   "text": "2 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "model-error-start": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:27.201Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104127",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:27.198Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104127_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:27.200Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104127"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104127"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104127_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104127_2"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": {
+   "active": true,
+   "done": 0,
+   "total": 3,
+   "lessons": 0,
+   "label": "Reading Cursor chats",
+   "detail": "cursor \u00b7 chat2.jsonl \u00b7 learning",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null,
+  "notice": ""
+ },
+ "model-error-after": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:41:27.201Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 5
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 5,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_104127",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:27.198Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 2
+    },
+    {
+     "id": "card:card_20261102_104127_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:41:27.200Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104127"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104127"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104127",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_104127_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_104127_2"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_104127_2",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": {
+   "active": false,
+   "done": 3,
+   "total": 3,
+   "error": "model timed out",
+   "errorCode": "model_error",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": {
+   "lessons": 0,
+   "chats": 3,
+   "text": "0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "_meta": {
+  "key-missing": {
+   "settingsLastLearnedAt": "2026-11-02T10:41:25.943Z"
+  },
+  "secret-missing": {
+   "settingsLastLearnedAt": "2026-11-02T10:41:26.576Z"
+  },
+  "model-error": {
+   "settingsLastLearnedAt": "2026-11-02T10:41:27.201Z"
+  }
+ }
+}

@@ -12,6 +12,8 @@ export type PassEnd = {
   nothingNew?: boolean
   /** The start was accepted but no pass ran and the host said neither why nor that it finished. */
   didNotRun?: boolean
+  /** The host's code for `error` (learning.errorCode or the reply's errorCode). */
+  errorCode?: string
 }
 
 type Props = {
@@ -25,14 +27,19 @@ type Props = {
   onSeeLessons: () => void
   /** Opens Settings at the AI key (for a missing or unusable key). */
   onOpenSettings?: () => void
+  /** Starts another pass (offered after a model error). */
+  onRetry?: () => void
 }
 
 /** Slim strip under the header: "Learning… 37 of 412 chats", Cancel, then "Done. 58 lessons learned". */
-export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeLessons, onOpenSettings }: Props) {
+export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeLessons, onOpenSettings, onRetry }: Props) {
   const id = useId()
   const active = waiting || learning?.active === true
   const [done, setDone] = useState<{ text: string; calm?: boolean } | null>(null)
   const [endError, setEndError] = useState('')
+  const [endErrorCode, setEndErrorCode] = useState('')
+  // The host keeps a failed pass's error on every snapshot until the next pass: let the person close it.
+  const [dismissedError, setDismissedError] = useState('')
   const [details, setDetails] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState('')
@@ -45,12 +52,16 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
     if (active) {
       setDone(null)
       setEndError('')
+      setEndErrorCode('')
+      setDismissedError('')
     }
   }, [active])
   useEffect(() => {
     if (!ended) return
     setCancelling(false)
     setEndError(ended.error)
+    setEndErrorCode(ended.errorCode ?? '')
+    setDismissedError('')
     const r = ended.result
     if (ended.didNotRun) setDone(null)
     else if (ended.nothingNew) setDone({ text: 'Nothing new to learn', calm: true })
@@ -66,7 +77,9 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
     if (node && stick.current) node.scrollTop = node.scrollHeight
   }, [lines, details])
 
-  const error = learning?.error || endError
+  const rawError = learning?.error || endError
+  const error = rawError && rawError !== dismissedError ? rawError : ''
+  const problem = learnProblem(error, learning?.error ? (learning.errorCode ?? '') : endErrorCode)
   if (!active && !done && !error && lines.length === 0) return null
 
   const total = learning?.total ?? 0
@@ -135,8 +148,8 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
             {cancelling ? 'Cancelling' : 'Cancel'}
           </button>
         ) : null}
-        {!active && done ? (
-          <button type="button" aria-label="Dismiss" className="flex h-9 w-9 items-center justify-center rounded-[10px] text-muted hover:text-ink" onClick={() => setDone(null)}>
+        {!active && (done || error) ? (
+          <button type="button" aria-label="Dismiss" className="flex h-9 w-9 items-center justify-center rounded-[10px] text-muted hover:text-ink" onClick={() => { setDone(null); if (error) setDismissedError(rawError) }}>
             ×
           </button>
         ) : null}
@@ -144,10 +157,15 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
       {cancelError ? <Trouble raw={cancelError} className="px-3 pb-2" /> : null}
       {error && !cancelError ? (
         <p role="alert" className="px-3 pb-2 text-[13px] text-danger">
-          {learnProblem(error).text}
-          {learnProblem(error).settings && onOpenSettings ? (
+          {problem.text}
+          {problem.settings && onOpenSettings ? (
             <button type="button" className="ml-2 inline-flex h-9 items-center text-[13px] text-ink underline" onClick={onOpenSettings}>
               Open Settings
+            </button>
+          ) : null}
+          {problem.retry && onRetry ? (
+            <button type="button" className="ml-2 inline-flex h-9 items-center text-[13px] text-ink underline" onClick={onRetry}>
+              Try again
             </button>
           ) : null}
         </p>

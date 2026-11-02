@@ -53,12 +53,14 @@ export function App() {
       (!result && !!next.learning && !next.learning.active && next.learning.total === 0)
     const end = (patch: Partial<PassEnd>) =>
       setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error: '', result: null, ...patch }))
-    if (error) end({ error: next.errorCode && !next.learning?.error ? learnProblemText(error, next.errorCode) : error })
+    const errorCode = next.learning?.error ? (next.learning.errorCode ?? '') : (next.errorCode ?? '')
+    if (error) end({ error: next.errorCode && !next.learning?.error ? learnProblemText(error, next.errorCode) : error, errorCode })
     else if (ranEmpty) end({ nothingNew: true })
     else if (result) end({ result })
     else end({ didNotRun: true, error: DID_NOT_RUN })
   }
   const passError = useRef('')
+  const passErrorCode = useRef('')
   const [passEnd, setPassEnd] = useState<PassEnd | null>(null)
   const [ranOnce, setRanOnce] = useState(false)
   const [settingsFocus, setSettingsFocus] = useState<'key' | null>(null)
@@ -87,14 +89,21 @@ export function App() {
     if (!wasActive && isActive) {
       passStart.current = cards
       passError.current = ''
+      passErrorCode.current = ''
       setRanOnce(true)
     }
-    if (next.learning?.error) passError.current = next.learning.error
+    if (next.learning?.error) {
+      passError.current = next.learning.error
+      passErrorCode.current = next.learning.errorCode ?? ''
+    }
     if (wasActive && !isActive) {
       const error = passError.current
+      const errorCode = error ? passErrorCode.current : ''
       const result = fresh(next.learningResult)
       const nothingNew = !error && !!result && result.lessons === 0 && result.chats === 0
-      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, result: nothingNew ? null : result, nothingNew }))
+      // A failed pass (84fcd42: learning.error + errorCode, plus a 0-lesson result) is never "Done" or "Nothing new".
+      const failedEmpty = !!error && (!result || result.lessons === 0)
+      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, errorCode, result: nothingNew || failedEmpty ? null : result, nothingNew }))
     }
     stateRef.current = next
     setState(next)
@@ -367,9 +376,10 @@ export function App() {
       {active ? <span id="learn-now-why" className="sr-only"> (learning is already running)</span> : null}
     </button>
   )
-  const homeProblem = !firstRun && (startRefusal || startTrouble) ? (
+  const refusalInStrip = !!startRefusal && !!state?.learning?.error && state.learning.error === startRefusal.notice
+  const homeProblem = !firstRun && ((startRefusal && !refusalInStrip) || startTrouble) ? (
     <div className="shrink-0 border-b border-line bg-canvas px-3 py-2">
-      {startRefusal ? (
+      {startRefusal && !refusalInStrip ? (
         <p role="alert" className="text-[13px] text-danger">
           {learnProblem(startRefusal.notice, startRefusal.code).text}
           {learnProblem(startRefusal.notice, startRefusal.code).settings || startRefusal.code === 'profile_incomplete' ? (
@@ -427,6 +437,7 @@ export function App() {
             setSettingsFocus('key')
             setView('settings')
           }}
+          onRetry={learnNow}
           onSeeLessons={() => {
             setQuery('')
             setView('graph')

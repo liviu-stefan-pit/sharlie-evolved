@@ -90,7 +90,7 @@ export type PageState = {
   customBaseUrl: string
   sources: SourceFolder[]
   graph: GraphData
-  learning: { active: boolean; done: number; total: number; lessons?: number; error?: string; tokens?: number; unreported?: number } | null
+  learning: { active: boolean; done: number; total: number; lessons?: number; error?: string; errorCode?: string; tokens?: number; unreported?: number } | null
   learningTokens: number
   learningTokensUnreported: number
   ingest: IngestState | null
