@@ -92,6 +92,15 @@ export function App() {
       passErrorCode.current = ''
       setRanOnce(true)
     }
+    // The host dropped a settled failed pass's error (3b9d5db: save-key / activate-provider). The UI keeps no copy of
+    // it: the strip's error, the refusal line, and the pass's recorded error all go with it. Not when a running pass
+    // ends (an older host cleared learning with the error on the last event), nor during a start in flight.
+    if (before?.learning?.error && before.learning.active !== true && !next.learning?.error && !isActive && !startBusy.current) {
+      passError.current = ''
+      passErrorCode.current = ''
+      setStartRefusal(null)
+      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error: '', result: null, cleared: true }))
+    }
     if (next.learning?.error) {
       passError.current = next.learning.error
       passErrorCode.current = next.learning.errorCode ?? ''

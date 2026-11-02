@@ -14,6 +14,8 @@ export type PassEnd = {
   didNotRun?: boolean
   /** The host's code for `error` (learning.errorCode or the reply's errorCode). */
   errorCode?: string
+  /** The host cleared the last error (learning went from an error to null): show nothing. */
+  cleared?: boolean
 }
 
 type Props = {
@@ -63,7 +65,7 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
     setEndErrorCode(ended.errorCode ?? '')
     setDismissedError('')
     const r = ended.result
-    if (ended.didNotRun) setDone(null)
+    if (ended.didNotRun || ended.cleared) setDone(null)
     else if (ended.nothingNew) setDone({ text: 'Nothing new to learn', calm: true })
     else if (r?.text) setDone({ text: r.text.startsWith('Learning cancelled') ? r.text : `Done. ${r.text}` })
     else if (!ended.error) setDone({ text: `Done. ${ended.added} ${ended.added === 1 ? 'lesson' : 'lessons'} learned` })
