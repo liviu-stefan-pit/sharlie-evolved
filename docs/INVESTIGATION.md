@@ -160,3 +160,5 @@ Host actions the UI team needs are specified in `docs/HOST_ACTIONS.md` (folder p
 ## Known issues
 
 `pageState` calls `session.sourceFolders()` twice on every snapshot (`local-memory/src/window.ts`, the `sources` field and the `chatsFound` sum). Each call walks the installed-tool folders again. Performance only. Not fixed in this release.
+
+Chats over 30,000 characters are cut to their newest 30,000, so their openings are dropped. Known trade-off for this release.
