@@ -1,5 +1,5 @@
 import { Graph } from '@cosmos.gl/graph'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { displayColor, displayRadius, linkEnd, newness } from './graph'
 import type { GraphData, GraphNode } from './types'
 
@@ -23,6 +23,8 @@ const LABEL_CAP = 12
 /** Middle of cosmos' default 4096 space. */
 const SEED_CENTER = 2048
 const LABEL_CAP_NARROW = 6
+const LABEL_RIGHT = 'translate(10px, -50%)'
+const LABEL_LEFT = 'translate(calc(-100% - 10px), -50%)'
 const GLOW_MS = 600
 const HOVER_ALPHA = 0.28
 /** Lyra's tokens from index.css; the host's old graph palette is ignored. */
@@ -206,7 +208,7 @@ export function GraphMap({
         const g = engine.current
         if (!g || ids.current.length === 0) return
         g.setConfigPartial({ linkVisibilityDistanceRange: linkFade(node) })
-        g.fitView(e2e || reducedMotion() ? 0 : 200, 0.1, false)
+        fit(g, e2e || reducedMotion() ? 0 : 200)
         scheduleLabels()
       }, 60)
     })
@@ -257,6 +259,19 @@ export function GraphMap({
         }
       },
     }
+  }
+
+  /**
+   * Fit the view. One point has no extent, so fitView zooms to the maximum and the dot and its
+   * label drift apart: centre it at scale 1 instead; two points get extra padding. Labels are
+   * refreshed again once the fit animation has finished.
+   */
+  function fit(g: Graph, duration: number) {
+    const count = ids.current.length
+    if (count === 1) g.zoomToPointByIndex(0, duration, 1, true, false)
+    else g.fitView(duration, count === 2 ? 0.35 : 0.1, false)
+    scheduleLabels()
+    window.setTimeout(scheduleLabels, duration + 60)
   }
 
   function shouldFit(count: number) {
@@ -360,7 +375,7 @@ export function GraphMap({
     const now = performance.now()
     if (!final && now - lastFollow.current < 400) return
     lastFollow.current = now
-    g.fitView(reducedMotion() ? 0 : 250, 0.1, false)
+    fit(g, reducedMotion() ? 0 : 250)
   }
   const rankCache = useRef<{ data: GraphData | null; order: number[] }>({ data: null, order: [] })
   /** Node indices by degree, highest first (stable on ties); recomputed only when the graph changes. */
@@ -550,7 +565,7 @@ export function GraphMap({
       g.setPinnedPoints(ids.current.map((_, index) => index))
     }
     if (shouldFit(data.nodes.length)) {
-      g.fitView(e2e ? 0 : 400, 0.1, false)
+      fit(g, e2e ? 0 : 400)
       everFitted.current = true
     }
     if (e2e) {
@@ -564,6 +579,39 @@ export function GraphMap({
     scheduleLabels()
   }
 
+  // Keep every label inside the frame: flip to the left of its dot when it would run off the
+  // right edge, and hide a lower-ranked label that would overlap one already placed (the hovered
+  // and selected labels come first in the list and always show).
+  useLayoutEffect(() => {
+    const box = frame.current
+    if (!box) return
+    const width = box.clientWidth
+    const placedRects: Array<[number, number, number, number]> = []
+    const overlaps = (r: [number, number, number, number]) => placedRects.some((p) => r[0] < p[2] && r[2] > p[0] && r[1] < p[3] && r[3] > p[1])
+    const pinned = new Set([hovered.current != null ? ids.current[hovered.current] : '', selectedRef.current].filter(Boolean))
+    for (const item of labels) {
+      const el = box.querySelector<HTMLElement>(`[data-graph-label="${CSS.escape(item.id)}"]`)
+      if (!el) continue
+      const w = el.offsetWidth
+      const h = el.offsetHeight
+      const right: [number, number, number, number] = [item.x + 10, item.y - h / 2, item.x + 10 + w, item.y + h / 2]
+      const left: [number, number, number, number] = [item.x - 10 - w, item.y - h / 2, item.x - 10, item.y + h / 2]
+      const fitsRight = right[2] <= width
+      const fitsLeft = left[0] >= 0
+      let side = fitsRight || !fitsLeft ? right : left
+      if (overlaps(side)) {
+        const other = side === right ? left : right
+        if ((other === left ? fitsLeft : fitsRight) && !overlaps(other)) side = other
+      }
+      el.style.transform = side === right ? LABEL_RIGHT : LABEL_LEFT
+      const hide = overlaps(side) && !pinned.has(item.id)
+      el.style.visibility = hide ? 'hidden' : ''
+      if (hide) el.dataset.hidden = 'overlap'
+      else delete el.dataset.hidden
+      if (!hide) placedRects.push(side)
+    }
+  }, [labels])
+
   return (
     <div ref={frame} data-graph className="relative min-h-0 flex-1 bg-canvas">
       <div ref={host} className="absolute inset-0" />
@@ -572,8 +620,8 @@ export function GraphMap({
           <div
             key={item.id}
             data-graph-label={item.id}
-            className="absolute whitespace-nowrap text-[13px] text-ink [text-shadow:0_0_3px_var(--color-canvas)]"
-            style={{ left: item.x, top: item.y, transform: 'translate(10px, -50%)' }}
+            className="absolute max-w-[40vw] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-ink [text-shadow:0_0_3px_var(--color-canvas)]"
+            style={{ left: item.x, top: item.y, transform: LABEL_RIGHT }}
           >
             {item.label}
           </div>

@@ -204,3 +204,22 @@ test('only Ask has the primary fill; the active page is marked with an underline
   await settings.click()
   await expect(page.locator('[data-active-mark]')).toHaveCount(0)
 })
+
+test('a label near the right edge flips to the left of its dot and stays inside the map', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 600 })
+  const graph = busyGraph()
+  graph.nodes = graph.nodes.slice(0, 3).map((node, i) => ({ ...node, label: `a-rather-long-topic-label-${i}` }))
+  await openApp(page, pageState({ graph }))
+  await page.waitForFunction(() => !!window.__sharlieGraph?.screenCoords('tool:t2'))
+  const labels = page.locator('[data-graph-label]')
+  await expect(labels).toHaveCount(3)
+  const result = await page.evaluate(() => {
+    const frame = document.querySelector('[data-graph]')!.getBoundingClientRect()
+    return [...document.querySelectorAll<HTMLElement>('[data-graph-label]')].map((el) => {
+      const box = el.getBoundingClientRect()
+      return { inside: box.left >= frame.left - 0.5 && box.right <= frame.right + 0.5, flipped: el.style.transform.includes('-100%') }
+    })
+  })
+  expect(result.every((item) => item.inside)).toBe(true)
+  expect(result.some((item) => item.flipped)).toBe(true)
+})
