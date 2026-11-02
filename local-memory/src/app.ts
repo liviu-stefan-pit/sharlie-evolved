@@ -2498,10 +2498,13 @@ export function openApp(
         emitLearning(learningSnapshot)
         if (!learningSnapshot.active || learningSnapshot.done !== learningSnapshot.total) return
         const lessons = learningSnapshot.lessons ?? 0
-        learningOutcome = {
-          lessons,
-          chats: learningSnapshot.done,
-          text: learnedText(lessons),
+        if (learningSnapshot.error && lessons === 0) learningOutcome = null
+        else {
+          learningOutcome = {
+            lessons,
+            chats: learningSnapshot.done,
+            text: learnedText(lessons),
+          }
         }
         const finished: LearningProgress = {
           active: false,
@@ -2542,6 +2545,19 @@ export function openApp(
         writeSettings(directory, settings)
       }
       if (readable.length === 0) {
+        try {
+          this.activeKey()
+        } catch (error) {
+          if (isMissingKeySecret(error)) {
+            const message = learningErrorMessage(error)
+            if (foreground) {
+              learningOutcome = null
+              emitLearning({ active: false, done: 0, total: 0, error: message, errorCode: 'secret_missing' })
+            }
+            return { ran: false, errorCode: 'secret_missing', notice: message }
+          }
+          throw error
+        }
         if (foreground) finishEmptyForeground()
         rememberLearned()
         if (foreground) markIngestComplete()

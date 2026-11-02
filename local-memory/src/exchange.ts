@@ -230,9 +230,16 @@ async function cursorPrompt(request: ModelRequest, deps: ExchangeDeps): Promise<
   return { text: '', tokens: null }
 }
 
-async function modelJson<T>(response: Response, label: string): Promise<T> {
-  if (!response.ok) throw new Error(`${label} ${response.status}`)
-  return response.json() as Promise<T>
+const unreadableReply = "The AI service sent a reply the app couldn't read."
+
+async function modelJson<T>(response: Response, _label: string): Promise<T> {
+  if (!response.ok) throw new Error(unreadableReply)
+  try {
+    return (await response.json()) as T
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new Error(unreadableReply)
+    throw error
+  }
 }
 
 function copilotHeaders(secret: string) {

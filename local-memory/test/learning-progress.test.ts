@@ -892,3 +892,84 @@ test('a model that never answers ends as model_error', async () => {
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('a failed pass does not report 0 lessons learned', async () => {
+  const { discardVault, learningResult, openApp } = await import('../src/app.ts')
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-failed-result-'))
+  try {
+    const app = openApp(
+      directory,
+      () => Promise.reject(new Error('model timed out')),
+      machineWith(directory, ['cursor']),
+    )
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    const learned = await app.runLearner(
+      [
+        { id: 'one', source: 'cursor', text: 'first', changedAt: '2024-01-02T00:00:00.000Z' },
+        { id: 'two', source: 'cursor', text: 'second', changedAt: '2024-01-01T00:00:00.000Z' },
+      ],
+      { foreground: true },
+    )
+    assert.equal(learned.ran, false)
+    assert.equal(learningResult(), null)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('an empty pass with a missing key does not move lastLearnedAt', async () => {
+  const { discardVault, openApp } = await import('../src/app.ts')
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-empty-key-'))
+  writeFileSync(join(directory, 'settings.json'), JSON.stringify({ lastLearnedAt: '2020-01-01T00:00:00.000Z' }))
+  let vaultId = ''
+  try {
+    const app = openApp(directory, () => draft('should not learn'), machineWith(directory, ['cursor']))
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    const settings = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as { vaultId: string }
+    vaultId = settings.vaultId
+    missingSecrets.add(vaultId)
+    const learned = app.runLearner([], { foreground: true })
+    assert.equal(learned instanceof Promise, false)
+    if (learned instanceof Promise) return
+    assert.equal(learned.ran, false)
+    assert.equal(app.lastLearnedAt(), '2020-01-01T00:00:00.000Z')
+  } finally {
+    if (vaultId) missingSecrets.delete(vaultId)
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('a raw model reply becomes a plain sentence', async () => {
+  const { callModel } = await import('../src/exchange.ts')
+  const sentence = "The AI service sent a reply the app couldn't read."
+  const request = {
+    provider: 'custom' as const,
+    secret: 'sk',
+    model: 'm',
+    prompt: 'hi',
+    baseUrl: 'https://example.test',
+  }
+  await assert.rejects(
+    () => callModel(request, async () => ({ ok: false, status: 500 }) as unknown as Response),
+    (error: Error) => error.message === sentence,
+  )
+  await assert.rejects(
+    () =>
+      callModel(
+        request,
+        async () =>
+          ({
+            ok: true,
+            status: 200,
+            json: async () => {
+              throw new SyntaxError('Unexpected token')
+            },
+          }) as unknown as Response,
+      ),
+    (error: Error) => error.message === sentence,
+  )
+})
