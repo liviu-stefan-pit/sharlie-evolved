@@ -20,7 +20,7 @@ To get the installer:
 
 ## 3. First run: four steps
 
-The window says **"Sharlie learns from your work on this computer"**. It reads the chats your coding tools already save and keeps short lessons on this PC. Removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI.
+The window says **"Sharlie learns from your work on this computer"**. It reads the chats your coding tools already save and keeps short lessons on this PC. It removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI.
 
 1. **Found on this PC.** Sharlie lists the chats it found, e.g. "Cursor · 412". If it found none, see section 6.
 2. **About you.** Name, Email, Team. Each field saves when you leave it.

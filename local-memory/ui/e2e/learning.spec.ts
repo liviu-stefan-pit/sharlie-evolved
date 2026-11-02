@@ -11,7 +11,7 @@ async function nextAction(page: Page) {
 test('the first-run card explains what Sharlie does', async ({ page }) => {
   await openApp(page, pageState({ sources: [{ tool: 'Cursor', path: 'C:\\c', chats: 412 }], chatsFound: 412 }))
   await expect(page.getByRole('heading', { name: 'Sharlie learns from your work on this computer' })).toBeVisible()
-  await expect(page.getByText("It reads the chats your coding tools already save and keeps short lessons on this PC. Removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI.")).toBeVisible()
+  await expect(page.getByText("It reads the chats your coding tools already save and keeps short lessons on this PC. It removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI.")).toBeVisible()
   await expect(page.getByRole('heading', { name: /Found: Cursor · 412 chats/ })).toBeVisible()
   await expect(page.getByText('Saved securely in Windows Credential Manager', { exact: false })).toBeVisible()
   await expect(page.getByText('Off. Everything stays on this PC.', { exact: false })).toBeVisible()

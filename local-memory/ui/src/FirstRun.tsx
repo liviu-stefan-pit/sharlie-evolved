@@ -228,7 +228,7 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
         Sharlie learns from your work on this computer
       </h2>
       <p className="mt-2 text-[15px] text-muted">
-        It reads the chats your coding tools already save and keeps short lessons on this PC. Removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI.
+        It reads the chats your coding tools already save and keeps short lessons on this PC. It removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI.
       </p>
       <ol className="mt-4">
         <Step
