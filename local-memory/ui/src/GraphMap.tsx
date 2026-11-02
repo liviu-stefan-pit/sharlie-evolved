@@ -14,6 +14,7 @@ type SharlieGraphApi = {
     colors: number[]
     positions: number[]
     labels: number
+    linkFade?: { range: number[]; min: number; opacity: number }
   }
 }
 
@@ -34,6 +35,17 @@ const palette = () => ({
   low: token('--color-muted', '#a3a9b8'),
   high: token('--color-amber', '#b89a6a'),
 })
+/**
+ * Long links fade: fully drawn up to ~12% of the shorter canvas side, down to 12% opacity
+ * past ~45%, so links that cross the whole map stay in the background. Screen space, so it
+ * follows zoom; recomputed on resize.
+ */
+const LINK_OPACITY = 0.7
+const LINK_MIN_ALPHA = 0.12
+function linkFade(node: HTMLElement | null) {
+  const side = Math.max(200, Math.min(node?.clientWidth ?? 800, node?.clientHeight ?? 600))
+  return [Math.round(side * 0.12), Math.round(side * 0.45)]
+}
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
 function webgl2Ok() {
@@ -175,6 +187,7 @@ export function GraphMap({
       timer = window.setTimeout(() => {
         const g = engine.current
         if (!g || ids.current.length === 0) return
+        g.setConfigPartial({ linkVisibilityDistanceRange: linkFade(node) })
         g.fitView(e2e || reducedMotion() ? 0 : 200, 0.1, false)
         scheduleLabels()
       }, 60)
@@ -222,6 +235,7 @@ export function GraphMap({
           colors: g ? [...g.getPointColors()] : [],
           positions: g ? g.getPointPositions() : [],
           labels: frame.current?.querySelectorAll('[data-graph-label]').length ?? 0,
+          linkFade: { range: g ? [...g.config.linkVisibilityDistanceRange] : [], min: LINK_MIN_ALPHA, opacity: LINK_OPACITY },
         }
       },
     }
@@ -455,7 +469,9 @@ export function GraphMap({
         simulationCollision: 1,
         simulationCollisionPadding: 2,
         pointSamplingDistance: 72,
-        linkVisibilityMinTransparency: 1,
+        linkOpacity: LINK_OPACITY,
+        linkVisibilityDistanceRange: linkFade(frame.current),
+        linkVisibilityMinTransparency: LINK_MIN_ALPHA,
         rescalePositions: false,
         onSimulationEnd: () => engine.current?.pause(),
         onPointClick: (index) => onSelectRef.current(ids.current[index] ?? ''),

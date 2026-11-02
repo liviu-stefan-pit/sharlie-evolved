@@ -483,3 +483,17 @@ test('the local badge is a neutral lock, never the amber dot, and Close is a 36p
   expect(close?.height).toBeGreaterThanOrEqual(36)
   expect(close?.width).toBeGreaterThanOrEqual(36)
 })
+
+test('long links fade with distance and follow the canvas size', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.waitForFunction(() => !!window.__sharlieGraph?.screenCoords('card:retry'))
+  const read = () =>
+    page.evaluate(() => (window.__sharlieGraph as { inspect?: () => { linkFade?: { range: number[]; min: number; opacity: number } } }).inspect?.().linkFade)
+  const wide = await read()
+  expect(wide?.min).toBeLessThanOrEqual(0.15)
+  expect(wide?.opacity).toBeLessThan(1)
+  expect(wide?.range[0]).toBeLessThan(wide?.range[1] ?? 0)
+  await page.setViewportSize({ width: 600, height: 420 })
+  await expect.poll(async () => (await read())?.range[1] ?? 0).toBeLessThan(wide?.range[1] ?? 0)
+})
