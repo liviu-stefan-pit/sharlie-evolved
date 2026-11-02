@@ -286,7 +286,7 @@ test('high degree nodes show labels', async ({ page }) => {
   await expect(page.locator('[data-graph-label="card:two"]')).toHaveCount(1)
 })
 
-test('the map asks for WebGL2 when that context is missing', async ({ page }) => {
+test('without WebGL2 the map falls back to the lesson list', async ({ page }) => {
   await page.addInitScript(() => {
     const proto = HTMLCanvasElement.prototype
     const original = proto.getContext as (this: HTMLCanvasElement, type: string, options?: unknown) => RenderingContext | null
@@ -296,7 +296,11 @@ test('the map asks for WebGL2 when that context is missing', async ({ page }) =>
     } as typeof proto.getContext
   })
   await openApp(page, pageState({ graph: graphWithNodes() }))
-  await expect(page.getByText('This map needs WebGL2')).toBeVisible()
+  await expect(page.getByText("This PC can't draw the map, so here is the list.")).toBeVisible()
+  const list = page.locator('[data-lesson-list]')
+  await expect(list.getByRole('button', { name: 'Retry the deploy' })).toBeVisible()
+  await list.getByRole('button', { name: 'Retry the deploy' }).click()
+  await expect(page.locator('aside')).toBeVisible()
 })
 
 test('leaving a node restores the faded point', async ({ page }) => {

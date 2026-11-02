@@ -89,6 +89,10 @@ export type PageState = {
   learningTokensUnreported: number
   ingest: IngestState | null
   notice?: string
+  /** Optional (host may add it): chats found across the sources on this PC. */
+  chatCount?: number
+  /** Optional (host may add it): every folder Sharlie looks in, found or not. */
+  searchedFolders?: Array<{ tool: string; path: string }>
 }
 
 export function formatTokenTotal(tokens: number, unreported: number) {
@@ -111,7 +115,6 @@ export const providers = [
   { id: 'copilot', label: 'Copilot' },
   { id: 'anthropic', label: 'Anthropic' },
   { id: 'openai', label: 'OpenAI' },
-  { id: 'custom', label: 'Custom' },
 ] as const
 
 export const cadences = ['15m', '30m', '1h', 'manual'] as const

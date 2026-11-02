@@ -21,7 +21,7 @@ test('the sources menu closes on Escape, an outside click, and Settings', async 
   await expect(page.getByRole('menu', { name: 'Sources' })).toBeHidden()
 
   await button.click()
-  await page.getByRole('heading', { name: 'Sharlie' }).click()
+  await page.getByRole('heading', { name: 'Sharlie', exact: true }).click()
   await expect(page.getByRole('menu', { name: 'Sources' })).toBeHidden()
 
   await button.click()

@@ -9,6 +9,8 @@ interface SharlieBridge {
   onLearning: (callback: (state: PageState) => void) => () => void
   /** Optional: stop the running learning pass (host may not provide it yet). */
   cancelLearning?: () => Promise<unknown> | unknown
+  /** Optional: look for chat folders again now and return the fresh state. */
+  checkSources?: () => Promise<PageState>
 }
 
 declare global {

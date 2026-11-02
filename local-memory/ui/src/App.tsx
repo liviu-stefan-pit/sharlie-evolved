@@ -1,11 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Drawer } from './Drawer'
+import { FirstRun } from './FirstRun'
+import { LearningStrip } from './LearningStrip'
+import { LessonList } from './LessonList'
+import { firstTodo } from './setup'
 import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
-import { loadState, onLearning, runAction, runLookup } from './host'
+import { checkSources, loadState, onLearning, runAction, runLookup } from './host'
 import { SettingsView } from './SettingsView'
 import { SourceMenu } from './SourceMenu'
-import { formatLearningCount, formatTokenTotal, type GraphNode, type PageState } from './types'
+import { type GraphNode, type PageState } from './types'
 
 type View = 'graph' | 'settings'
 
@@ -116,7 +120,31 @@ export function App() {
   const graph = state?.graph
   const visible = useMemo(() => (graph ? filterGraph(graph, query) : null), [graph, query])
   const selected = graph?.nodes.find((node) => node.id === selectedId) ?? null
-  const learningHold = holdLearning(state)
+  const cardCount = graph?.nodes.filter((node) => node.kind === 'card').length ?? 0
+  const active = waiting || state?.learning?.active === true
+  const [ranOnce, setRanOnce] = useState(false)
+  const [noWebgl, setNoWebgl] = useState(false)
+  useEffect(() => {
+    if (state?.learning?.active) setRanOnce(true)
+  }, [state?.learning?.active])
+  const empty = !!state && state.graph.nodes.length === 0 && !active
+  const ready = !!state && firstTodo(state) === null
+  const finishedRun =
+    !!state && !state.learning?.error && (ranOnce || state.learning?.active === false || state.ingest?.visible === true)
+  // A finished run that found nothing gets the Home empty state, never a blank graph.
+  const homeEmpty = empty && ready && finishedRun
+  const firstRun = empty && !homeEmpty
+
+  async function checkAgain() {
+    apply(await checkSources())
+  }
+
+  /** Runs one action and adopts its reply; throws so callers can show the error inline. */
+  async function act(body: Record<string, unknown>) {
+    const next = await runAction(body)
+    apply(next)
+    return stateRef.current ?? next
+  }
 
   async function submitSearch(event: FormEvent) {
     event.preventDefault()
@@ -267,6 +295,18 @@ export function App() {
           Settings
         </button>
       </header>
+      {state ? (
+        <LearningStrip
+          learning={state.learning ?? null}
+          waiting={waiting}
+          lines={state.ingest?.visible ? state.ingest.lines : []}
+          cardCount={cardCount}
+          onSeeLessons={() => {
+            setQuery('')
+            setView('graph')
+          }}
+        />
+      ) : null}
       {looking || lookupError || lookupAnswer ? (
         <p className={`border-b border-line px-3 py-2 text-[13px] ${lookupError && !looking ? 'text-pending' : 'text-muted'}`}>
           {looking ? 'Looking up' : lookupError || lookupAnswer}
@@ -277,26 +317,45 @@ export function App() {
       {view === 'graph' && visible ? (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 flex-col">
-            <GraphMap
-              graph={visible}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              learningActive={waiting || state?.learning?.active === true}
-            />
-            {state && state.graph.nodes.length === 0 && !waiting && !state.learning?.active ? (
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
+            {noWebgl ? (
+              <LessonList
+                nodes={visible.nodes}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                note="This PC can't draw the map, so here is the list."
+              />
+            ) : (
+              <GraphMap
+                graph={visible}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                learningActive={active}
+                onUnsupported={() => setNoWebgl(true)}
+              />
+            )}
+            {homeEmpty ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas px-6 text-center">
+                <p className="text-[18px] text-ink">No lessons yet. Sharlie will learn as you work.</p>
                 <button
                   type="button"
-                  className="pointer-events-auto rounded-full border border-accent bg-accent px-4 py-2 text-[13px] font-medium text-on-accent transition-colors duration-[120ms] focus:border-focus disabled:opacity-50"
-                  disabled={learningHold !== ''}
+                  className="h-10 rounded-[10px] border border-accent bg-accent px-4 text-[15px] font-medium text-on-accent"
                   onClick={() => void startLearning()}
                 >
-                  Start learning
+                  Check again
                 </button>
-                {learningHold !== '' ? <p className="text-[13px] text-muted">{learningHold}</p> : null}
-                {learningHold === '' && notice ? (
-                  <p className="max-w-sm px-4 text-center text-[13px] text-pending">{notice}</p>
-                ) : null}
+              </div>
+            ) : null}
+            {firstRun && state ? (
+              <div className="absolute inset-0 overflow-auto bg-canvas">
+                <FirstRun
+                  state={state}
+                  act={act}
+                  starting={waiting}
+                  startError={notice}
+                  onStart={() => void startLearning()}
+                  onOpenSettings={() => setView('settings')}
+                  onCheckAgain={checkAgain}
+                />
               </div>
             ) : null}
             {selected ? (
@@ -309,7 +368,6 @@ export function App() {
               />
             ) : null}
           </div>
-          {state?.ingest?.visible ? <IngestPanel state={state} /> : null}
         </div>
       ) : null}
       {view === 'settings' && state ? (
@@ -340,12 +398,6 @@ export function App() {
       {view === 'graph' && state && !visible ? (
         <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p>
       ) : null}
-      <LearningBar
-        learning={state?.learning ?? null}
-        waiting={waiting}
-        tokens={state?.learningTokens ?? 0}
-        unreported={state?.learningTokensUnreported ?? 0}
-      />
     </div>
   )
 }
@@ -385,106 +437,3 @@ function preserveNodeMotion(previous: GraphNode[] | undefined, incoming: GraphNo
   })
 }
 
-function IngestPanel({ state }: { state: PageState }) {
-  const logRef = useRef<HTMLDivElement | null>(null)
-  const stickRef = useRef(true)
-  const ingest = state.ingest
-  const lines = ingest?.visible ? ingest.lines : []
-  const header = state.learning
-    ? formatLearningCount(state.learning.done, state.learning.total, state.learningTokens, state.learningTokensUnreported)
-    : formatTokenTotal(state.learningTokens, state.learningTokensUnreported)
-  const el = logRef.current
-  if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 24
-
-  useLayoutEffect(() => {
-    const node = logRef.current
-    if (!node || lines.length === 0) return
-    if (stickRef.current) node.scrollTop = node.scrollHeight
-  }, [lines])
-
-  if (!ingest?.visible) return null
-
-  return (
-    <div className="shrink-0 border-t border-line bg-panel">
-      <div className="px-3 py-1.5">
-        <p className="min-w-0 text-[13px] text-muted">{header}</p>
-      </div>
-      {state.learning?.error ? <p className="px-3 pb-1 text-[13px] text-pending">{state.learning.error}</p> : null}
-      <div
-        ref={logRef}
-        role="log"
-        aria-label="Learning log"
-        className="max-h-32 overflow-auto px-3 pb-2"
-        onScroll={(event) => {
-          const node = event.currentTarget
-          stickRef.current = node.scrollHeight - node.scrollTop - node.clientHeight <= 24
-        }}
-      >
-        {lines.map((line, index) => (
-          <p key={`${index}:${line}`} className="py-0.5 text-[13px] text-muted">
-            {line}
-          </p>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function LearningBar({
-  learning,
-  waiting,
-  tokens,
-  unreported,
-}: {
-  learning: PageState['learning']
-  waiting: boolean
-  tokens: number
-  unreported: number
-}) {
-  if (!waiting && learning?.active !== true) return null
-  const total = learning?.total ?? 0
-  const done = learning?.done ?? 0
-  const known = total > 0
-  const label = known
-    ? formatLearningCount(done, total, tokens, unreported)
-    : `Learning · ${formatTokenTotal(tokens, unreported)}`
-  return (
-    <div
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={known ? 0 : undefined}
-      aria-valuemax={known ? total : undefined}
-      aria-valuenow={known ? done : undefined}
-      className="shrink-0 border-t border-line bg-panel"
-    >
-      <div className="h-1 bg-field">
-        <div
-          className={`h-full bg-accent ${known ? '' : 'w-1/3 animate-pulse'}`}
-          style={known ? { width: `${(done / total) * 100}%` } : undefined}
-        />
-      </div>
-      <p className="px-3 py-1.5 text-[13px] text-muted">{label}</p>
-    </div>
-  )
-}
-
-function holdLearning(state: PageState | null) {
-  if (!state) return ''
-  if (!state.hasKey) return 'Add a key in Settings.'
-  const profile = state.profile
-  if (profile.username.trim() === '' || profile.email.trim() === '' || profile.team.trim() === '') {
-    return 'Save your username, email, and team before learning can write cards.'
-  }
-  if (state.provider === '') return 'Turn on a provider before learning can write cards.'
-  if (state.models.length === 0) return 'This SDK has no model list. Switch to Anthropic or OpenAI to start learning.'
-  if (state.model === '') return 'Choose a model before learning can write cards.'
-  const chosen = state.models.find((item) => item.id === state.model)
-  const required = (chosen?.parameters ?? []).filter((parameter) => parameter.values.length > 0)
-  const ready = required.every((parameter) =>
-    state.modelParams.some(
-      (item) => item.id === parameter.id && parameter.values.some((value) => value.value === item.value),
-    ),
-  )
-  if (!ready) return 'Choose effort and fast mode before learning can write cards.'
-  return ''
-}

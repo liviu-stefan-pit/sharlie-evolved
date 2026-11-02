@@ -62,4 +62,13 @@ export function cancelLearning(): Promise<unknown> {
   return call(() => Promise.resolve(cancel()))
 }
 
+/** Check again: the host's rescan when it has one, otherwise a fresh state read. */
+export function checkSources(): Promise<PageState> {
+  const sharlie = bridge()
+  if (!sharlie) return missing()
+  const check = sharlie.checkSources
+  if (typeof check === 'function') return call(() => Promise.resolve(check()))
+  return loadState()
+}
+
 export type { LookupResult, PageState }

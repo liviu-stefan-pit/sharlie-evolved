@@ -8,7 +8,7 @@ test('search stays usable through a lookup, an error, and a second lookup', asyn
   await openApp(page, pageState())
   const search = page.getByLabel('Search')
   await search.fill('retry')
-  await expect(page.getByRole('heading', { name: 'Sharlie' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sharlie', exact: true })).toBeVisible()
   await search.press('Enter')
   await expect(page.getByText('Looking up')).toBeVisible()
   await reply(page, 'lookup', { answer: 'Retry the deploy once.' })

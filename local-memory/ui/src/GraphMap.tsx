@@ -57,11 +57,14 @@ export function GraphMap({
   selectedId,
   onSelect,
   learningActive = false,
+  onUnsupported,
 }: {
   graph: GraphData
   selectedId: string
   onSelect: (id: string) => void
   learningActive?: boolean
+  /** Called once when this PC cannot draw the map (no WebGL2), so the caller can show the list. */
+  onUnsupported?: () => void
 }) {
   const frame = useRef<HTMLDivElement>(null)
   const host = useRef<HTMLDivElement>(null)
@@ -80,6 +83,8 @@ export function GraphMap({
   const graphRef = useRef(graph)
   const selectedRef = useRef(selectedId)
   const onSelectRef = useRef(onSelect)
+  const onUnsupportedRef = useRef(onUnsupported)
+  onUnsupportedRef.current = onUnsupported
   const learningRef = useRef(learningActive)
   const e2e = import.meta.env.VITE_E2E === '1'
   const [blocked, setBlocked] = useState(false)
@@ -330,6 +335,7 @@ export function GraphMap({
     if (!engine.current) {
       if (!webgl2Ok()) {
         setBlocked(true)
+        onUnsupportedRef.current?.()
         return
       }
       engine.current = new Graph(mount, {
