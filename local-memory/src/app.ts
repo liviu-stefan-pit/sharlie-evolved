@@ -2515,6 +2515,7 @@ export function openApp(
                   failure_modes: failureModes,
                   relations,
                   sources,
+                  scope: scrubbed.scope,
                   author: { ...settings.profile },
                 },
               })
@@ -2629,19 +2630,33 @@ export function openApp(
       writeSettings(directory, settings)
     },
     runPublisher() {
+      if (!settings.autoDrop) return { ran: false }
       if (settings.drivePath.trim() === '') return { ran: false }
       const username = settings.profile.username.trim()
       if (username === '') return { ran: false }
       const cardsDir = join(directory, 'cards')
       const names = existsSync(cardsDir)
-        ? readdirSync(cardsDir).filter(
-            (name) => name !== '.claims.json' && (name.endsWith('.md') || name.endsWith('.json')),
-          )
+        ? readdirSync(cardsDir).filter((name) => name !== '.claims.json' && name.endsWith('.json'))
         : []
-      if (names.length === 0) return { ran: true }
+      const workStems: string[] = []
+      for (const name of names) {
+        try {
+          const parsed = JSON.parse(readFileSync(join(cardsDir, name), 'utf8')) as { scope?: unknown }
+          if (parsed?.scope === 'work') workStems.push(name.slice(0, -'.json'.length))
+        } catch {
+          // A file that is not a work card stays on this PC.
+        }
+      }
+      if (workStems.length === 0) return { ran: true }
       const dest = join(settings.drivePath, 'Dropzone', username)
       mkdirSync(dest, { recursive: true })
-      for (const name of names) copyFileSync(join(cardsDir, name), join(dest, name))
+      for (const stem of workStems) {
+        for (const ext of ['.json', '.md'] as const) {
+          const from = join(cardsDir, `${stem}${ext}`)
+          if (!existsSync(from)) continue
+          copyFileSync(from, join(dest, `${stem}${ext}`))
+        }
+      }
       return { ran: true }
     },
     graph() {

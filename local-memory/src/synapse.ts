@@ -25,6 +25,8 @@ export type SynapseCard = {
   sources: string[]
   created_at: string
   author: CardAuthor
+  /** Missing, or any value other than work, means the card stays on this PC. */
+  scope?: 'work' | 'personal'
 }
 
 function yaml(value: string) {
@@ -104,6 +106,7 @@ export function renderCardMarkdown(card: SynapseCard) {
   return [
     '---',
     `id: ${card.id}`,
+    ...(card.scope === 'work' || card.scope === 'personal' ? [`scope: ${card.scope}`] : []),
     `title: ${yaml(card.title)}`,
     ...topicLines(topics),
     'context:',
@@ -154,14 +157,19 @@ function archivePrevious(directory: string, id: string) {
   }
 }
 
-function place(directory: string, name: string, body: string, drop: { enabled: boolean; drivePath: string; username: string }) {
+function place(
+  directory: string,
+  name: string,
+  body: string,
+  drop: { enabled: boolean; drivePath: string; username: string; scope?: string },
+) {
   const inbox = join(directory, 'inbox')
   const cards = join(directory, 'cards')
   mkdirSync(inbox, { recursive: true })
   mkdirSync(cards, { recursive: true })
   const inboxFile = join(inbox, name)
   writeFileSync(inboxFile, body)
-  if (drop.enabled && drop.drivePath.trim() !== '' && drop.username.trim() !== '') {
+  if (drop.enabled && drop.scope === 'work' && drop.drivePath.trim() !== '' && drop.username.trim() !== '') {
     const dest = join(drop.drivePath, 'Dropzone', drop.username)
     mkdirSync(dest, { recursive: true })
     copyFileSync(inboxFile, join(dest, name))
@@ -196,7 +204,12 @@ export function publishCard(options: {
     id,
     created_at: existing?.created_at ?? options.card.created_at ?? new Date().toISOString(),
   }
-  const drop = { enabled: options.autoDrop, drivePath: options.drivePath, username: options.username }
+  const drop = {
+    enabled: options.autoDrop,
+    drivePath: options.drivePath,
+    username: options.username,
+    scope: options.card.scope,
+  }
   place(options.directory, `${id}.json`, `${JSON.stringify(card, null, 2)}\n`, drop)
   place(options.directory, `${id}.md`, renderCardMarkdown(card), drop)
   claims[options.legacyId] = id

@@ -77,7 +77,24 @@ test('an empty Drive path means the publisher does not run', () => {
   })
 })
 
-test('auto-drop off leaves cards on the machine until the publisher copies them into Dropzone', () => {
+test('sharing off writes a work card nowhere in the share folder', () => {
+  withDirectory((directory) => {
+    const drive = join(directory, 'drive')
+    const app = ready(directory, () => draft())
+    app.setDrivePath(drive)
+    app.setAutoDrop(false)
+    app.runLearner([transcript])
+    assert.equal(app.runPublisher().ran, false)
+    assert.equal(existsSync(drive), false)
+    assert.equal(existsSync(join(drive, 'Dropzone')), false)
+    const local = readdirSync(join(directory, 'cards')).filter((name) => name.endsWith('.json') && name !== '.claims.json')
+    assert.equal(local.length, 1)
+    const card = JSON.parse(readFileSync(join(directory, 'cards', local[0]), 'utf8')) as { scope?: string }
+    assert.equal(card.scope, 'work')
+  })
+})
+
+test('sharing on copies a work card and leaves personal and unscoped cards on this PC', () => {
   withDirectory((directory) => {
     const drive = join(directory, 'drive')
     const lessons: Record<string, Partial<LessonDraft>> = {
@@ -86,29 +103,48 @@ test('auto-drop off leaves cards on the machine until the publisher copies them 
     }
     const app = ready(directory, (request) => draft(lessons[request.transcript.text]))
     app.setDrivePath(drive)
+    app.setAutoDrop(true)
     app.runLearner([
-      { source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' },
       { source: 'cursor', text: 'private scratch' },
     ])
-    assert.equal(existsSync(drive), false)
-
+    const cards = join(directory, 'cards')
+    writeFileSync(
+      join(cards, 'noscope.json'),
+      JSON.stringify({
+        id: 'noscope',
+        title: 'No scope',
+        topics: [],
+        context: { os: '', tool_version: '', framework: '' },
+        solution: 'stays here',
+        failure_modes: [],
+        relations: [],
+        sources: [],
+        created_at: '2024-01-01T00:00:00.000Z',
+        author: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+      }),
+    )
+    writeFileSync(join(cards, 'noscope.md'), 'No scope')
     assert.equal(app.runPublisher().ran, true)
+    assert.equal(existsSync(join(drive, 'Dropzone')), false)
+
+    app.runLearner([{ source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' }])
     const drop = join(drive, 'Dropzone', 'ada')
-    const local = readdirSync(join(directory, 'cards')).filter((name) => name.endsWith('.md') || name.endsWith('.json'))
-    for (const name of local) {
-      if (name === '.claims.json') continue
-      assert.deepEqual(readFileSync(join(drop, name)), readFileSync(join(directory, 'cards', name)))
-    }
+    const copied = readdirSync(drop)
+    const jsonName = copied.find((name) => name.endsWith('.json'))
+    const mdName = copied.find((name) => name.endsWith('.md'))
+    assert.ok(jsonName)
+    assert.ok(mdName)
+    assert.equal(jsonName.replace(/\.json$/, ''), mdName.replace(/\.md$/, ''))
+    const shared = JSON.parse(readFileSync(join(drop, jsonName), 'utf8')) as { scope?: string; title?: string }
+    assert.equal(shared.scope, 'work')
+    assert.equal(shared.title, 'Retry failed deploys')
+    assert.equal(readFileSync(join(drop, mdName), 'utf8').includes('Retry failed deploys'), true)
+    assert.equal(
+      copied.some((name) => readFileSync(join(drop, name), 'utf8').includes('My scratch note')),
+      false,
+    )
+    assert.equal(copied.includes('noscope.json') || copied.includes('noscope.md'), false)
     assert.equal(existsSync(join(drive, 'personal')), false)
-    assert.equal(existsSync(join(drive, 'platform')), false)
-    assert.equal(
-      readdirSync(drop).some((name) => readFileSync(join(drop, name), 'utf8').includes('My scratch note')),
-      true,
-    )
-    assert.equal(
-      readdirSync(drop).some((name) => readFileSync(join(drop, name), 'utf8').includes('Retry failed deploys')),
-      true,
-    )
   })
 })
 
@@ -157,6 +193,7 @@ test('publishing continues after the model key is removed', () => {
       machineWith(directory, ['cursor', 'claude']),
     )
     assert.throws(() => reopened.activeKey(), /No active key/)
+    reopened.setAutoDrop(true)
     assert.equal(reopened.runPublisher().ran, true)
     assert.equal(modelCalls, learned)
 

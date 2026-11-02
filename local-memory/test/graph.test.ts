@@ -160,6 +160,7 @@ test('a work card the publisher has copied shows as synced', () => {
       { source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' },
       { source: 'cursor', text: 'private scratch' },
     ])
+    app.setAutoDrop(true)
     app.runPublisher()
 
     const synced = (label: string) => {
@@ -168,7 +169,7 @@ test('a work card the publisher has copied shows as synced', () => {
       return node.synced
     }
     assert.equal(synced('Retry failed deploys'), true)
-    assert.equal(synced('My scratch note'), true)
+    assert.equal(synced('My scratch note'), false)
   })
 })
 
@@ -216,6 +217,7 @@ test('the graph keeps the zinc palette, and green is only the synced card color'
       { source: 'cursor', text: 'shared deploy lesson', repo: 'sharlie-evolved' },
       { source: 'cursor', text: 'private scratch' },
     ])
+    app.setAutoDrop(true)
     app.runPublisher()
 
     const graph = app.graph()

@@ -52,6 +52,7 @@ function prepare(session: ReturnType<typeof openUserSession>, directory: string,
   window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
   window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
   window.setDrivePath(drive)
+  window.setAutoDrop(true)
   window.startLearning()
   window.close()
   return window
@@ -60,6 +61,26 @@ function prepare(session: ReturnType<typeof openUserSession>, directory: string,
 function cardFiles(folder: string) {
   if (!existsSync(folder)) return []
   return readdirSync(folder).filter((name) => name.endsWith('.md'))
+}
+
+function plantWorkNote(folder: string, body: string) {
+  writeFileSync(join(folder, 'extra-note.md'), body)
+  writeFileSync(
+    join(folder, 'extra-note.json'),
+    JSON.stringify({
+      id: 'extra-note',
+      title: body,
+      scope: 'work',
+      topics: [],
+      context: { os: '', tool_version: '', framework: '' },
+      solution: body,
+      failure_modes: [],
+      relations: [],
+      sources: ['cursor'],
+      created_at: '2024-01-01T00:00:00.000Z',
+      author: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+    }),
+  )
 }
 
 test('unit tests skip the operating system login item', () => {
@@ -89,7 +110,7 @@ test('manual cadence does not tick, and sync now runs one learner pass and one p
       repo: 'sharlie-evolved',
     })
     const folder = join(directory, 'cards')
-    writeFileSync(join(folder, 'extra-note.md'), 'a work card added while manual')
+    plantWorkNote(folder, 'a work card added while manual')
     ada.pass(hour)
     assert.equal(
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('read the lock log')),
@@ -214,6 +235,7 @@ test('the window can register both jobs', () => {
     window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
     window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
     window.setDrivePath(drive)
+    window.setAutoDrop(true)
     window.startLearning()
     transcripts.push({
       id: 'deploy',
@@ -260,7 +282,7 @@ test('the window can unregister both jobs and pause the system without uninstall
       repo: 'sharlie-evolved',
     })
     const folder = join(directory, 'cards')
-    writeFileSync(join(folder, 'extra-note.md'), 'a work card added while paused')
+    plantWorkNote(folder, 'a work card added while paused')
     ada.pass(hour)
     ada.logOut()
     ada.logIn()
@@ -317,7 +339,7 @@ test('the jobs start when the person logs in and stop when they log out', () => 
       changedAt: '2024-07-01T00:00:00.000Z',
       repo: 'sharlie-evolved',
     })
-    writeFileSync(join(folder, 'extra-note.md'), 'a work card added after logout')
+    plantWorkNote(folder, 'a work card added after logout')
     ada.logOut()
     ada.pass(hour)
 
@@ -361,7 +383,7 @@ test('the jobs stop when the machine shuts down', () => {
       repo: 'sharlie-evolved',
     })
     const folder = join(directory, 'cards')
-    writeFileSync(join(folder, 'extra-note.md'), 'a work card added after shutdown')
+    plantWorkNote(folder, 'a work card added after shutdown')
     ada.shutDown()
     ada.pass(hour)
 
@@ -440,6 +462,7 @@ test('opening or closing the window leaves the jobs as they are', () => {
     setup.saveProfile(profile)
     setup.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
     setup.setDrivePath(drive)
+    setup.setAutoDrop(true)
     setup.startLearning()
     ada.install(directory)
     setup.close()
@@ -547,6 +570,7 @@ test('the publisher job copies work cards and leaves personal cards on the machi
       window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
       window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
       window.setDrivePath(drive)
+      window.setAutoDrop(true)
       window.setPublisherInterval(hour)
       window.startLearning()
       window.close()
@@ -580,8 +604,9 @@ test('the publisher job copies work cards and leaves personal cards on the machi
       )
       assert.equal(
         cardFiles(drop).some((file) => readFileSync(join(drop, file), 'utf8').includes('title: my scratch note')),
-        true,
+        false,
       )
+      plantWorkNote(work, 'a work card added for the publisher')
 
       transcripts.push({
         id: 'later',
@@ -597,20 +622,52 @@ test('the publisher job copies work cards and leaves personal cards on the machi
       )
       assert.equal(
         cardFiles(join(drive, 'Dropzone', 'ada')).some((file) =>
-          readFileSync(join(drive, 'Dropzone', 'ada', file), 'utf8').includes('read the lock log'),
-        ),
-        false,
-      )
-
-      ada.pass(30 * 60 * 1000)
-      assert.equal(
-        cardFiles(join(drive, 'Dropzone', 'ada')).some((file) =>
           readFileSync(join(drive, 'Dropzone', 'ada', file), 'utf8').includes('title: read the lock log'),
         ),
         true,
       )
+      assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
+
+      ada.pass(30 * 60 * 1000)
+      assert.equal(
+        readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
+        'a work card added for the publisher',
+      )
+      assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.json')), true)
       assert.equal(existsSync(join(drive, 'personal')), false)
     },
     (request) => draft(request.transcript.text, request.transcript.text === 'my scratch note' ? 'personal' : 'work'),
   )
+})
+
+test('logIn and syncNow write nothing to the share folder while sharing is off', () => {
+  withPerson('ada', (ada, directory, transcripts) => {
+    const drive = join(directory, 'drive')
+    ada.logIn()
+    const window = ada.openWindow(directory)
+    window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    window.setDrivePath(drive)
+    window.setAutoDrop(false)
+    window.startLearning()
+    transcripts.push({
+      id: 'deploy',
+      source: 'cursor',
+      text: 'retry the deploy',
+      changedAt: '2024-06-01T00:00:00.000Z',
+      repo: 'sharlie-evolved',
+    })
+    ada.install(directory)
+    assert.equal(existsSync(join(drive, 'Dropzone')), false)
+    const folder = join(directory, 'cards')
+    assert.equal(
+      cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: retry the deploy')),
+      true,
+    )
+    ada.syncNow()
+    assert.equal(existsSync(join(drive, 'Dropzone')), false)
+    ada.logOut()
+    ada.logIn()
+    assert.equal(existsSync(join(drive, 'Dropzone')), false)
+  })
 })
