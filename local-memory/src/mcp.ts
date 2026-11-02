@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { type Machine } from './app.ts'
-import { queryNeo4j } from '../relay/neo4j.ts'
 import { readCards, type SynapseCard } from './synapse.ts'
 
 type ToolResult = { content: { type: 'text'; text: string }[] }
@@ -91,7 +90,11 @@ function neo4jConfigured() {
 }
 
 async function neo4j(statement: string, parameters: Record<string, unknown>) {
-  return queryNeo4j(statement, parameters)
+  const specifier = '../relay/neo4j.ts'
+  const relay = (await import(specifier)) as {
+    queryNeo4j: (statement: string, parameters: Record<string, unknown>) => Promise<unknown>
+  }
+  return relay.queryNeo4j(statement, parameters)
 }
 
 function cardText(card: SynapseCard) {
@@ -210,6 +213,7 @@ async function serve() {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+const entry = process.argv[1] ?? ''
+if (/(^|[\\/])mcp\.(ts|js|mjs)$/.test(entry) && import.meta.url === pathToFileURL(entry).href) {
   await serve()
 }

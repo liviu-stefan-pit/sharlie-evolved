@@ -4,4 +4,5 @@
 node_modules/
 local-memory/release/
 local-memory/ui/dist/
+local-memory/electron/dist/
 local-memory/test-results/

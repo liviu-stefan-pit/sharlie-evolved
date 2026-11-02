@@ -141,8 +141,10 @@ test('the desktop window is an Electron shell titled Sharlie', () => {
   }
   const installer = readFileSync(new URL('../electron/installer.nsh', import.meta.url), 'utf8')
   assert.match(main, /title:\s*'Sharlie'/)
-  assert.match(main, /width:\s*680/)
-  assert.match(main, /height:\s*520/)
+  assert.match(main, /width:\s*960/)
+  assert.match(main, /height:\s*640/)
+  assert.match(main, /minWidth:\s*560/)
+  assert.match(main, /minHeight:\s*420/)
   assert.match(main, /isPackaged/)
   assert.match(main, /ui',\s*'dist'/)
   assert.match(main, /127\.0\.0\.1:1420/)

@@ -1,11 +1,13 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
-import { dirname, join } from 'node:path'
+import { existsSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openRunningDesktopHost } from '../src/host.ts'
 import { registerLoginItem, unregisterLoginItem } from '../src/login-item.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const appRoot = join(here, '..')
+const appRoot = basename(here) === 'dist' ? join(here, '..', '..') : join(here, '..')
+const preload = existsSync(join(here, 'preload.cjs')) ? join(here, 'preload.cjs') : join(here, '..', 'preload.cjs')
 const devUrl = 'http://127.0.0.1:1420'
 
 process.env.SHARLIE_BIN ??= process.execPath
@@ -13,6 +15,7 @@ process.env.SHARLIE_BIN ??= process.execPath
 const registerFlag = process.argv.includes('--register-login')
 const unregisterFlag = process.argv.includes('--unregister-login')
 const background = process.argv.includes('--background')
+const smoke = process.argv.includes('--smoke') || process.env.SHARLIE_SMOKE === '1'
 
 let quitting = false
 let window: BrowserWindow | null = null
@@ -58,13 +61,15 @@ function sendLearningSnapshot() {
 function createWindow() {
   window = new BrowserWindow({
     title: 'Sharlie',
-    width: 680,
-    height: 520,
+    width: 960,
+    height: 640,
+    minWidth: 560,
+    minHeight: 420,
     show: !background,
     backgroundColor: '#1f1f1f',
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(here, 'preload.cjs'),
+      preload,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -110,6 +115,30 @@ if (registerFlag || unregisterFlag) {
     if (registerFlag) registerLoginItem()
     else unregisterLoginItem()
     app.exit(0)
+  })
+} else if (smoke) {
+  app.whenReady().then(async () => {
+    try {
+      createWindow()
+      const opened = window
+      if (!opened) throw new Error('SMOKE_FAIL Sharlie did not open a window')
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('SMOKE_FAIL the window did not load within 10s')), 10_000)
+        opened.webContents.once('did-finish-load', () => {
+          clearTimeout(timer)
+          resolve()
+        })
+        opened.webContents.once('did-fail-load', (_event, code, description) => {
+          clearTimeout(timer)
+          reject(new Error(`SMOKE_FAIL the window failed to load (${code} ${description})`))
+        })
+      })
+      console.log('SMOKE_OK')
+      app.exit(0)
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : 'SMOKE_FAIL Sharlie did not open a window')
+      app.exit(1)
+    }
   })
 } else {
   const gotLock = app.requestSingleInstanceLock()

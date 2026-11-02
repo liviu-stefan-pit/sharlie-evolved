@@ -1,0 +1,63 @@
+name: build-win
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: local-memory
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: local-memory/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run ui:build
+      - run: npm run compile
+      - run: npx electron-builder --win nsis --publish never
+      - name: Packaged app contains the Windows keyring module
+        run: node scripts/assert-packaged.mjs
+      - name: Smoke the packaged window
+        shell: pwsh
+        working-directory: local-memory
+        run: |
+          $exe = Get-ChildItem -Path release/win-unpacked -Filter Sharlie.exe -Recurse | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error 'SMOKE_FAIL Sharlie.exe was not produced'
+            exit 1
+          }
+          $out = Join-Path $PWD 'smoke-out.txt'
+          $err = Join-Path $PWD 'smoke-err.txt'
+          $proc = Start-Process -FilePath $exe.FullName -ArgumentList '--smoke' -PassThru -RedirectStandardOutput $out -RedirectStandardError $err -WindowStyle Hidden
+          if (-not $proc.WaitForExit(20000)) {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            Write-Error 'SMOKE_FAIL the window did not exit within 20s'
+            if (Test-Path $out) { Get-Content $out }
+            if (Test-Path $err) { Get-Content $err }
+            exit 1
+          }
+          Write-Host "exit $($proc.ExitCode)"
+          if (Test-Path $out) { Get-Content $out }
+          if (Test-Path $err) { Get-Content $err }
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "SMOKE_FAIL Sharlie exited $($proc.ExitCode)"
+            exit 1
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sharlie-Setup
+          path: local-memory/release/*.exe
+          if-no-files-found: error

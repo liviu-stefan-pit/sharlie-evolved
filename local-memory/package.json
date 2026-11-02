@@ -1,5 +1,8 @@
 {
   "name": "local-memory",
+  "version": "0.1.0",
+  "description": "Sharlie learns lessons from local AI coding chats and keeps them on this PC.",
+  "author": "Liviu",
   "private": true,
   "type": "module",
   "main": "electron/start.mjs",
@@ -8,11 +11,12 @@
     "bench:graph": "node scripts/graph-bench.mjs",
     "test:ui": "playwright test",
     "relay": "node relay/run.ts",
-    "start": "node electron/dev.mjs",
+    "start": "node scripts/compile-main.mjs && node electron/dev.mjs",
     "check": "tsc --noEmit",
     "ui:dev": "vite --config ui/vite.config.ts",
     "ui:build": "vite build --config ui/vite.config.ts",
-    "electron:build": "npm run ui:build && electron-builder"
+    "compile": "node scripts/compile-main.mjs",
+    "electron:build": "npm run ui:build && npm run compile && electron-builder --win nsis --publish never"
   },
   "dependencies": {
     "@cosmos.gl/graph": "^3.5.1",
@@ -43,13 +47,17 @@
       "output": "release"
     },
     "files": [
-      "electron/**",
-      "src/**",
+      "electron/start.mjs",
+      "electron/dist/main.mjs",
+      "electron/preload.cjs",
+      "electron/installer.nsh",
       "ui/dist/**",
-      "package.json"
+      "package.json",
+      "node_modules/@napi-rs/keyring/**",
+      "node_modules/@napi-rs/keyring-win32-x64-msvc/**"
     ],
     "asarUnpack": [
-      "src/**"
+      "node_modules/@napi-rs/keyring-win32-x64-msvc/**"
     ],
     "win": {
       "target": [
