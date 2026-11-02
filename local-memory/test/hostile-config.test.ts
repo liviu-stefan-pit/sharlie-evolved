@@ -94,18 +94,29 @@ function assertPlainFailure(result: ReturnType<typeof start>, mention: RegExp) {
   assert.match(report.state?.error ?? '', mention, 'the window gets the same sentence for its service screen')
 }
 
-test('a settings file with JSONC comments opens the window and shows one plain sentence', () => {
+function assertStarted(result: ReturnType<typeof start>) {
+  const { status, report } = result
+  assert.equal(status, 0, 'the process exits cleanly, not with a crash')
+  assert.equal(report.hung, false, 'startup settles instead of hanging')
+  assert.equal(report.events[0], 'window', 'the window opens before the host starts')
+  assert.ok(report.events.includes('tray'))
+  assert.ok(!report.events.some((event) => event.startsWith('exit:') || event === 'quit'), 'Sharlie stays running')
+  assert.equal(report.events.filter((event) => event.startsWith('dialog:')).length, 0)
+  assert.equal(report.state?.ok, true)
+}
+
+test('a settings file with JSONC comments opens the window and starts', () => {
   const result = start((knowledge) => {
     writeFileSync(join(knowledge, 'settings.json'), '{\n  // my notes\n  "profile": { "username": "ada" }, /* trailing */\n}\n')
   })
-  assertPlainFailure(result, /couldn't read its settings file/)
+  assertStarted(result)
 })
 
-test('a truncated settings file opens the window and shows one plain sentence', () => {
+test('a truncated settings file is set aside and the window still starts', () => {
   const result = start((knowledge) => {
     writeFileSync(join(knowledge, 'settings.json'), '{"profile": {"username": "ada", "ema')
   })
-  assertPlainFailure(result, /couldn't read its settings file/)
+  assertStarted(result)
 })
 
 test('a read-only settings folder never crashes or hangs startup', () => {

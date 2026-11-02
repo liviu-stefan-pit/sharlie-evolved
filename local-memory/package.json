@@ -7,7 +7,7 @@
   "type": "module",
   "main": "electron/start.mjs",
   "scripts": {
-    "test": "node --experimental-test-module-mocks --disable-warning=ExperimentalWarning --test test/gate.test.ts test/card.test.ts test/tools.test.ts test/import.test.ts test/publish.test.ts test/lookup.test.ts test/graph.test.ts test/display.test.ts test/session.test.ts test/window.test.ts test/host.test.ts test/relay.test.ts test/mcp.test.ts test/learning-progress.test.ts",
+    "test": "node --experimental-test-module-mocks --disable-warning=ExperimentalWarning --test test/gate.test.ts test/card.test.ts test/tools.test.ts test/import.test.ts test/publish.test.ts test/lookup.test.ts test/graph.test.ts test/display.test.ts test/session.test.ts test/window.test.ts test/host.test.ts test/relay.test.ts test/mcp.test.ts test/learning-progress.test.ts test/hostile-config.test.ts",
     "bench:graph": "node scripts/graph-bench.mjs",
     "test:ui": "playwright test",
     "relay": "node relay/run.ts",

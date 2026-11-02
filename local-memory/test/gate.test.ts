@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { test } from 'node:test'
-import { findCredentials } from '@napi-rs/keyring'
 import { discardVault, openApp } from '../src/app.ts'
+import { listSecrets } from '../src/vault.ts'
 import { machineWith, syncRun } from './machine.ts'
 
 function machineRoot(directory: string) {
@@ -82,10 +82,11 @@ test('keys are stored in the operating system vault, and they are not written in
     const settings = readFileSync(join(directory, 'settings.json'), 'utf8')
     assert.equal(settings.includes('sk-ant-api03-aaaa'), false)
     assert.equal(settings.includes('sk-proj-bbbb'), false)
-    assert.deepEqual(readdirSync(directory), ['settings.json'])
+    assert.equal(readdirSync(directory).some((name) => name.endsWith('.tmp')), false)
+    assert.ok(readdirSync(directory).includes('settings.json'))
 
     const vaultId = JSON.parse(settings).vaultId as string
-    const stored = findCredentials('sharlie-local-memory')
+    const stored = listSecrets()
       .filter((credential) => credential.account.startsWith(`${vaultId}/`))
       .map((credential) => credential.password)
       .sort()
@@ -95,6 +96,21 @@ test('keys are stored in the operating system vault, and they are not written in
     assert.equal(reopened.activeKey().secret, 'sk-ant-api03-aaaa')
     reopened.activateKey(reopened.keys().find((key) => key.provider === 'openai')!.id)
     assert.equal(reopened.activeKey().secret, 'sk-proj-bbbb')
+  })
+})
+
+test('settings with comments load, and a truncated settings file is set aside for defaults', () => {
+  withDirectory((directory) => {
+    const file = join(directory, 'settings.json')
+    writeFileSync(file, '{\n  // my notes\n  "profile": { "username": "ada", "email": "ada@example.com", "team": "platform" }, /* trailing */\n}\n')
+    assert.equal(open(directory).profile().username, 'ada')
+    assert.equal(existsSync(file), true)
+
+    writeFileSync(file, '{"profile": {"username": "ada", "ema')
+    assert.deepEqual(open(directory).profile(), { username: '', email: '', team: '' })
+    const names = readdirSync(directory)
+    assert.equal(names.includes('settings.json'), false)
+    assert.equal(names.filter((name) => name.startsWith('settings.json.') && name.endsWith('.bak')).length, 1)
   })
 })
 

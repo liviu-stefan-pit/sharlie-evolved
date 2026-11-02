@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { test } from 'node:test'
 import { discardVault, openApp, type LessonDraft } from '../src/app.ts'
 import { machineWith } from './machine.ts'
@@ -76,8 +76,17 @@ test('Claude is listed when Windows has registered the claude protocol and no de
 
 test('a macOS CLI on PATH is installed even when the home bin directory is empty', () => {
   withDirectory((directory) => {
-    const machine = machineWith(directory, [], 'darwin')
-    writeFileSync(join(machine.path, 'claude'), '')
+    const windowsHost = process.platform === 'win32'
+    const machine = machineWith(directory, [], windowsHost ? 'win32' : 'darwin')
+    const extra = join(directory, 'path-bin')
+    mkdirSync(extra, { recursive: true })
+    machine.path = [machine.path, extra].join(delimiter)
+    if (windowsHost) {
+      writeFileSync(join(extra, 'claude.cmd'), '')
+      writeFileSync(join(extra, 'claude.exe'), '')
+    } else {
+      writeFileSync(join(extra, 'claude'), '')
+    }
     const app = openApp(directory, undefined, machine)
     assert.deepEqual(
       app.tools().map((tool) => tool.label),

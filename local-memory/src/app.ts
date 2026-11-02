@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, join, posix, relative, win32 } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -458,9 +458,61 @@ function countOrZero(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
-function readSettings(directory: string): Settings {
+/** Comments and trailing commas are ignored. A file that still will not parse is moved aside. */
+function settingsText(text: string) {
+  let out = ''
+  let inString = false
+  let escaped = false
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    if (inString) {
+      out += char
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === '"') inString = false
+      continue
+    }
+    if (char === '"') {
+      inString = true
+      out += char
+      continue
+    }
+    if (char === '/' && text[i + 1] === '/') {
+      i += 1
+      while (i + 1 < text.length && text[i + 1] !== '\n') i += 1
+      continue
+    }
+    if (char === '/' && text[i + 1] === '*') {
+      i += 2
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i += 1
+      i += 1
+      continue
+    }
+    out += char
+  }
+  return out.replace(/,\s*([}\]])/g, '$1')
+}
+
+function quarantineSettings(file: string) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
   try {
-    const parsed = JSON.parse(readFileSync(settingsPath(directory), 'utf8')) as Settings
+    renameSync(file, `${file}.${stamp}.bak`)
+  } catch {
+    // The unreadable file stays where it is. Defaults still load.
+  }
+}
+
+function readSettings(directory: string): Settings {
+  const file = settingsPath(directory)
+  try {
+    const text = readFileSync(file, 'utf8')
+    let parsed: Settings
+    try {
+      parsed = JSON.parse(settingsText(text)) as Settings
+    } catch {
+      quarantineSettings(file)
+      return emptySettings()
+    }
     const defaults = emptySettings()
     return {
       profile: { ...defaults.profile, ...parsed.profile },
@@ -510,7 +562,18 @@ function writeSettings(
     learningTokensUnreported: options?.tokens ? settings.learningTokensUnreported : current.learningTokensUnreported,
   }
   mkdirSync(directory, { recursive: true })
-  writeFileSync(settingsPath(directory), JSON.stringify(merged))
+  writeAtomic(settingsPath(directory), JSON.stringify(merged))
+}
+
+function writeAtomic(file: string, text: string) {
+  const temporary = `${file}.${process.pid}.tmp`
+  try {
+    writeFileSync(temporary, text)
+    renameSync(temporary, file)
+  } catch (error) {
+    rmSync(temporary, { force: true })
+    throw error
+  }
 }
 
 function ingestLogPath(directory: string) {
