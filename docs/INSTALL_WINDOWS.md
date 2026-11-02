@@ -1,6 +1,6 @@
 # Installing Sharlie on Windows
 
-For Liviu, on your own Windows PC. About ten minutes. Everything below was checked against the code on `main`; anything not yet tried on a real Windows PC is marked *(not yet checked on Windows)*. Lines starting **[DEV NOTE]** are for the team and get deleted when that work lands.
+For Liviu, on your own Windows PC. About ten minutes. Everything below was checked against the code on `main`; anything not yet tried on a real Windows PC is marked *(not yet checked on Windows)*.
 
 ## 1. Windows will warn you first: "More info", then "Run anyway"
 
@@ -25,27 +25,15 @@ The window says **"Sharlie learns from your work on this computer"**. It reads t
 1. **Found on this PC.** Sharlie lists the chats it found, e.g. "Cursor · 412". If it found none, see section 6.
 2. **About you.** Name, Email, Team. Each field saves when you leave it.
 3. **AI key.** Pick a provider (Anthropic, OpenAI or Cursor), paste your key, then press **Save key**. The key goes into **Windows Credential Manager** under `sharlie-local-memory`, through the OS keyring. It is never written to a file.
-4. **Team sharing** (optional). It says **Off. Everything stays on this PC.** You can leave it off.
+4. **Team sharing** (optional). It says **Team sharing isn't available in this version. Your lessons stay on this PC.**
 
-Then press **Start learning**. The first pass learns at most your newest 50 chats, newest first. A chat longer than 30,000 characters is cut to its newest 30,000. The strip shows "Learning… 37 of 50 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns. Older chats from before that pass stay unread. After this, Sharlie learns only new chats.
+Then press **Start learning**. The first pass learns at most your newest 50 chats, newest first. A chat longer than 30,000 characters is cut to its newest 30,000. The strip shows "Learning… 37 of 50 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns. If you have more than 50 chats, the strip says so when the pass ends: "Learned the newest 50 chats. Older chats stay unread; later passes learn only new chats." If a chat was cut, it adds "1 chat was cut to its newest 30,000 characters." Older chats from before that pass stay unread. Later passes learn only chats that are new or changed.
 
-After your first **Start learning**, Sharlie learns new chats on its own every hour while it runs (it starts with Windows, in the tray). The status line at the top says **Learns every hour**, then adds **last learned …** after a pass. **Learn now** on Home learns right away. To learn only when you ask, open **Settings → Advanced → When to learn** and pick **Only when I start it**; the status line then says **Learns when you ask**.
-> **[DEV NOTE]** A 15 or 30 minute choice returns `cadence_too_short`. A saved interval under an hour is kept as one hour.
+After your first **Start learning**, Sharlie learns new chats on its own every hour while it runs (it starts with Windows, in the tray). Before the first pass the status line at the top says **Ready to learn**. After it, it says **Learns every hour** and adds **last learned …**. **Learn now** on Home learns right away. To learn only when you ask, open **Settings → Advanced → When to learn** and pick **Only when I start it**; the status line then says **Learns when you ask**.
 
-## 4. Team folder (sharing with your team)
+## 4. Team sharing
 
-Sharlie never talks to Google Drive itself. **Team sharing is off until you turn it on.**
-
-1. Install **Google Drive for Desktop** and let it sync your team's shared folder to this PC (for example `G:\My Drive\Sharlie`).
-2. In Sharlie, open **Settings → Team sharing** and turn on **Share work lessons with my team's Drive folder**.
-3. A folder picker opens: choose that synced folder as your Team folder. Sharing turns on and Settings shows **Sharing to G:\My Drive\Sharlie**. Use **Change folder** to pick another.
-
-When it is on, only lessons marked **work** are copied, into `Dropzone\<your Name>` inside the Team folder (for example `G:\My Drive\Sharlie\Dropzone\Liviu`). **Personal lessons never leave this PC.** A lesson that isn't marked work counts as personal. Drive for Desktop does the uploading. Each lesson shows **Only on this PC**, **Waiting to share** or **Shared**. Turning sharing off stops new copies; lessons already copied stay in the Team folder.
-
-Only lessons learned from now on are shared. Earlier lessons stay on this PC.
-> **[DEV NOTE]** Pending the host's share-start change: on main today, the first share copies every work lesson, including ones learned before sharing was turned on. Delete this note when that change lands.
-
-If the folder you pick doesn't exist, or Sharlie can't write to it, Settings says so ("That folder does not exist." or "Sharlie cannot write to that folder.") and sharing stays off. Pick another folder and turn it on again.
+Team sharing isn't available in this version. Your lessons stay on this PC. In **Settings → Team sharing** the switch is off and can't be turned on, and work lessons show **Only on this PC**. Sharlie never talks to Google Drive itself, and it writes nothing into a team folder.
 
 ## 5. What Sharlie writes, and where
 
