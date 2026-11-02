@@ -1,0 +1,2368 @@
+{
+ "before": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": null,
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 60
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 60,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [],
+   "links": []
+  },
+  "learning": null,
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "start": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": null,
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 60
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 60,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [],
+   "links": []
+  },
+  "learning": {
+   "active": true,
+   "done": 0,
+   "total": 50,
+   "lessons": 0,
+   "cappedChats": 1,
+   "deferredChats": 10,
+   "notice": "Learned the newest 50 chats. Older chats stay unread; later passes learn only new chats. 1 chat was cut to its newest 30,000 characters.",
+   "label": "Reading Cursor chats",
+   "detail": "cursor \u00b7 chat50.jsonl \u00b7 learning",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": {
+   "visible": true,
+   "lines": [
+    "Found 50 transcripts",
+    "cursor \u00b7 chat59.jsonl \u00b7 learning",
+    "cursor \u00b7 chat58.jsonl \u00b7 learning",
+    "cursor \u00b7 chat57.jsonl \u00b7 learning",
+    "cursor \u00b7 chat56.jsonl \u00b7 learning",
+    "cursor \u00b7 chat55.jsonl \u00b7 learning",
+    "cursor \u00b7 chat54.jsonl \u00b7 learning",
+    "cursor \u00b7 chat53.jsonl \u00b7 learning",
+    "cursor \u00b7 chat52.jsonl \u00b7 learning",
+    "cursor \u00b7 chat51.jsonl \u00b7 learning",
+    "cursor \u00b7 chat50.jsonl \u00b7 learning"
+   ],
+   "tokens": 0,
+   "unreported": 0
+  },
+  "notice": ""
+ },
+ "after": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T11:13:44.170Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 60
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 60,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_111344",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.086Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 50
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 50
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 50
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 50
+    },
+    {
+     "id": "issue:proj",
+     "kind": "issue",
+     "label": "proj",
+     "color": "#9d9d9d",
+     "degree": 50
+    },
+    {
+     "id": "card:card_20261102_111344_10",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.094Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 50; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_11",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.096Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 49; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_12",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.097Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 48; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_13",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.097Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 47; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_14",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.098Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 46; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_15",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.099Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 45; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_16",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.099Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 44; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_17",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.100Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 43; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_18",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.101Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 42; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_19",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.101Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 41; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.088Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 58; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_20",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.102Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 40; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_21",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.104Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 39; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_22",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.105Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 38; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_23",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.106Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 37; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_24",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.106Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 36; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_25",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.107Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 35; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_26",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.108Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 34; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_27",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.108Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 33; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_28",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.109Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 32; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_29",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.110Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 31; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_3",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.089Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 57; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_30",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.111Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 30; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_31",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.113Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 29; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_32",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.114Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 28; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_33",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.115Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 27; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_34",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.116Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 26; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_35",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.117Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 25; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_36",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.117Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 24; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_37",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.119Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 23; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_38",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.119Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 22; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_39",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.120Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 21; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_4",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.090Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 56; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_40",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.121Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 20; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_41",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.123Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 19; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_42",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.124Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 18; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_43",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.125Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 17; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_44",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.163Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 16; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_45",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.164Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 15; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_46",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.165Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 14; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_47",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.166Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 13; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_48",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.167Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 12; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_49",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.168Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 11; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_5",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.091Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 55; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_50",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.169Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 10; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_6",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.091Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 54; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_7",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.092Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 53; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_8",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.093Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 52; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_111344_9",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "shareState": "local",
+     "writer": "ada",
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T11:13:44.093Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 51; the lock was held.",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344"
+    },
+    {
+     "source": "card:card_20261102_111344",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_10"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_10"
+    },
+    {
+     "source": "card:card_20261102_111344_10",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_10",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_10",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_11"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_11"
+    },
+    {
+     "source": "card:card_20261102_111344_11",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_11",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_11",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_12"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_12"
+    },
+    {
+     "source": "card:card_20261102_111344_12",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_12",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_12",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_13"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_13"
+    },
+    {
+     "source": "card:card_20261102_111344_13",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_13",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_13",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_14"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_14"
+    },
+    {
+     "source": "card:card_20261102_111344_14",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_14",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_14",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_15"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_15"
+    },
+    {
+     "source": "card:card_20261102_111344_15",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_15",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_15",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_16"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_16"
+    },
+    {
+     "source": "card:card_20261102_111344_16",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_16",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_16",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_17"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_17"
+    },
+    {
+     "source": "card:card_20261102_111344_17",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_17",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_17",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_18"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_18"
+    },
+    {
+     "source": "card:card_20261102_111344_18",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_18",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_18",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_19"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_19"
+    },
+    {
+     "source": "card:card_20261102_111344_19",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_19",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_19",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_2"
+    },
+    {
+     "source": "card:card_20261102_111344_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_2",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_20"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_20"
+    },
+    {
+     "source": "card:card_20261102_111344_20",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_20",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_20",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_21"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_21"
+    },
+    {
+     "source": "card:card_20261102_111344_21",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_21",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_21",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_22"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_22"
+    },
+    {
+     "source": "card:card_20261102_111344_22",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_22",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_22",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_23"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_23"
+    },
+    {
+     "source": "card:card_20261102_111344_23",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_23",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_23",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_24"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_24"
+    },
+    {
+     "source": "card:card_20261102_111344_24",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_24",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_24",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_25"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_25"
+    },
+    {
+     "source": "card:card_20261102_111344_25",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_25",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_25",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_26"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_26"
+    },
+    {
+     "source": "card:card_20261102_111344_26",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_26",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_26",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_27"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_27"
+    },
+    {
+     "source": "card:card_20261102_111344_27",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_27",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_27",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_28"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_28"
+    },
+    {
+     "source": "card:card_20261102_111344_28",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_28",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_28",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_29"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_29"
+    },
+    {
+     "source": "card:card_20261102_111344_29",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_29",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_29",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_3"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_3"
+    },
+    {
+     "source": "card:card_20261102_111344_3",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_3",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_3",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_30"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_30"
+    },
+    {
+     "source": "card:card_20261102_111344_30",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_30",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_30",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_31"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_31"
+    },
+    {
+     "source": "card:card_20261102_111344_31",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_31",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_31",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_32"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_32"
+    },
+    {
+     "source": "card:card_20261102_111344_32",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_32",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_32",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_33"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_33"
+    },
+    {
+     "source": "card:card_20261102_111344_33",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_33",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_33",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_34"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_34"
+    },
+    {
+     "source": "card:card_20261102_111344_34",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_34",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_34",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_35"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_35"
+    },
+    {
+     "source": "card:card_20261102_111344_35",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_35",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_35",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_36"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_36"
+    },
+    {
+     "source": "card:card_20261102_111344_36",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_36",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_36",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_37"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_37"
+    },
+    {
+     "source": "card:card_20261102_111344_37",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_37",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_37",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_38"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_38"
+    },
+    {
+     "source": "card:card_20261102_111344_38",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_38",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_38",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_39"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_39"
+    },
+    {
+     "source": "card:card_20261102_111344_39",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_39",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_39",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_4"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_4"
+    },
+    {
+     "source": "card:card_20261102_111344_4",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_4",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_4",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_40"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_40"
+    },
+    {
+     "source": "card:card_20261102_111344_40",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_40",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_40",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_41"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_41"
+    },
+    {
+     "source": "card:card_20261102_111344_41",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_41",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_41",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_42"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_42"
+    },
+    {
+     "source": "card:card_20261102_111344_42",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_42",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_42",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_43"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_43"
+    },
+    {
+     "source": "card:card_20261102_111344_43",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_43",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_43",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_44"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_44"
+    },
+    {
+     "source": "card:card_20261102_111344_44",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_44",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_44",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_45"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_45"
+    },
+    {
+     "source": "card:card_20261102_111344_45",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_45",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_45",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_46"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_46"
+    },
+    {
+     "source": "card:card_20261102_111344_46",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_46",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_46",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_47"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_47"
+    },
+    {
+     "source": "card:card_20261102_111344_47",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_47",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_47",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_48"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_48"
+    },
+    {
+     "source": "card:card_20261102_111344_48",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_48",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_48",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_49"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_49"
+    },
+    {
+     "source": "card:card_20261102_111344_49",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_49",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_49",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_5"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_5"
+    },
+    {
+     "source": "card:card_20261102_111344_5",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_5",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_5",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_50"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_50"
+    },
+    {
+     "source": "card:card_20261102_111344_50",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_50",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_50",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_6"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_6"
+    },
+    {
+     "source": "card:card_20261102_111344_6",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_6",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_6",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_7"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_7"
+    },
+    {
+     "source": "card:card_20261102_111344_7",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_7",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_7",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_8"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_8"
+    },
+    {
+     "source": "card:card_20261102_111344_8",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_8",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_8",
+     "target": "issue:proj"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_111344_9"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_111344_9"
+    },
+    {
+     "source": "card:card_20261102_111344_9",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_111344_9",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_111344_9",
+     "target": "issue:proj"
+    }
+   ]
+  },
+  "learning": {
+   "active": false,
+   "done": 50,
+   "total": 50,
+   "cappedChats": 1,
+   "deferredChats": 10,
+   "notice": "Learned the newest 50 chats. Older chats stay unread; later passes learn only new chats. 1 chat was cut to its newest 30,000 characters.",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": {
+   "lessons": 50,
+   "chats": 50,
+   "text": "50 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ }
+}

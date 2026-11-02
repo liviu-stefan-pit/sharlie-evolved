@@ -157,6 +157,8 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
         ) : null}
       </div>
       {cancelError ? <Trouble raw={cancelError} className="px-3 pb-2" /> : null}
+      {/* The host's own sentence about a capped or partial first pass (78a4650 learning.notice), shown as sent. */}
+      {!active && done && !error && learning?.notice ? <p className="px-3 pb-2 text-[13px] text-muted">{learning.notice}</p> : null}
       {error && !cancelError ? (
         <p role="alert" className="px-3 pb-2 text-[13px] text-danger">
           {problem.text}
