@@ -290,6 +290,31 @@ test('a rejected key is not saved, and a network failure still saves it', async 
   }
 })
 
+test('a key check that times out still saves the key', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    setKeyProbe(async (_url, init) => {
+      assert.ok(init?.signal instanceof AbortSignal)
+      throw new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+    })
+    const saved = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-slow' })),
+    ) as { notice?: string; errorCode?: string; savedProviders?: string[] }
+    assert.equal(saved.errorCode, 'key_unchecked')
+    assert.equal(saved.notice, 'The key was saved. Sharlie could not reach Anthropic to check it.')
+    assert.equal(saved.savedProviders?.includes('anthropic'), true)
+    assert.equal(JSON.stringify(saved).includes('sk-ant-api03-slow'), false)
+  } finally {
+    setKeyProbe(null)
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
 test('start-learning with no chats does not mark learning active', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])

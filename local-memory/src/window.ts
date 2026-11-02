@@ -40,7 +40,10 @@ const providerName: Record<string, string> = {
   cursor: 'Cursor',
 }
 
-type KeyProbe = (url: string, init?: { headers?: Record<string, string> }) => Promise<{ ok: boolean; status: number }>
+type KeyProbe = (
+  url: string,
+  init?: { headers?: Record<string, string>; signal?: AbortSignal },
+) => Promise<{ ok: boolean; status: number }>
 
 let keyProbe: KeyProbe | null = null
 
@@ -72,7 +75,7 @@ async function judgeKey(provider: 'anthropic' | 'openai' | 'cursor', secret: str
       ? { 'x-api-key': secret, 'anthropic-version': '2023-06-01', accept: 'application/json' }
       : { authorization: `Bearer ${secret}`, accept: 'application/json' }
   try {
-    const response = await fetchImpl(url, { headers })
+    const response = await fetchImpl(url, { headers, signal: AbortSignal.timeout(8000) })
     if (response.status === 401 || response.status === 403) return 'rejected' as const
     if (!response.ok) return 'unchecked' as const
     return 'ok' as const
