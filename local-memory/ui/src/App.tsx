@@ -4,7 +4,7 @@ import { FirstRun } from './FirstRun'
 import { LearningStrip, type PassEnd } from './LearningStrip'
 import { LessonList } from './LessonList'
 import { AskPanel, type AskState } from './Ask'
-import { Trouble } from './Trouble'
+import { Details, splitHostError, Trouble } from './Trouble'
 import { cadenceLabel, firstTodo, refusalCode } from './setup'
 import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
@@ -20,7 +20,7 @@ type View = 'graph' | 'settings'
 export function App() {
   const [view, setView] = useState<View>('graph')
   const [state, setState] = useState<PageState | null>(null)
-  const [hostError, setHostError] = useState('')
+  const [hostError, setHostError] = useState<{ sentence: string; detail: string } | null>(null)
   const [query, setQuery] = useState('')
   const [question, setQuestion] = useState('')
   const [ask, setAsk] = useState<AskState>({ phase: 'idle' })
@@ -114,12 +114,12 @@ export function App() {
     loadState()
       .then((next) => {
         if (cancel) return
-        setHostError('')
+        setHostError(null)
         lastRefresh.current = Date.now()
         apply(next)
       })
       .catch((error: unknown) => {
-        if (!cancel) setHostError(error instanceof Error && error.message ? error.message : 'Sharlie host is not available')
+        if (!cancel) setHostError(splitHostError(error instanceof Error && error.message ? error : new Error('Sharlie host is not available')))
       })
       .finally(() => {
         if (!cancel) setRetrying(false)
@@ -337,7 +337,7 @@ export function App() {
         />
       ) : null}
       <AskPanel ask={ask} nodes={graph?.nodes ?? []} onOpen={openLesson} onClose={() => setAsk({ phase: 'idle' })} onStartLearning={() => { setAsk({ phase: 'idle' }); setView('graph') }} />
-      {!state && hostError ? <ServiceDown detail={hostError} retrying={retrying} onRetry={retryHost} /> : null}
+      {!state && hostError ? <ServiceDown error={hostError} retrying={retrying} onRetry={retryHost} /> : null}
       {!state && !hostError ? <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p> : null}
       {view === 'graph' && visible ? (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -492,14 +492,18 @@ function HomeBar({ layout, canMap, onLayout, count, children }: { layout: 'map' 
   )
 }
 
-function ServiceDown({ detail, retrying, onRetry }: { detail: string; retrying: boolean; onRetry: () => void }) {
+function ServiceDown({ error, retrying, onRetry }: { error: { sentence: string; detail: string }; retrying: boolean; onRetry: () => void }) {
+  // The host's own sentence already says what to do; only add the generic line when it doesn't.
+  const guided = /retry/i.test(error.sentence)
   return (
     <div role="alert" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
       <h2 className="text-[13px] font-semibold text-ink">Sharlie couldn't start its background service</h2>
-      <p className="max-w-md text-[13px] break-words text-pending">{detail}</p>
-      <p className="max-w-md text-[13px] text-muted">
-        Retry below. If it keeps failing, quit Sharlie from the tray icon and open it again.
-      </p>
+      {error.sentence ? <p className="max-w-md text-[15px] break-words text-ink">{error.sentence}</p> : null}
+      {guided ? null : (
+        <p className="max-w-md text-[13px] text-muted">
+          Retry below. If it keeps failing, quit Sharlie from the tray icon and open it again.
+        </p>
+      )}
       <button
         type="button"
         className="min-h-11 rounded-full border border-accent bg-accent px-4 py-1.5 text-[15px] font-medium text-on-accent transition-colors duration-[120ms] focus:border-focus disabled:opacity-50"
@@ -508,6 +512,7 @@ function ServiceDown({ detail, retrying, onRetry }: { detail: string; retrying: 
       >
         {retrying ? 'Retrying' : 'Retry'}
       </button>
+      <Details raw={error.detail} className="w-full max-w-md text-left" />
     </div>
   )
 }

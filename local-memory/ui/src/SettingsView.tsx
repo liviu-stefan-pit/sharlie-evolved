@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { canShare, everyText, keyProviders } from './setup'
 import { applyTheme, readTheme, type ThemeChoice } from './theme'
-import { errorText, HOST_TROUBLE } from './Trouble'
+import { Details, errorText, HOST_TROUBLE } from './Trouble'
 import type { CatalogParameter, PageState } from './types'
 
 type Act = (body: Record<string, unknown>) => Promise<PageState>
@@ -237,12 +237,7 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
             <button type="button" aria-label="Dismiss" className="flex h-9 w-9 items-center justify-center rounded-[10px] text-muted hover:text-ink" onClick={() => setBanner(null)}>
               ×
             </button>
-            {banner.raw ? (
-              <details className="w-full text-[13px] text-muted">
-                <summary className="inline-flex min-h-9 cursor-pointer items-center">Details</summary>
-                <p className="break-words whitespace-pre-wrap">{banner.raw}</p>
-              </details>
-            ) : null}
+            {banner.raw ? <Details raw={banner.raw} className="w-full" /> : null}
           </div>
         </div>
       ) : null}
