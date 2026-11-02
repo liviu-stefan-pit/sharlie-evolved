@@ -2,11 +2,25 @@ import assert from 'node:assert/strict'
 import { accessSync, chmodSync, constants, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { listWriters, readIndex, suggestLinks, writeLesson, type KbLessonInput, type KbNode } from '../src/kb.ts'
+import { listWriters, newInstallId, readIndex, suggestLinks, writeLesson, writerId, type KbLessonInput, type KbNode } from '../src/kb.ts'
 import { lesson, lockFolder, withFolder } from './kb-helpers.ts'
 
 const adaId = 'ada-11111111-1111-4111-8111-111111111111'
 const graceId = 'grace-22222222-2222-4222-8222-222222222222'
+const adaWriter = writerId('ada', 'k3f9')
+const graceWriter = writerId('grace', 'm2p8')
+
+function writersFor(username: string) {
+  const key = username.trim().toLowerCase()
+  if (key === 'grace') return graceWriter
+  if (key === 'ada lovelace') return writerId('Ada Lovelace', 'k3f9')
+  if (key === 'ada') return adaWriter
+  return writerId(username, 'k3f9')
+}
+
+function save(folder: string, draft: KbLessonInput, index: readonly KbNode[] = []) {
+  return writeLesson(folder, writersFor(draft.author.username), draft, index)
+}
 
 function node(id: string, patch: Partial<KbNode> = {}): KbNode {
   const writer = id.split('-')[0] || 'ada'
@@ -200,11 +214,11 @@ test('suggestLinks uses topic, project, and title words', () => {
 
 test('personal and scope-less lessons are never written', async () => {
   await withFolder(async (folder) => {
-    const personal = await writeLesson(folder, lesson('ada', { scope: 'personal', title: 'My scratch note' }), [])
+    const personal = await save(folder, lesson('ada', { scope: 'personal', title: 'My scratch note' }), [])
     const bare = lesson('ada', { title: 'No scope note' })
     delete bare.scope
-    const missing = await writeLesson(folder, bare, [])
-    const wrong = await writeLesson(folder, lesson('ada', { scope: 'Work', title: 'Wrong scope' }), [])
+    const missing = await save(folder, bare, [])
+    const wrong = await save(folder, lesson('ada', { scope: 'Work', title: 'Wrong scope' }), [])
     assert.equal(personal.ok, false)
     assert.equal(missing.ok, false)
     assert.equal(wrong.ok, false)
@@ -219,7 +233,7 @@ test('personal and scope-less lessons are never written', async () => {
 test('a missing or read-only folder returns a reason', async () => {
   await withFolder(async (folder) => {
     const missing = join(folder, 'missing')
-    const gone = await writeLesson(missing, lesson('ada'), [])
+    const gone = await save(missing, lesson('ada'), [])
     assert.equal(gone.ok, false)
     if (!gone.ok) assert.match(gone.reason, /does not exist/)
     assert.equal(statSync(folder).isDirectory(), true)
@@ -234,7 +248,7 @@ test('a missing or read-only folder returns a reason', async () => {
     try {
       let thrown = false
       try {
-        const refused = await writeLesson(blocked, lesson('ada'), [])
+        const refused = await save(blocked, lesson('ada'), [])
         assert.equal(refused.ok, false)
         if (!refused.ok) assert.match(refused.reason, /not writable/)
       } catch {
@@ -248,7 +262,7 @@ test('a missing or read-only folder returns a reason', async () => {
 
     const file = join(folder, 'not-a-folder')
     writeFileSync(file, 'x')
-    const notFolder = await writeLesson(file, lesson('ada'), [])
+    const notFolder = await save(file, lesson('ada'), [])
     assert.equal(notFolder.ok, false)
     if (!notFolder.ok) assert.match(notFolder.reason, /not a folder|not writable/)
     assert.equal(readFileSync(file, 'utf8'), 'x')
@@ -257,7 +271,7 @@ test('a missing or read-only folder returns a reason', async () => {
 
 test('a lesson round-trips as json and markdown with links filled', async () => {
   await withFolder(async (folder) => {
-    const first = await writeLesson(
+    const first = await save(
       folder,
       lesson('Ada Lovelace', {
         title: 'Retry: failed deploys',
@@ -267,13 +281,13 @@ test('a lesson round-trips as json and markdown with links filled', async () => 
     )
     assert.equal(first.ok, true)
     if (!first.ok) return
-    assert.match(first.lesson.id, /^ada-lovelace-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
-    assert.equal(first.lesson.writer, 'ada-lovelace')
+    assert.match(first.lesson.id, /^ada-lovelace-k3f9-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+    assert.equal(first.lesson.writer, 'ada-lovelace-k3f9')
     assert.equal(first.lesson.synced, true)
     assert.equal(first.lesson.author.username, 'Ada Lovelace')
     assert.deepEqual(first.lesson.links, [])
 
-    const second = await writeLesson(
+    const second = await save(
       folder,
       lesson('grace', {
         title: 'Retry the deploy once',
@@ -284,7 +298,7 @@ test('a lesson round-trips as json and markdown with links filled', async () => 
     )
     assert.equal(second.ok, true)
     if (!second.ok) return
-    assert.ok(second.lesson.links.some((link) => link.id === first.lesson.id && link.writer === 'ada-lovelace'))
+    assert.ok(second.lesson.links.some((link) => link.id === first.lesson.id && link.writer === 'ada-lovelace-k3f9'))
 
     const stored = JSON.parse(readFileSync(join(folder, `${second.lesson.id}.json`), 'utf8')) as KbNode
     assert.equal(stored.id, second.lesson.id)
@@ -304,7 +318,7 @@ test('a lesson round-trips as json and markdown with links filled', async () => 
     const seen = readIndex(folder)
     assert.equal(seen.length, 2)
     assert.equal(seen.every((item) => item.synced && item.writer !== ''), true)
-    assert.deepEqual(listWriters(folder), ['ada-lovelace', 'grace'])
+    assert.deepEqual(listWriters(folder), ['ada-lovelace-k3f9', 'grace-m2p8'])
     const firstOnDisk = JSON.parse(readFileSync(join(folder, `${first.lesson.id}.json`), 'utf8')) as { links: unknown[] }
     assert.deepEqual(firstOnDisk.links, [])
   })
@@ -312,35 +326,116 @@ test('a lesson round-trips as json and markdown with links filled', async () => 
 
 test('a writer rewrites only its own lesson', async () => {
   await withFolder(async (folder) => {
-    const created = await writeLesson(folder, lesson('ada', { id: adaId, summary: 'First summary.' }), [])
+    const ownId = `${adaWriter}-11111111-1111-4111-8111-111111111111`
+    const created = await save(folder, lesson('ada', { id: ownId, summary: 'First summary.' }), [])
     assert.equal(created.ok, true)
     if (!created.ok) return
-    const before = readFileSync(join(folder, `${adaId}.json`))
+    const before = readFileSync(join(folder, `${ownId}.json`))
     const names = readdirSync(folder).sort()
 
-    const stolen = await writeLesson(folder, lesson('grace', { id: adaId, title: 'Taken over' }), readIndex(folder))
-    const malformed = await writeLesson(folder, lesson('ada', { id: 'card_1', title: 'Bad id' }), [])
+    const stolen = await save(folder, lesson('grace', { id: ownId, title: 'Taken over' }), readIndex(folder))
+    const malformed = await save(folder, lesson('ada', { id: 'card_1', title: 'Bad id' }), [])
     assert.equal(stolen.ok, false)
     assert.equal(malformed.ok, false)
     if (!stolen.ok) assert.match(stolen.reason, /own lesson id/)
     assert.deepEqual(readdirSync(folder).sort(), names)
-    assert.deepEqual(readFileSync(join(folder, `${adaId}.json`)), before)
+    assert.deepEqual(readFileSync(join(folder, `${ownId}.json`)), before)
 
-    const rewritten = await writeLesson(
+    const rewritten = await save(
       folder,
-      lesson('ada', { id: adaId, summary: 'Updated summary.' }),
+      lesson('ada', { id: ownId, summary: 'Updated summary.' }),
       readIndex(folder),
     )
     assert.equal(rewritten.ok, true)
     if (!rewritten.ok) return
-    assert.equal(rewritten.lesson.id, adaId)
+    assert.equal(rewritten.lesson.id, ownId)
     assert.equal(rewritten.lesson.summary, 'Updated summary.')
     assert.equal(rewritten.lesson.created_at, '2026-11-02T08:00:00.000Z')
-    const after = JSON.parse(readFileSync(join(folder, `${adaId}.json`), 'utf8')) as { summary: string; id: string }
-    assert.equal(after.id, adaId)
+    const after = JSON.parse(readFileSync(join(folder, `${ownId}.json`), 'utf8')) as { summary: string; id: string }
+    assert.equal(after.id, ownId)
     assert.equal(after.summary, 'Updated summary.')
-    assert.match(readFileSync(join(folder, `${adaId}.md`), 'utf8'), /Updated summary\./)
+    assert.match(readFileSync(join(folder, `${ownId}.md`), 'utf8'), /Updated summary\./)
     assert.equal(readdirSync(folder).filter((name) => name.endsWith('.json') && !name.startsWith('.')).length, 1)
+  })
+})
+
+test('newInstallId is four letters or digits and writerId keeps the install id', () => {
+  const seen = new Set<string>()
+  for (let i = 0; i < 20; i += 1) {
+    const id = newInstallId()
+    assert.match(id, /^[a-z0-9]{4}$/)
+    seen.add(id)
+  }
+  assert.equal(seen.size > 1, true)
+  assert.equal(writerId('Ada Lovelace', 'K3F9'), 'ada-lovelace-k3f9')
+  assert.equal(writerId('Ada Lovelace', 'no'), '')
+})
+
+test('two people with the same name do not overwrite each other', async () => {
+  await withFolder(async (folder) => {
+    const firstWriter = writerId('Ada Lovelace', 'k3f9')
+    const secondWriter = writerId('Ada Lovelace', 'm2p8')
+    assert.equal(firstWriter, 'ada-lovelace-k3f9')
+    assert.equal(secondWriter, 'ada-lovelace-m2p8')
+    const ada = lesson('Ada Lovelace', {
+      author: { username: 'Ada Lovelace', email: 'ada@example.com', team: 'platform' },
+      summary: 'Ada summary.',
+    })
+    const other = lesson('Ada Lovelace', {
+      author: { username: 'Ada Lovelace', email: 'other@example.com', team: 'platform' },
+      summary: 'Other summary.',
+    })
+    const first = await writeLesson(folder, firstWriter, ada, [])
+    const second = await writeLesson(folder, secondWriter, other, readIndex(folder))
+    assert.equal(first.ok, true)
+    assert.equal(second.ok, true)
+    if (!first.ok || !second.ok) return
+    assert.notEqual(first.lesson.id, second.lesson.id)
+    assert.equal(first.lesson.writer, firstWriter)
+    assert.equal(second.lesson.writer, secondWriter)
+    const firstBody = JSON.parse(readFileSync(join(folder, `${first.lesson.id}.json`), 'utf8')) as { summary: string }
+    const secondBody = JSON.parse(readFileSync(join(folder, `${second.lesson.id}.json`), 'utf8')) as { summary: string }
+    assert.equal(firstBody.summary, 'Ada summary.')
+    assert.equal(secondBody.summary, 'Other summary.')
+
+    const again = await writeLesson(
+      folder,
+      firstWriter,
+      { ...ada, id: first.lesson.id, summary: 'Updated summary.' },
+      readIndex(folder),
+    )
+    assert.equal(again.ok, true)
+    if (!again.ok) return
+    assert.equal(again.lesson.id, first.lesson.id)
+    assert.equal(
+      (JSON.parse(readFileSync(join(folder, `${first.lesson.id}.json`), 'utf8')) as { summary: string }).summary,
+      'Updated summary.',
+    )
+    assert.equal(
+      (JSON.parse(readFileSync(join(folder, `${second.lesson.id}.json`), 'utf8')) as { summary: string }).summary,
+      'Other summary.',
+    )
+
+    const stolen = await writeLesson(
+      folder,
+      secondWriter,
+      { ...other, id: first.lesson.id, summary: 'Taken over' },
+      readIndex(folder),
+    )
+    assert.equal(stolen.ok, false)
+    if (!stolen.ok) assert.match(stolen.reason, /own lesson id/)
+    const collided = await writeLesson(
+      folder,
+      firstWriter,
+      { ...other, id: first.lesson.id, summary: 'Taken over' },
+      readIndex(folder),
+    )
+    assert.equal(collided.ok, false)
+    if (!collided.ok) assert.match(collided.reason, /different email/)
+    assert.equal(
+      (JSON.parse(readFileSync(join(folder, `${first.lesson.id}.json`), 'utf8')) as { summary: string }).summary,
+      'Updated summary.',
+    )
   })
 })
 
@@ -352,7 +447,7 @@ test('two writers share one folder without losing a file or leaving an orphan', 
     writeFileSync(join(folder, 'broken.json'), '{')
     writeFileSync(join(folder, '.ada-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.json.1.tmp'), '{"title":"temp"')
 
-    const first = await writeLesson(
+    const first = await save(
       folder,
       lesson('ada', { title: 'Retry failed deploys', topics: ['deploys'], project: 'sharlie' }),
       readIndex(folder),
@@ -361,14 +456,14 @@ test('two writers share one folder without losing a file or leaving an orphan', 
     if (!first.ok) return
     assert.deepEqual(first.lesson.links, [])
 
-    const second = await writeLesson(
+    const second = await save(
       folder,
       lesson('grace', { title: 'Retry the deploy once', topics: ['deploys'], project: 'billing' }),
       readIndex(folder),
     )
     assert.equal(second.ok, true)
     if (!second.ok) return
-    assert.ok(second.lesson.links.some((link) => link.id === first.lesson.id && link.writer === 'ada'))
+    assert.ok(second.lesson.links.some((link) => link.id === first.lesson.id && link.writer === adaWriter))
     const firstBytes = readFileSync(join(folder, `${first.lesson.id}.json`))
 
     const before = snapshot(folder)
@@ -385,7 +480,7 @@ test('two writers share one folder without losing a file or leaving an orphan', 
         const seen = readIndex(folder)
         await delay((index % 3) * 10)
         if (index === 1) writeFileSync(join(folder, 'mid-sync.json.partial'), '{"title":"still syncing')
-        const result = await writeLesson(folder, draft, seen)
+        const result = await save(folder, draft, seen)
         return { seen, result, draft }
       }),
     )
@@ -438,7 +533,7 @@ test('two writers share one folder without losing a file or leaving an orphan', 
     assert.equal(readFileSync(join(folder, 'notes.txt'), 'utf8'), 'leave me')
     assert.equal(readFileSync(join(folder, 'broken.json'), 'utf8'), '{')
     assert.equal(readdirSync(folder).includes('index.json'), false)
-    assert.deepEqual(listWriters(folder), ['ada', 'grace'])
+    assert.deepEqual(listWriters(folder), [adaWriter, graceWriter])
     assert.equal(nodes.every((item) => item.synced === true), true)
   })
 })

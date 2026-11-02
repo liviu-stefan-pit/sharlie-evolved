@@ -15,16 +15,25 @@
  *   Up to 8 existing nodes that share a topic, a project, or a title word.
  *   The same inputs always return the same links. No model call.
  *
- * writeLesson(folder, lesson, index) -> Promise<{ ok: true, lesson } | { ok: false, reason }>
- *   Writes `<writer>-<uuid>.json` and the matching `.md` when scope is
- *   exactly "work", with links filled from suggestLinks. A missing scope is
- *   personal and is not written. A missing or read-only folder returns a
- *   reason and does not throw. The bytes land by renaming a temp file in
- *   the same folder. A writer only creates files, or rewrites files whose
- *   ids already start with that writer's slug.
+ * newInstallId() -> string
+ *   Four characters from a-z and 0-9. The app stores one of these per install.
+ *
+ * writerId(name, installId) -> string
+ *   `<name-slug>-<installId>`, for example ada-lovelace-k3f9. Two people
+ *   with the same display name and different install ids get different ids.
+ *   Returns "" when installId is not four characters from a-z and 0-9.
+ *
+ * writeLesson(folder, writer, lesson, index) -> Promise<{ ok: true, lesson } | { ok: false, reason }>
+ *   `writer` is a writerId, not the display name. Writes `<writer>-<uuid>.json`
+ *   and the matching `.md` when scope is exactly "work", with links filled
+ *   from suggestLinks. A missing scope is personal and is not written. A
+ *   missing or read-only folder returns a reason and does not throw. The
+ *   bytes land by renaming a temp file in the same folder. A rewrite is
+ *   refused when the file on disk has a different author email, or when its
+ *   id does not start with this writer id.
  *
  * listWriters(folder) -> string[]
- *   Sorted writer slugs from readIndex. Never throws.
+ *   Sorted writer ids from readIndex. Never throws.
  */
 
 import { randomBytes, randomUUID } from 'node:crypto'
@@ -169,6 +178,30 @@ function writerSlug(name: string) {
     .slice(0, 48)
     .replace(/-+$/g, '')
   return slug
+}
+
+const installAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+
+export function newInstallId() {
+  const bytes = randomBytes(4)
+  let id = ''
+  for (const byte of bytes) id += installAlphabet[byte % installAlphabet.length]
+  return id
+}
+
+export function writerId(name: string, installId: string) {
+  const install = text(installId).toLowerCase()
+  if (!/^[a-z0-9]{4}$/.test(install)) return ''
+  const slug = writerSlug(text(name))
+  if (slug === '') return ''
+  return `${slug}-${install}`
+}
+
+function isWriterId(writer: string) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(writer)) return false
+  const parts = writer.split('-')
+  const install = parts[parts.length - 1] ?? ''
+  return parts.length >= 2 && install.length === 4
 }
 
 function parseId(id: string) {
@@ -431,24 +464,41 @@ function scopeReason(scope: string | undefined) {
   return 'only a lesson scoped work is written to the shared folder'
 }
 
+function readStoredLesson(path: string) {
+  try {
+    const raw: unknown = JSON.parse(readFileSync(path, 'utf8'))
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+    const record = raw as Record<string, unknown>
+    const owner = parseId(text(record.id))
+    return {
+      email: authorFrom(record.author).email,
+      writer: owner?.writer ?? '',
+      createdAt: text(record.created_at),
+    }
+  } catch {
+    return null
+  }
+}
+
 export async function writeLesson(
   folder: string,
+  writer: string,
   lesson: KbLessonInput,
   index: readonly KbNode[],
 ): Promise<KbWriteResult> {
   if (!lesson || typeof lesson !== 'object') return refuse('the lesson is missing')
   if (lesson.scope !== 'work') return refuse(scopeReason(lesson.scope))
   const author = authorFrom(lesson.author)
-  const slug = writerSlug(author.username)
-  if (slug === '') return refuse('the writer name is empty')
+  const writerKey = text(writer).toLowerCase()
+  if (!isWriterId(writerKey)) return refuse('the writer id is not valid')
   const title = text(lesson.title)
   if (title === '') return refuse('a lesson needs a title')
   if (typeof folder !== 'string' || folder.trim() === '') return refuse('that folder does not exist')
 
   let id = text(lesson.id)
-  if (id === '') id = `${slug}-${randomUUID()}`
+  if (id === '') id = `${writerKey}-${randomUUID()}`
   const owner = parseId(id)
-  if (!owner || owner.writer !== slug) return refuse('a writer can only write its own lesson id')
+  if (!owner || owner.writer !== writerKey) return refuse('a writer can only write its own lesson id')
 
   try {
     const folderInfo = await stat(folder)
@@ -458,9 +508,14 @@ export async function writeLesson(
     const jsonName = `${id}.json`
     const jsonState = await fileExists(join(folder, jsonName))
     if (jsonState === 'directory') return refuse('that path is not a folder')
-    if (createdAt === '' && jsonState === 'file') {
-      const previous = readIndex(folder).find((node) => node.id === id)
-      if (previous && previous.created_at !== '') createdAt = previous.created_at
+    if (jsonState === 'file') {
+      const previous = readStoredLesson(join(folder, jsonName))
+      if (!previous) return refuse('that lesson file could not be read')
+      if (previous.email.toLowerCase() !== author.email.toLowerCase()) {
+        return refuse('that lesson belongs to a different email')
+      }
+      if (previous.writer !== writerKey) return refuse('that lesson belongs to a different writer')
+      if (createdAt === '' && previous.createdAt !== '') createdAt = previous.createdAt
     }
     if (createdAt === '') createdAt = new Date().toISOString()
     const record: LessonRecord = {
@@ -485,7 +540,7 @@ export async function writeLesson(
     const markdownState = await fileExists(join(folder, markdownName))
     if (markdownState === 'directory') return refuse('that path is not a folder')
     await placeFile(folder, markdownName, renderMarkdown(record), markdownState === 'file')
-    return { ok: true, lesson: { ...record, writer: slug, synced: true } }
+    return { ok: true, lesson: { ...record, writer: writerKey, synced: true } }
   } catch (error) {
     const code = errorCode(error)
     if (code === 'ENOENT') return refuse('that folder does not exist')

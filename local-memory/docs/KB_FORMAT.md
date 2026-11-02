@@ -10,21 +10,23 @@ Lessons sit side by side in the folder. There are no subfolders to keep in step,
 
 ```
 <shared folder>/
-  ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b.json
-  ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b.md
-  grace-hopper-9c02aabb-ccdd-4eef-8899-001122334455.json
-  grace-hopper-9c02aabb-ccdd-4eef-8899-001122334455.md
+  ada-lovelace-k3f9-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b.json
+  ada-lovelace-k3f9-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b.md
+  grace-hopper-m2p8-9c02aabb-ccdd-4eef-8899-001122334455.json
+  grace-hopper-m2p8-9c02aabb-ccdd-4eef-8899-001122334455.md
 ```
 
 Each lesson is two files with the same id: one JSON file the app reads, and one Markdown file a person can read. A hidden file whose name starts with a dot is a temp file used while saving. It is not a lesson.
 
 ## Ids
 
-An id is the writer's slug, a hyphen, and a random id:
+An id is the writer id, a hyphen, and a random id:
 
-`ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b`
+`ada-lovelace-k3f9-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b`
 
-The slug comes from that person's username. It is lower case. Spaces and punctuation become a single hyphen, and accents are dropped. "Ada Lovelace" becomes `ada-lovelace`. "José" becomes `jose`.
+The writer id is the person's name slug plus a four-character install id, for example `ada-lovelace-k3f9`. The slug is lower case. Spaces and punctuation become a single hyphen, and accents are dropped. "Ada Lovelace" becomes `ada-lovelace`. "José" becomes `jose`. The install id is four characters from `a-z` and `0-9`, chosen once for that install of the app. The display name stays in the author field. The save is told the writer id; it does not invent one from the display name alone.
+
+Two people with the same display name and different install ids get different writer ids, so their files never collide. A rewrite is refused when the file already there has a different email, or when its id does not belong to this writer id. The previous bytes stay as they were.
 
 The file names are `<id>.json` and `<id>.md`. Ids are unique because of the random part, so two saves do not pick the same file.
 
@@ -49,7 +51,7 @@ The JSON file is the lesson the app trusts. The fields are:
 
 ```json
 {
-  "id": "grace-hopper-9c02aabb-ccdd-4eef-8899-001122334455",
+  "id": "grace-hopper-m2p8-9c02aabb-ccdd-4eef-8899-001122334455",
   "title": "Retry the deploy once",
   "topics": ["deploys"],
   "summary": "Retry a failed deploy once.",
@@ -68,8 +70,8 @@ The JSON file is the lesson the app trusts. The fields are:
   "sources": ["cursor"],
   "links": [
     {
-      "id": "ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b",
-      "writer": "ada-lovelace"
+      "id": "ada-lovelace-k3f9-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b",
+      "writer": "ada-lovelace-k3f9"
     }
   ]
 }
@@ -93,7 +95,7 @@ A lesson is written only when its scope is exactly `work`. Personal lessons stay
 
 Saving writes a temp file in the same folder, then renames it to the real name. Anyone reading either sees the previous file or the finished file.
 
-A writer only creates new files, or rewrites files that already carry that writer's own id. A writer does not move, rename, or delete files in the shared folder, and does not change another person's lesson. Links are a list inside the writer's own JSON and Markdown. They name the other lesson's id and that lesson's writer.
+A writer only creates new files, or rewrites files that already carry that writer's own id and the same email. A different email, or an id that belongs to another writer, is refused and the file is left alone. A writer does not move, rename, or delete files in the shared folder, and does not change another person's lesson. Links are a list inside the writer's own JSON and Markdown. They name the other lesson's id and that lesson's writer.
 
 A link is added when the new lesson and an existing one share a topic, the same project (other than an empty project or `none`), or a meaningful word in the title. At most 8 links are kept. The same lesson and the same folder contents always pick the same links. Nothing calls a model to decide.
 
