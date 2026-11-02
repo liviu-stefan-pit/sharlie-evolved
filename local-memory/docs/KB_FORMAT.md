@@ -1,0 +1,112 @@
+# Shared lesson folder
+
+The shared knowledge base is an ordinary folder on disk. A Google Drive for Desktop path is one such folder. The app reads and writes files at the path the person chose. It does not sign in to Google and it does not call the Drive API.
+
+Several people can point their apps at the same folder. Each app reads whatever is already there, then adds its own lesson. A new lesson can point at lessons that were already in the folder. Those pointers live in the new lesson. The older files stay as they were.
+
+## What is in the folder
+
+Lessons sit side by side in the folder. There are no subfolders to keep in step, and there is no index file for two people to rewrite.
+
+```
+<shared folder>/
+  ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b.json
+  ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b.md
+  grace-hopper-9c02aabb-ccdd-4eef-8899-001122334455.json
+  grace-hopper-9c02aabb-ccdd-4eef-8899-001122334455.md
+```
+
+Each lesson is two files with the same id: one JSON file the app reads, and one Markdown file a person can read. A hidden file whose name starts with a dot is a temp file used while saving. It is not a lesson.
+
+## Ids
+
+An id is the writer's slug, a hyphen, and a random id:
+
+`ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b`
+
+The slug comes from that person's username. It is lower case. Spaces and punctuation become a single hyphen, and accents are dropped. "Ada Lovelace" becomes `ada-lovelace`. "José" becomes `jose`.
+
+The file names are `<id>.json` and `<id>.md`. Ids are unique because of the random part, so two saves do not pick the same file.
+
+## The JSON file
+
+The JSON file is the lesson the app trusts. The fields are:
+
+- `id`
+- `title`
+- `topics`
+- `summary`
+- `situation`
+- `whatToDo`
+- `why`
+- `apply`
+- `scope` (always `work` in this folder)
+- `author` (`username`, `email`, `team`)
+- `project`
+- `created_at`
+- `sources`
+- `links` (each one has `id` and `writer`)
+
+```json
+{
+  "id": "grace-hopper-9c02aabb-ccdd-4eef-8899-001122334455",
+  "title": "Retry the deploy once",
+  "topics": ["deploys"],
+  "summary": "Retry a failed deploy once.",
+  "situation": "A deploy failed after the lock timed out.",
+  "whatToDo": "Retry the deploy once, then read the log.",
+  "why": "The lock clears on its own within a minute.",
+  "apply": "When a deploy fails on a lock, retry once before changing config.",
+  "scope": "work",
+  "author": {
+    "username": "Grace Hopper",
+    "email": "grace@example.com",
+    "team": "platform"
+  },
+  "project": "sharlie",
+  "created_at": "2026-11-02T08:00:00.000Z",
+  "sources": ["cursor"],
+  "links": [
+    {
+      "id": "ada-lovelace-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b",
+      "writer": "ada-lovelace"
+    }
+  ]
+}
+```
+
+The Markdown file repeats those fields in a short header, then the sections Summary, Situation, What to do, Why, and Apply.
+
+## Rules
+
+Before it writes, the app reads the folder and builds the list of lessons from the files it finds. It does not open a shared index, because two writers would both try to rewrite that file.
+
+The read skips anything it cannot trust, and it does not throw:
+
+- a file it cannot read
+- a temp file or a file that is only partly there
+- broken JSON
+- a file that is not a lesson
+- a lesson whose scope is not exactly `work`
+
+A lesson is written only when its scope is exactly `work`. Personal lessons stay on that computer. A lesson with no scope is personal, so it is not written either. The shared folder is left untouched.
+
+Saving writes a temp file in the same folder, then renames it to the real name. Anyone reading either sees the previous file or the finished file.
+
+A writer only creates new files, or rewrites files that already carry that writer's own id. A writer does not move, rename, or delete files in the shared folder, and does not change another person's lesson. Links are a list inside the writer's own JSON and Markdown. They name the other lesson's id and that lesson's writer.
+
+A link is added when the new lesson and an existing one share a topic, the same project (other than an empty project or `none`), or a meaningful word in the title. At most 8 links are kept. The same lesson and the same folder contents always pick the same links. Nothing calls a model to decide.
+
+If the folder is missing, or it cannot be written, the save comes back with a short reason. It does not throw, and it does not create the folder.
+
+Reading the folder back gives each work lesson as a node with `synced: true` and the writer slug, so the app can add other people's lessons to its own graph.
+
+## When two people write the same thing
+
+If two people save a lesson with the same title, both files stay. The folder does not merge them and does not ask anyone to pick a winner.
+
+The lesson that is saved while the other one is already visible stores a link to it. The earlier file is not edited. Its bytes stay as they were.
+
+If both saves happen before either one can see the other, both files still stay, and neither is turned into an orphan by deleting or renaming. A later lesson that can see them can link to both.
+
+A half-synced file, such as one Drive has not finished copying, is ignored until it is complete JSON. It is not deleted and it does not stop the rest of the folder from being read.
