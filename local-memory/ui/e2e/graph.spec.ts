@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
 import { clickNode, emitLearning, graphWithNodes, openApp, pageState } from './support'
 
-test('a node opens one drawer, a chip replaces it, and Close removes it', async ({ page }) => {
+test('a node opens one lesson panel, a chip replaces it, and Close removes it', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
   await openApp(page, pageState({ graph: graphWithNodes() }))
   await expect(page.getByRole('button', { name: 'Start learning' })).toHaveCount(0)
   await clickNode(page, 'card:retry')
@@ -9,9 +10,9 @@ test('a node opens one drawer, a chip replaces it, and Close removes it', async 
   await expect(page.getByRole('heading', { name: 'Retry the deploy' })).toBeVisible()
   await expect(page.getByText('Retry once')).toBeVisible()
   await expect(page.getByText('lock')).toBeVisible()
-  await expect(page.getByText('Only on this machine')).toBeVisible()
+  await expect(page.getByText('Only on this PC')).toBeVisible()
 
-  await page.getByRole('button', { name: 'APPLIES_TO vite' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'vite' }).click()
   await expect(page.locator('aside')).toHaveCount(1)
   await expect(page.getByRole('heading', { name: 'vite' })).toBeVisible()
 
@@ -80,21 +81,39 @@ test('live card nodes keep their place and open a drawer', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Read the lock log' })).toBeVisible()
 })
 
-test('a synced card shows On Drive, the drive dot, and the local stamp', async ({ page }) => {
-  const createdAt = '2026-11-01T00:00:00.000Z'
+test('a lesson shows its From line and real card parts, and a work lesson has no local badge', async ({ page }) => {
   const graph = graphWithNodes()
   graph.nodes = graph.nodes.map((node) =>
-    node.id === 'card:retry' ? { ...node, synced: true, created_at: createdAt } : node,
+    node.id === 'card:retry'
+      ? { ...node, created_at: '2026-11-02T08:00:00.000Z', scope: 'work', summary: 'Deploys can hit a stale lock.', why: 'The lock clears in a minute.' }
+      : node,
   )
   await openApp(page, pageState({ graph }))
-  await clickNode(page, 'card:retry')
-  await expect(page.getByText('On Drive')).toBeVisible()
-  await expect(page.locator('aside p').filter({ hasText: 'On Drive' }).locator('span')).toHaveCSS(
-    'background-color',
-    'rgb(111, 143, 120)',
-  )
-  const stamp = await page.evaluate((iso) => new Date(iso).toLocaleString(), createdAt)
-  await expect(page.locator('aside')).toContainText(stamp)
+  await page.getByRole('button', { name: 'List' }).click()
+  await page.locator('[data-lesson-list]').getByRole('button', { name: 'Retry the deploy' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Retry the deploy' })
+  await expect(dialog).toContainText('From: vite · 2 Nov')
+  await expect(dialog).toContainText('Deploys can hit a stale lock.')
+  await expect(dialog.getByRole('heading', { name: 'What to do' })).toBeVisible()
+  await expect(dialog).toContainText('Retry once')
+  await expect(dialog.getByRole('heading', { name: 'Why it works' })).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: 'What went wrong' })).toBeVisible()
+  await expect(dialog.getByText('Only on this PC')).toHaveCount(0)
+  await expect(dialog.getByText('On Drive')).toHaveCount(0)
+})
+
+test('Escape closes the lesson and returns focus to where it was opened', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.getByRole('button', { name: 'List' }).click()
+  const row = page.locator('[data-lesson-list]').getByRole('button', { name: 'Retry the deploy' })
+  await row.focus()
+  await page.keyboard.press('Enter')
+  const dialog = page.getByRole('dialog', { name: 'Retry the deploy' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: 'Retry the deploy' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(row).toBeFocused()
 })
 
 test('a tool node drawer shows no sync line', async ({ page }) => {
@@ -102,7 +121,7 @@ test('a tool node drawer shows no sync line', async ({ page }) => {
   await clickNode(page, 'tool:vite')
   await expect(page.getByRole('heading', { name: 'vite' })).toBeVisible()
   await expect(page.getByText('On Drive')).toHaveCount(0)
-  await expect(page.getByText('Only on this machine')).toHaveCount(0)
+  await expect(page.getByText('Only on this PC')).toHaveCount(0)
 })
 
 test('clicking empty canvas closes the drawer', async ({ page }) => {

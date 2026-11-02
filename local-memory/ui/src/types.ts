@@ -18,6 +18,10 @@ export type GraphNode = {
   created_at?: string
   solution?: string
   failure_modes?: string[]
+  /** Assumed card parts (host may add them to graph nodes): one-line summary, why it works, scope. */
+  summary?: string
+  why?: string
+  scope?: 'work' | 'personal' | string
   relations?: CardRelation[]
   x?: number
   y?: number

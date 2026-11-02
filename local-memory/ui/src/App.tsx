@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Drawer } from './Drawer'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { LessonDetail } from './LessonDetail'
 import { FirstRun } from './FirstRun'
 import { LearningStrip, type PassEnd } from './LearningStrip'
 import { LessonList } from './LessonList'
@@ -144,6 +144,21 @@ export function App() {
   const active = waiting || state?.learning?.active === true
   const [noWebgl, setNoWebgl] = useState(false)
   const [layout, setLayout] = useState<'map' | 'list'>('map')
+  const narrow = useNarrow()
+  const closeDetail = useCallback(() => setSelectedId(''), [])
+  function detail(node: GraphNode, sheet: boolean) {
+    return (
+      <LessonDetail
+        key={sheet ? 'sheet' : 'panel'}
+        node={node}
+        nodes={graph?.nodes ?? []}
+        links={graph?.links ?? []}
+        sheet={sheet}
+        onOpen={openLesson}
+        onClose={closeDetail}
+      />
+    )
+  }
   const empty = !!state && state.graph.nodes.length === 0 && !active
   const ready = !!state && firstTodo(state) === null
   const finishedRun =
@@ -383,12 +398,16 @@ export function App() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === 'Escape') setQuery('')
+                  if (event.key === 'Escape' && query !== '') {
+                    event.preventDefault()
+                    setQuery('')
+                  }
                 }}
               />
             </HomeBar>
           ) : null}
-          <div className="relative flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1">
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
             {noWebgl || layout === 'list' ? (
               <LessonList
                 nodes={visible.nodes}
@@ -441,15 +460,9 @@ export function App() {
                 />
               </div>
             ) : null}
-            {selected ? (
-              <Drawer
-                node={selected}
-                nodes={graph?.nodes ?? []}
-                links={graph?.links ?? []}
-                onOpen={setSelectedId}
-                onClose={() => setSelectedId('')}
-              />
-            ) : null}
+            {selected && narrow ? detail(selected, true) : null}
+          </div>
+          {selected && !narrow ? detail(selected, false) : null}
           </div>
         </div>
       ) : null}
@@ -483,6 +496,21 @@ export function App() {
       ) : null}
     </div>
   )
+}
+
+/** Under 760px the lesson opens as a bottom sheet, otherwise as a side panel. */
+function useNarrow() {
+  const query = '(max-width: 759.98px)'
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(query).matches === true)
+  useEffect(() => {
+    const media = window.matchMedia?.(query)
+    if (!media) return
+    const update = () => setNarrow(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+  return narrow
 }
 
 /** Never claims learning is on when nothing is set up. */

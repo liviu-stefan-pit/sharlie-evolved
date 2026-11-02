@@ -110,17 +110,35 @@ test('low-degree nodes stay unlabelled unless hovered or selected', async ({ pag
   await expect(page.locator('[data-graph-label]')).toHaveCount(0)
 })
 
-test('the open drawer is 280 wide and stays inside the window', async ({ page }) => {
-  await openApp(page, pageState({ graph: graphWithNodes() }))
-  await clickNode(page, 'card:retry')
-  const box = await page.locator('aside').boundingBox()
-  if (!box) throw new Error('drawer is missing')
-  expect(Math.abs(box.width - 280)).toBeLessThanOrEqual(1)
-  expect(box.x).toBeGreaterThanOrEqual(0)
-  expect(box.y).toBeGreaterThanOrEqual(0)
-  expect(box.x + box.width).toBeLessThanOrEqual(680)
-  expect(box.y + box.height).toBeLessThanOrEqual(520)
-})
+for (const [width, expected] of [[1280, 400], [900, 306]] as const) {
+  test(`the lesson side panel is clamp(280px,34vw,400px) at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 720 })
+    await openApp(page, pageState({ graph: graphWithNodes() }))
+    await page.getByRole('button', { name: 'List' }).click()
+    await page.locator('[data-lesson-list]').getByRole('button', { name: 'Retry the deploy' }).click()
+    const panel = page.locator('[data-lesson-detail="panel"]')
+    const box = await panel.boundingBox()
+    if (!box) throw new Error('panel is missing')
+    expect(Math.abs(box.width - expected)).toBeLessThanOrEqual(1)
+    expect(box.x + box.width).toBeLessThanOrEqual(width)
+  })
+}
+
+for (const width of [360, 680]) {
+  test(`under 760px the lesson opens as a bottom sheet at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 600 })
+    await openApp(page, pageState({ graph: graphWithNodes() }))
+    await page.getByRole('button', { name: 'List' }).click()
+    await page.locator('[data-lesson-list]').getByRole('button', { name: 'Retry the deploy' }).click()
+    const sheet = page.locator('[data-lesson-detail="sheet"]')
+    await expect(sheet).toHaveAttribute('role', 'dialog')
+    const box = await sheet.boundingBox()
+    if (!box) throw new Error('sheet is missing')
+    expect(Math.abs(box.width - width)).toBeLessThanOrEqual(1)
+    expect(Math.abs(box.y + box.height - 600)).toBeLessThanOrEqual(1)
+    expect(box.height).toBeLessThan(600 * 0.62)
+  })
+}
 
 test('header controls are 36px tall and every one shows the focus ring', async ({ page }) => {
   await openApp(page, pageState({ graph: graphWithNodes() }))

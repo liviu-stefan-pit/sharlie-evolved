@@ -53,7 +53,7 @@ test('cited lessons are chips that open the lesson, even when filtered out', asy
   await expect(page.getByRole('heading', { name: 'From these lessons' })).toBeVisible()
   await page.getByRole('button', { name: 'Retry the deploy' }).click()
   await expect(page.getByRole('searchbox', { name: 'Filter lessons' })).toHaveValue('')
-  await expect(page.locator('aside').getByRole('heading', { name: 'Retry the deploy' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Retry the deploy' })).toBeVisible()
 })
 
 test('no citations from the host means no chips, never guessed ones', async ({ page }) => {
