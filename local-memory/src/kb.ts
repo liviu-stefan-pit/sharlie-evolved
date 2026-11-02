@@ -21,6 +21,7 @@
  * writerId(name, installId) -> string
  *   `<name-slug>-<installId>`, for example ada-lovelace-k3f9. Two people
  *   with the same display name and different install ids get different ids.
+ *   A name that slugifies to nothing, such as 李雷, becomes user-<installId>.
  *   Returns "" when installId is not four characters from a-z and 0-9.
  *
  * writeLesson(folder, writer, lesson, index) -> Promise<{ ok: true, lesson } | { ok: false, reason }>
@@ -193,8 +194,7 @@ export function writerId(name: string, installId: string) {
   const install = text(installId).toLowerCase()
   if (!/^[a-z0-9]{4}$/.test(install)) return ''
   const slug = writerSlug(text(name))
-  if (slug === '') return ''
-  return `${slug}-${install}`
+  return `${slug === '' ? 'user' : slug}-${install}`
 }
 
 function isWriterId(writer: string) {

@@ -24,7 +24,7 @@ An id is the writer id, a hyphen, and a random id:
 
 `ada-lovelace-k3f9-3f1a2c4e-5b6d-4e7f-8a9b-0c1d2e3f4a5b`
 
-The writer id is the person's name slug plus a four-character install id, for example `ada-lovelace-k3f9`. The slug is lower case. Spaces and punctuation become a single hyphen, and accents are dropped. "Ada Lovelace" becomes `ada-lovelace`. "José" becomes `jose`. The install id is four characters from `a-z` and `0-9`, chosen once for that install of the app. The display name stays in the author field. The save is told the writer id; it does not invent one from the display name alone.
+The writer id is the person's name slug plus a four-character install id, for example `ada-lovelace-k3f9`. The slug is lower case. Spaces and punctuation become a single hyphen, and accents are dropped. "Ada Lovelace" becomes `ada-lovelace`. "José" becomes `jose`. A name that has no letters or digits the folder can keep, such as 李雷, uses `user` instead, so the writer id is `user-` plus the install id. The install id is four characters from `a-z` and `0-9`, chosen once for that install of the app. The display name stays in the author field. The save is told the writer id; it does not invent one from the display name alone.
 
 Two people with the same display name and different install ids get different writer ids, so their files never collide. A rewrite is refused when the file already there has a different email, or when its id does not belong to this writer id. The previous bytes stay as they were.
 

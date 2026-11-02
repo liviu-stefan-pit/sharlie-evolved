@@ -382,6 +382,31 @@ test('newInstallId is four letters or digits and writerId keeps the install id',
   assert.equal(writerId('Ada Lovelace', 'no'), '')
 })
 
+test('a name with no latin letters saves as user plus the install id', async () => {
+  await withFolder(async (folder) => {
+    assert.equal(writerId('李雷', 'k3f9'), 'user-k3f9')
+    assert.equal(writerId('李雷', 'K3F9'), 'user-k3f9')
+    const result = await writeLesson(
+      folder,
+      writerId('李雷', 'k3f9'),
+      lesson('李雷', {
+        author: { username: '李雷', email: 'li@example.com', team: 'platform' },
+        title: 'Measure twice',
+      }),
+      [],
+    )
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.match(result.lesson.id, /^user-k3f9-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+    assert.equal(result.lesson.writer, 'user-k3f9')
+    assert.equal(result.lesson.author.username, '李雷')
+    const stored = JSON.parse(readFileSync(join(folder, `${result.lesson.id}.json`), 'utf8')) as {
+      author: { username: string }
+    }
+    assert.equal(stored.author.username, '李雷')
+  })
+})
+
 test('two people with the same name do not overwrite each other', async () => {
   await withFolder(async (folder) => {
     const firstWriter = writerId('Ada Lovelace', 'k3f9')
