@@ -192,6 +192,8 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
       return false
     }
     if (picked.drivePath.trim() === '') return false // cancelled the dialog
+    // The real host answers a cancelled dialog with the folder it already had: no change, no Saved.
+    if (picked.drivePath === state.drivePath) return false
     setBanner((current) => (current?.action === 'Choose folder again' ? null : current))
     if (thenEnable && !picked.share) return setShare(true, picked.drivePath)
     savedShare.tick()
