@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mock, test } from 'node:test'
@@ -141,6 +141,63 @@ test('the desktop host lesson writes a scrubbed card without sending secrets to 
     assert.match(card, /team: platform/)
     assert.match(card, /Mail ada@example.com when a deploy fails on a lock\./)
     assert.match(card, /\[redacted\]/)
+  } finally {
+    if (timer) clearInterval(timer)
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('a model reply with no scope stays personal and is not copied to the share folder', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-host-'))
+  const machine = machineWith(join(directory, 'machine'), ['cursor'])
+  const drive = join(directory, 'drive')
+  let timer: ReturnType<typeof setInterval> | undefined
+  try {
+    const harness = await openDesktopHarness({
+      person: 'ada',
+      directory,
+      machine,
+      readTranscripts: () => [],
+      fetchImpl: async () => {
+        const lesson = {
+          title: 'Retry failed deploys',
+          topics: ['deploys'],
+          summary: 'Retry a failed deploy once.',
+          situation: 'A deploy failed after the lock timed out.',
+          whatToDo: 'Retry the deploy once, then read the log.',
+          why: 'The lock clears on its own within a minute.',
+          apply: 'When a deploy fails on a lock, retry once before changing config.',
+          otherNames: [],
+          belongsToProject: null,
+          clearlyOneProduct: true,
+          subjectProject: null,
+          generalTechnique: false,
+          solution: 'Retry the deploy once.',
+          failure_modes: ['The lock timed out.'],
+          context: { os: 'win32', tool_version: '1', framework: 'sharlie-evolved' },
+        }
+        return new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify(lesson) }] }))
+      },
+    })
+    timer = harness.timer
+    const window = harness.session.openWindow(directory)
+    window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    window.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    window.setDrivePath(drive)
+    window.setAutoDrop(true)
+    const learned = await window.runLearner([
+      { source: 'cursor', text: 'the deploy failed after the lock timed out', repo: 'sharlie-evolved' },
+    ])
+    assert.equal(learned.ran, true)
+    const cards = readdirSync(join(directory, 'cards')).filter((name) => name.endsWith('.json') && name !== '.claims.json')
+    assert.equal(cards.length, 1)
+    const stored = JSON.parse(readFileSync(join(directory, 'cards', cards[0]), 'utf8')) as { scope?: string }
+    assert.equal(stored.scope, 'personal')
+    assert.equal(window.runPublisher().ran, true)
+    const drop = join(drive, 'Dropzone', 'ada')
+    const copied = existsSync(drop) ? readdirSync(drop) : []
+    assert.deepEqual(copied, [])
   } finally {
     if (timer) clearInterval(timer)
     discardVault(directory)

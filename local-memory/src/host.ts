@@ -51,7 +51,7 @@ export function lessonFromModel(text: string): LessonDraft {
   const summarySource = typeof parsed.summary === 'string' && parsed.summary !== '' ? parsed.summary : solution
   const summary = sentences(summarySource, 2) || sentences(`${summarySource}.`, 1)
   return {
-    scope: parsed.scope === 'personal' ? 'personal' : 'work',
+    scope: parsed.scope === 'work' ? 'work' : 'personal',
     title: typeof parsed.title === 'string' ? parsed.title : '',
     topics: Array.isArray(parsed.topics) ? parsed.topics.filter((topic): topic is string => typeof topic === 'string') : ['lesson'],
     summary,
