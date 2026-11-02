@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -38,6 +38,9 @@ function withPerson(
 ) {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const transcripts: Transcript[] = []
+  const chat = join(directory, 'home', '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'seed', 'seed.jsonl')
+  mkdirSync(join(chat, '..'), { recursive: true })
+  writeFileSync(chat, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'seed' }] } }))
   const session = openUserSession(person, complete, machineWith(directory, ['cursor']), () => transcripts)
   try {
     run(session, directory, transcripts)
@@ -409,6 +412,9 @@ test("the jobs run only in that person's session", () => {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const transcripts: Transcript[] = []
   const machine = machineWith(directory, ['cursor'])
+  const seed = join(directory, 'home', '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'seed', 'seed.jsonl')
+  mkdirSync(join(seed, '..'), { recursive: true })
+  writeFileSync(seed, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'seed' }] } }))
   const complete = (request: { transcript: Transcript }) => draft(request.transcript.text)
   const ada = openUserSession('ada', complete, machine, () => transcripts)
   try {

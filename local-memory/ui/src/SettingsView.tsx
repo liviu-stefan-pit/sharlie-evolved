@@ -126,8 +126,16 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
     const reply = await run({ action: 'save-key', provider, secret: value }, () => void saveKey())
     setKeyBusy(false)
     if (!reply) return
+    if (reply.errorCode === 'key_unchecked') {
+      setSecret('')
+      setReplacing(false)
+      if (reply.provider !== provider) await useKey()
+      savedKey.tick()
+      if (reply.notice) setKeyError(reply.notice)
+      return
+    }
     if (reply.notice) {
-      setKeyError(`That key was rejected by ${label}. Check it and try again`)
+      setKeyError(reply.errorCode === 'key_rejected' && reply.notice ? reply.notice : `That key was rejected by ${label}. Check it and try again`)
       return
     }
     setSecret('')

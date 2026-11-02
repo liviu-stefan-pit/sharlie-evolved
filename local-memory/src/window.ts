@@ -8,6 +8,89 @@ const hourMs = 60 * 60 * 1000
 type Session = ReturnType<typeof openUserSession>
 type WindowApp = ReturnType<Session['openWindow']>
 
+export type ActionResult = { notice: string; errorCode?: string; detail?: string }
+
+const knownActions = new Set([
+  'save-profile',
+  'save-key',
+  'revoke-key',
+  'activate-key',
+  'activate-provider',
+  'clear-provider',
+  'set-cadence',
+  'set-auto-drop',
+  'set-base-url',
+  'register',
+  'unregister',
+  'close',
+  'set-learner-interval',
+  'set-publisher-interval',
+  'set-drive',
+  'set-knowledge',
+  'start-learning',
+  'cancel-learning',
+  'recheck-sources',
+  'select-model',
+  'set-model-param',
+])
+
+const providerName: Record<string, string> = {
+  anthropic: 'Anthropic',
+  openai: 'OpenAI',
+  cursor: 'Cursor',
+}
+
+type KeyProbe = (url: string, init?: { headers?: Record<string, string> }) => Promise<{ ok: boolean; status: number }>
+
+let keyProbe: KeyProbe | null = null
+
+/** Test hook. A 401 or 403 rejects the key. A throw or any other failure still saves it. */
+export function setKeyProbe(probe: KeyProbe | null) {
+  keyProbe = probe
+}
+
+function ok(): ActionResult {
+  return { notice: '' }
+}
+
+function refused(errorCode: string, notice: string, detail?: string): ActionResult {
+  return detail === undefined ? { notice, errorCode } : { notice, errorCode, detail }
+}
+
+async function judgeKey(provider: 'anthropic' | 'openai' | 'cursor', secret: string) {
+  const probe = keyProbe
+  if (!probe && runningUnderTest()) return 'ok' as const
+  const fetchImpl = probe ?? (fetch as unknown as KeyProbe)
+  const url =
+    provider === 'anthropic'
+      ? 'https://api.anthropic.com/v1/models'
+      : provider === 'openai'
+        ? 'https://api.openai.com/v1/models'
+        : 'https://api.cursor.com/v1/models'
+  const headers: Record<string, string> =
+    provider === 'anthropic'
+      ? { 'x-api-key': secret, 'anthropic-version': '2023-06-01', accept: 'application/json' }
+      : { authorization: `Bearer ${secret}`, accept: 'application/json' }
+  try {
+    const response = await fetchImpl(url, { headers })
+    if (response.status === 401 || response.status === 403) return 'rejected' as const
+    if (!response.ok) return 'unchecked' as const
+    return 'ok' as const
+  } catch {
+    return 'unchecked' as const
+  }
+}
+
+function rejection(provider: string): ActionResult {
+  const label = providerName[provider] ?? provider
+  return refused('key_rejected', `That key was rejected by ${label}. Check it and try again`)
+}
+
+function unchecked(provider: string): ActionResult {
+  const label = providerName[provider] ?? provider
+  return refused('key_unchecked', `The key was saved. Sharlie could not reach ${label} to check it.`)
+}
+
 const keyProviders: { id: Provider; label: string }[] = [
   { id: 'cursor', label: 'Cursor' },
   { id: 'copilot', label: 'Copilot' },
@@ -16,14 +99,14 @@ const keyProviders: { id: Provider; label: string }[] = [
   { id: 'custom', label: 'Custom' },
 ]
 
-async function saveKey(app: WindowApp, params: URLSearchParams) {
+async function saveKey(app: WindowApp, params: URLSearchParams): Promise<ActionResult> {
   const secret = params.get('secret') ?? ''
   const provider = params.get('provider')
   if (
     secret.trim() === '' ||
     (provider !== 'cursor' && provider !== 'copilot' && provider !== 'anthropic' && provider !== 'openai' && provider !== 'custom')
   ) {
-    return ''
+    return ok()
   }
   if (provider === 'custom') {
     app.saveKey({
@@ -32,9 +115,17 @@ async function saveKey(app: WindowApp, params: URLSearchParams) {
       baseUrl: params.get('baseUrl') ?? '',
       model: params.get('model') ?? '',
     })
-    return ''
+    return ok()
+  }
+  if (provider === 'anthropic' || provider === 'openai') {
+    const verdict = await judgeKey(provider, secret)
+    if (verdict === 'rejected') return rejection(provider)
+    app.saveKey({ provider, secret })
+    return verdict === 'unchecked' ? unchecked(provider) : ok()
   }
   if (provider === 'cursor') {
+    const verdict = await judgeKey('cursor', secret)
+    if (verdict === 'rejected') return rejection('cursor')
     let account
     try {
       account = await app.lookupCursor(secret)
@@ -49,9 +140,13 @@ async function saveKey(app: WindowApp, params: URLSearchParams) {
         // The REST model list remains when the SDK catalog is unavailable.
       }
     }
-    if (account.models.length === 0) return account.error || 'Cursor model list failed'
+    if (verdict === 'unchecked') {
+      app.saveKey(account.models.length > 0 ? { provider, secret, account } : { provider, secret })
+      return unchecked('cursor')
+    }
+    if (account.models.length === 0) return { notice: account.error || 'Cursor model list failed' }
     app.saveKey({ provider, secret, account })
-    return ''
+    return ok()
   }
   if (provider === 'copilot') {
     let models: Awaited<ReturnType<typeof listCopilotModels>> | undefined
@@ -63,14 +158,26 @@ async function saveKey(app: WindowApp, params: URLSearchParams) {
       }
     }
     app.saveKey(models ? { provider, secret, account: { models } } : { provider, secret })
-    return ''
+    return ok()
   }
   app.saveKey({ provider, secret })
-  return ''
+  return ok()
 }
 
-function applyWindow(app: WindowApp, params: URLSearchParams): string | Promise<string> {
-  const action = params.get('action')
+function mapStart(sentence: string): ActionResult {
+  if (sentence === '') return ok()
+  if (sentence.startsWith('Save your username')) return refused('profile_incomplete', sentence)
+  if (sentence.startsWith('Turn on a provider')) return refused('key_missing', sentence)
+  if (sentence.startsWith('Choose a model')) return refused('model_missing', sentence)
+  if (sentence.startsWith('No AI coding chats')) return refused('no_chats', sentence)
+  return { notice: sentence }
+}
+
+function applyWindow(app: WindowApp, params: URLSearchParams): ActionResult | Promise<ActionResult> {
+  const action = params.get('action') ?? ''
+  if (!knownActions.has(action)) {
+    return refused('unknown_action', 'That action is not available.')
+  }
   if (action === 'save-profile') {
     app.saveProfile({
       username: params.get('username') ?? '',
@@ -119,32 +226,32 @@ function applyWindow(app: WindowApp, params: URLSearchParams): string | Promise<
       if (action === 'set-learner-interval') app.setLearnerInterval(intervalMs)
       else app.setPublisherInterval(intervalMs)
     } catch (error) {
-      return error instanceof Error ? error.message : 'Learner interval must be 15 minutes, 30 minutes, 1 hour, or manual'
+      return { notice: error instanceof Error ? error.message : 'Learner interval must be 15 minutes, 30 minutes, 1 hour, or manual' }
     }
   }
   if (action === 'set-drive') {
     app.setDrivePath(params.get('path') ?? '')
   }
-  if (action === 'start-learning') return app.startLearning()
+  if (action === 'start-learning') return mapStart(app.startLearning())
   if (action === 'cancel-learning') cancelLearning()
-  if (action === 'recheck-sources') return ''
+  if (action === 'recheck-sources') return ok()
   if (action === 'select-model') {
     const model = params.get('model') ?? ''
     try {
       if (model === '') app.clearModel()
       else app.selectModel(model)
     } catch (error) {
-      return error instanceof Error ? error.message : 'not offered'
+      return { notice: error instanceof Error ? error.message : 'not offered' }
     }
   }
   if (action === 'set-model-param') {
     try {
       app.setModelParam(params.get('id') ?? '', params.get('value') ?? '')
     } catch (error) {
-      return error instanceof Error ? error.message : 'No model'
+      return { notice: error instanceof Error ? error.message : 'No model' }
     }
   }
-  return ''
+  return ok()
 }
 
 async function commitWindow(
@@ -157,9 +264,9 @@ async function commitWindow(
       holder.app.setKnowledgePath(params.get('path') ?? '')
       holder.app = reopen()
     } catch (error) {
-      return error instanceof Error ? error.message : 'knowledge path is required'
+      return { notice: error instanceof Error ? error.message : 'knowledge path is required' }
     }
-    return ''
+    return ok()
   }
   return applyWindow(holder.app, params)
 }
@@ -213,6 +320,7 @@ export async function openDesktopHost(options: { directory: string; session: Ses
   await loadCursorAccount(holder.app)
   return {
     async line(input: string) {
+      try {
       const message = JSON.parse(input) as {
         cmd?: string
         query?: string
@@ -249,10 +357,19 @@ export async function openDesktopHost(options: { directory: string; session: Ses
           if (key === 'cmd' || value == null) continue
           params.set(key, String(value))
         }
-        const notice = await commitWindow(holder, params, reopen)
-        return JSON.stringify({ ...(await pageState(holder.app, options.session)), notice })
+        const result = await commitWindow(holder, params, reopen)
+        return JSON.stringify({ ...(await pageState(holder.app, options.session)), ...result })
       }
       return JSON.stringify({})
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        const notice = 'Something went wrong on this PC. Try again. If it keeps happening, open Details'
+        try {
+          return JSON.stringify({ ...(await pageState(holder.app, options.session)), notice, detail })
+        } catch {
+          return JSON.stringify({ notice, detail })
+        }
+      }
     },
   }
 }

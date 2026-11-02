@@ -195,6 +195,10 @@ export type LearningProgress = {
   total: number
   lessons?: number
   error?: string
+  /** Plain sentence for the window, such as "Reading Cursor chats". */
+  label?: string
+  /** Developer detail: source, file, and card title. */
+  detail?: string
 }
 
 export type LearningResult = {
@@ -283,6 +287,8 @@ function noteForeground(generation: number, error?: string) {
   const message = error ?? learningSnapshot.error
   const next: LearningProgress = { active: true, done, total }
   if (typeof learningSnapshot.lessons === 'number') next.lessons = learningSnapshot.lessons
+  if (learningSnapshot.label) next.label = learningSnapshot.label
+  if (learningSnapshot.detail) next.detail = learningSnapshot.detail
   if (message) next.error = message
   learningSnapshot = next
 }
@@ -671,6 +677,18 @@ function appendIngestLine(
 
 function ingestChatLine(transcript: Transcript, suffix: string) {
   return `${transcript.source} · ${transcriptLabel(transcript)} · ${suffix}`
+}
+
+function readingLabel(source: string) {
+  const name =
+    source === 'cursor' || source === 'cursor-cli'
+      ? 'Cursor'
+      : source === 'copilot' || source === 'copilot-cli'
+        ? 'Copilot'
+        : source === 'claude' || source === 'claude-cli'
+          ? 'Claude'
+          : source
+  return `Reading ${name} chats`
 }
 
 export function discardVault(directory: string) {
@@ -2263,9 +2281,20 @@ export function openApp(
       const pendingIngest: { lines: string[]; totals?: { tokens: number; unreported: number } } = {
         lines: [],
       }
-      const queueIngestLine = (line: string, totals?: { tokens: number; unreported: number }) => {
+      const queueIngestLine = (
+        line: string,
+        totals?: { tokens: number; unreported: number },
+        transcript?: Transcript,
+      ) => {
         pendingIngest.lines.push(line)
         if (totals) pendingIngest.totals = totals
+        if (transcript && learningSnapshot?.active) {
+          learningSnapshot = {
+            ...learningSnapshot,
+            label: readingLabel(transcript.source),
+            detail: line,
+          }
+        }
       }
       const flushIngest = () => {
         if (pendingIngest.lines.length > 0 || pendingIngest.totals) {
@@ -2297,10 +2326,14 @@ export function openApp(
             : status === 'skipped'
               ? `skipped · ${detail}`
               : `failed · ${detail}`
-        queueIngestLine(ingestChatLine(transcript, suffix), {
-          tokens: totals.learningTokens,
-          unreported: totals.learningTokensUnreported,
-        })
+        queueIngestLine(
+          ingestChatLine(transcript, suffix),
+          {
+            tokens: totals.learningTokens,
+            unreported: totals.learningTokensUnreported,
+          },
+          transcript,
+        )
       }
       const markIngestComplete = () => {
         settings.initialIngestComplete = true
@@ -2383,7 +2416,7 @@ export function openApp(
             }))
             if (foreground) {
               for (const { original } of prepared) {
-                queueIngestLine(ingestChatLine(original, 'learning'))
+                queueIngestLine(ingestChatLine(original, 'learning'), undefined, original)
               }
               flushIngest()
             }
@@ -2946,6 +2979,10 @@ export function openUserSession(
           return readTranscripts()
         },
         startLearning() {
+          const found = folders().reduce((sum, source) => sum + source.chats, 0)
+          if (found === 0) {
+            return 'No AI coding chats were found. Sharlie looks in Cursor, Copilot, and Claude.'
+          }
           return window.beginLearning(readTranscripts())
         },
         setKnowledgePath(path: string) {

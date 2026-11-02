@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { discardVault, openUserSession, type LessonDraft } from '../src/app.ts'
-import { openDesktopHost } from '../src/window.ts'
+import { openDesktopHost, setKeyProbe } from '../src/window.ts'
 import { machineWith } from './machine.ts'
 
 function draft(
@@ -230,6 +230,131 @@ test('cancel-learning while nothing is running returns the snapshot and no error
     assert.equal(reply.errorCode ?? '', '')
     assert.equal(reply.learning, null)
     assert.equal(reply.learningResult, null)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('an unknown action returns an error instead of a silent success', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const reply = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'not-a-command' }))) as {
+      notice?: string
+      errorCode?: string
+    }
+    assert.equal(reply.errorCode, 'unknown_action')
+    assert.equal(reply.notice, 'That action is not available.')
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('a rejected key is not saved, and a network failure still saves it', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    setKeyProbe(async (_url, init) => {
+      const header = `${init?.headers?.['x-api-key'] ?? ''} ${init?.headers?.authorization ?? ''}`
+      if (header.includes('sk-ant-api03-bad')) return { ok: false, status: 401 }
+      if (header.includes('sk-proj-bbbb')) throw new Error('getaddrinfo ENOTFOUND api.openai.com')
+      return { ok: true, status: 200 }
+    })
+    const rejected = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-bad' })),
+    ) as { notice?: string; errorCode?: string; savedProviders?: string[] }
+    assert.equal(rejected.errorCode, 'key_rejected')
+    assert.equal(rejected.notice, 'That key was rejected by Anthropic. Check it and try again')
+    assert.equal(rejected.savedProviders?.includes('anthropic'), false)
+
+    const saved = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'openai', secret: 'sk-proj-bbbb' })),
+    ) as { notice?: string; errorCode?: string; savedProviders?: string[] }
+    assert.equal(saved.errorCode, 'key_unchecked')
+    assert.equal(saved.notice, 'The key was saved. Sharlie could not reach OpenAI to check it.')
+    assert.equal(saved.savedProviders?.includes('openai'), true)
+    assert.equal(JSON.stringify(saved).includes('sk-proj-bbbb'), false)
+  } finally {
+    setKeyProbe(null)
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('start-learning with no chats does not mark learning active', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    await host.line(JSON.stringify({ cmd: 'action', action: 'save-profile', username: 'ada', email: 'ada@example.com', team: 'platform' }))
+    await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-aaaa' }))
+    const reply = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      notice?: string
+      errorCode?: string
+      learning: unknown
+    }
+    assert.equal(reply.errorCode, 'no_chats')
+    assert.equal(reply.notice, 'No AI coding chats were found. Sharlie looks in Cursor, Copilot, and Claude.')
+    assert.equal(reply.learning, null)
+    const settings = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as { learningStarted?: boolean }
+    assert.equal(settings.learningStarted, false)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('start-learning without a profile returns profile_incomplete and does not start', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  const chat = join(machine.home, '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'chat', 'chat.jsonl')
+  mkdirSync(join(chat, '..'), { recursive: true })
+  writeFileSync(chat, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'retry the deploy' }] } }))
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machine, () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const reply = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      notice?: string
+      errorCode?: string
+      learning: unknown
+    }
+    assert.equal(reply.errorCode, 'profile_incomplete')
+    assert.equal(reply.notice, 'Save your username, email, and team before learning can write cards.')
+    assert.equal(reply.learning, null)
+    const settingsPath = join(directory, 'settings.json')
+    const started = existsSync(settingsPath)
+      ? (JSON.parse(readFileSync(settingsPath, 'utf8')) as { learningStarted?: boolean }).learningStarted === true
+      : false
+    assert.equal(started, false)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('a broken host line returns a plain sentence and the raw detail', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const reply = JSON.parse(await host.line('{')) as { notice?: string; detail?: string }
+    assert.equal(reply.notice, 'Something went wrong on this PC. Try again. If it keeps happening, open Details')
+    assert.equal(typeof reply.detail, 'string')
+    assert.equal((reply.detail ?? '').length > 0, true)
   } finally {
     discardVault(directory)
     rmSync(directory, { recursive: true, force: true })

@@ -39,6 +39,10 @@ notice: string
 
 `notice` is the sentence. `errorCode` is the stable token below. A success leaves both empty (`""` or omit `errorCode`).
 
+An unexpected failure still resolves the snapshot. `notice` is `Something went wrong on this PC. Try again. If it keeps happening, open Details`. `detail` is the raw message, one line, for the Details control.
+
+While a pass is running, `learning.label` is a plain sentence such as `Reading Cursor chats`. `learning.detail` is the developer line (source, file, card title). The finished snapshot omits both.
+
 A dead host, a broken IPC channel, or a missing preload rejects the promise. The UI already shows that message on the service screen. Use these messages when the host is the one failing:
 
 | Situation | `message` |
@@ -60,12 +64,14 @@ A dead host, a broken IPC channel, or a missing preload rejects the promise. The
 | `profile_incomplete` | Learning without username, email, and team | `Save your username, email, and team before learning can write cards.` |
 | `key_missing` | Learning with no active provider | `Turn on a provider before learning can write cards.` |
 | `model_missing` | Learning with no chosen model | `Choose a model before learning can write cards.` |
-
-`start-learning` already returns those three learning sentences as `notice` and does not start. Keep that. Add the matching `errorCode`.
-
 | `no_chats` | Start pressed when the scan found no chats | `No AI coding chats were found. Sharlie looks in Cursor, Copilot, and Claude.` |
+| `key_rejected` | The provider answered 401 or 403 | `That key was rejected by Anthropic.` (or OpenAI, or Cursor) `Check it and try again` |
+| `key_unchecked` | The provider could not be reached. The key is still saved | `The key was saved. Sharlie could not reach Anthropic to check it.` |
+| `unknown_action` | The action name is not one of the commands below | `That action is not available.` |
 
-`start-learning` returns `no_chats` in that case and does not start. The host does not scan again on its own. Nothing is retried until `recheck-sources` or the person starts again after a re-check that finds chats.
+`start-learning` returns those learning sentences as `notice` with the matching `errorCode` and does not start.
+
+`start-learning` returns `no_chats` when the scan found nothing and does not start. The host does not scan again on its own. Nothing is retried until `recheck-sources` or the person starts again after a re-check that finds chats.
 
 ## Page snapshot fields the UI should read
 

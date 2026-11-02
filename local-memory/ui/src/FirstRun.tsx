@@ -120,8 +120,15 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
     setKeyError(null)
     try {
       const next = await act({ action: 'save-key', provider, secret: value })
+      if (next.errorCode === 'key_unchecked') {
+        setSecret('')
+        setReplacing(false)
+        if (next.notice) setKeyError({ text: next.notice })
+        await finishKey(next, provider)
+        return
+      }
       if (next.notice) {
-        setKeyError({ text: `That key was rejected by ${providerLabel}. Check it and try again` })
+        setKeyError({ text: next.errorCode === 'key_rejected' && next.notice ? next.notice : `That key was rejected by ${providerLabel}. Check it and try again` })
         return
       }
       setSecret('')

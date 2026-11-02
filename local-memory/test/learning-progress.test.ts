@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mock, test } from 'node:test'
@@ -77,7 +77,9 @@ test('an async complete invokes onLearning with an increasing done before runLea
     app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
 
     let announced = 0
+    let plainLabel = ''
     const stop = onLearning((progress) => {
+      if (progress.label) plainLabel = progress.label
       if (progress.done < 1) return
       const cards = readdirSync(join(directory, 'cards'))
       assert.equal(
@@ -125,6 +127,8 @@ test('an async complete invokes onLearning with an increasing done before runLea
     const learned = await running
     assert.equal(learned.ran, true)
     assert.ok(announced >= 1)
+    assert.equal(plainLabel, 'Reading Cursor chats')
+    assert.equal(learningProgress()?.label, undefined)
     assert.deepEqual(learningProgress(), { active: false, done: 2, total: 2 })
     stop()
   } finally {
@@ -289,6 +293,9 @@ test('setKnowledgePath to an empty folder copies the profile, clears imports, an
     () => transcripts,
   )
   try {
+    const seed = join(directory, 'home', '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'seed', 'seed.jsonl')
+    mkdirSync(join(seed, '..'), { recursive: true })
+    writeFileSync(seed, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'seed' }] } }))
     session.logIn()
     const window = session.openWindow(directory)
     window.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
