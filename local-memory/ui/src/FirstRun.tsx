@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { firstTodo, foundSummary, keyHold, keyProviders, nothingFound, nothingToLearn, profileHold } from './setup'
+import { canShare, firstTodo, foundSummary, keyHold, keyProviders, nothingFound, nothingToLearn, profileHold, SHARE_UNAVAILABLE } from './setup'
 import { errorText, Trouble } from './Trouble'
 import type { PageState } from './types'
 
@@ -383,10 +383,16 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
           <p className="mt-2 text-[13px] text-muted">Saved securely in Windows Credential Manager, never in a settings file.</p>
         </Step>
         <Step n={4} id={`${ids}-sharing`} title="Team sharing" optional done={false}>
-          <p className="text-[15px] text-muted">Off. Everything stays on this PC. You can share work lessons with your team's Drive folder later.</p>
-          <button type="button" className="mt-2 h-9 rounded-[10px] border border-border-input px-3 text-[15px] text-ink" onClick={() => onOpenSettings('sharing')}>
-            Set up sharing
-          </button>
+          {canShare(state) ? (
+            <>
+              <p className="text-[15px] text-muted">Off. Everything stays on this PC. You can share work lessons with your team's Drive folder later.</p>
+              <button type="button" className="mt-2 h-9 rounded-[10px] border border-border-input px-3 text-[15px] text-ink" onClick={() => onOpenSettings('sharing')}>
+                Set up sharing
+              </button>
+            </>
+          ) : (
+            <p className="text-[15px] text-muted">{SHARE_UNAVAILABLE}</p>
+          )}
         </Step>
       </ol>
       <div className="mt-2 border-t border-line pt-4">

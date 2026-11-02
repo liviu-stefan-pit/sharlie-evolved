@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { canShare, everyText, keyProviders } from './setup'
+import { canShare, everyText, keyProviders, SHARE_UNAVAILABLE, sharingOn } from './setup'
 import { applyTheme, readTheme, type ThemeChoice } from './theme'
 import { Details, errorText, HOST_TROUBLE } from './Trouble'
 import type { CatalogParameter, PageState } from './types'
@@ -168,7 +168,7 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
 
   // --- Team sharing
   const savedShare = useSaved()
-  const sharing = state.share === true
+  const sharing = sharingOn(state)
   const [shareBusy, setShareBusy] = useState(false)
   const [shareError, setShareError] = useState('')
   const workQueue = state.graph.nodes.filter((node) => node.kind === 'card' && node.scope === 'work' && node.synced !== true)
@@ -182,6 +182,10 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
     const picked = await run({ action: 'pick-folder', purpose: 'share' }, () => void chooseShareFolder(thenEnable))
     setShareBusy(false)
     if (!picked) return false
+    if (picked.errorCode === 'share_unavailable') {
+      setShareError(picked.notice || SHARE_UNAVAILABLE)
+      return false
+    }
     if (!canShare(picked)) return false // host has no team sharing: never show Saved
     if (picked.errorCode && pathCodes.includes(picked.errorCode)) {
       setShareError(picked.notice ?? '')
@@ -207,6 +211,11 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
     const reply = await run({ action: 'set-share', enabled: on ? 'true' : 'false' }, () => void setShare(on))
     setShareBusy(false)
     if (!reply) return false
+    // The host refused because sharing is off in this version: its sentence inline, no Saved.
+    if (reply.errorCode === 'share_unavailable') {
+      setShareError(reply.notice || SHARE_UNAVAILABLE)
+      return false
+    }
     if (!canShare(reply)) return false // host has no team sharing: never show Saved
     if (reply.errorCode && pathCodes.includes(reply.errorCode)) {
       folderBanner()
@@ -406,7 +415,7 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
             </div>
           </div>
           {!shareable ? (
-            <p className="text-[15px] text-muted">Team sharing isn't available in this version yet</p>
+            <p className="text-[15px] text-muted">{SHARE_UNAVAILABLE}</p>
           ) : sharing ? (
             <div className="space-y-2">
               <p className="text-[15px] break-all text-ink">

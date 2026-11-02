@@ -7,7 +7,7 @@ const learnProblemText = (text: string, code: string) => learnProblem(text, code
 import { LessonList } from './LessonList'
 import { AskPanel, type AskState } from './Ask'
 import { Details, splitHostError, Trouble } from './Trouble'
-import { cadenceLabel, DID_NOT_RUN, firstTodo, learnProblem, refusalCode } from './setup'
+import { cadenceLabel, DID_NOT_RUN, firstTodo, learnProblem, refusalCode, sharingOn } from './setup'
 import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
 import { checkSources, loadState, onLearning, runAction, runLookup } from './host'
@@ -225,7 +225,7 @@ export function App() {
         nodes={graph?.nodes ?? []}
         links={graph?.links ?? []}
         sheet={sheet}
-        share={state?.share === true}
+        share={sharingOn(state)}
         onOpen={openLesson}
         onClose={closeDetail}
       />

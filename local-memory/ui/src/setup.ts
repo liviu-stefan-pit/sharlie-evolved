@@ -41,10 +41,20 @@ export function everyText(_cadence: PageState['cadence']) {
   return 'every hour'
 }
 
-/** Team sharing needs the `share` field and the set-share / pick-folder actions; a host without `share` lacks them. */
-export function canShare(state: Pick<PageState, 'share'>) {
-  return typeof state.share === 'boolean'
+/**
+ * Team sharing is offered only when the host says `shareAvailable: true` and sends the `share` switch.
+ * A missing `shareAvailable` (an older host) counts as unavailable.
+ */
+export function canShare(state: Pick<PageState, 'share' | 'shareAvailable'>) {
+  return state.shareAvailable === true && typeof state.share === 'boolean'
 }
+
+/** Sharing really runs: available and switched on. Anything else stays on this PC. */
+export function sharingOn(state: Pick<PageState, 'share' | 'shareAvailable'> | null | undefined) {
+  return !!state && canShare(state) && state.share === true
+}
+
+export const SHARE_UNAVAILABLE = "Team sharing isn't available in this version. Your lessons stay on this PC."
 
 export const keyProviders = [
   { id: 'anthropic', label: 'Anthropic' },

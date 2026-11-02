@@ -37,6 +37,8 @@ export function pageState(overrides: Partial<PageState> = {}): PageState {
     drivePath: 'C:\\drive',
     autoDrop: false,
     cadence: '1h',
+    // Default: a host with team sharing available (Lyra: a missing shareAvailable means unavailable).
+    shareAvailable: true,
     customBaseUrl: '',
     sources: [{ tool: 'Cursor', path: 'C:\\Users\\ada\\.cursor' }],
     learning: null,

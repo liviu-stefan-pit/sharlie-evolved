@@ -5,8 +5,13 @@ import type { PageState } from '../src/types'
 
 // Snapshots captured from the real host on main (src/window.ts) by /workspace/nova/sharlie-shots/realhost/drive2.mts,
 // paths rewritten to Windows form. Each key is one step of a real run.
+// real-host.json was captured on 7d3ad3a, before 6220ee3 turned team sharing off; that host had sharing on and sent no
+// shareAvailable, so snap() adds shareAvailable: true to replay it as a host with sharing available.
+// real-host-share-unavailable.json is the same run on 6220ee3 (TEAM_SHARING_AVAILABLE = false).
 const real = JSON.parse(readFileSync(new URL('./fixtures/real-host.json', import.meta.url), 'utf8')) as Record<string, PageState>
-const snap = (key: string, overrides: Partial<PageState> = {}) => ({ ...structuredClone(real[key]!), ...overrides })
+const snap = (key: string, overrides: Partial<PageState> = {}) => ({ ...structuredClone(real[key]!), shareAvailable: true, ...overrides })
+const off = JSON.parse(readFileSync(new URL('./fixtures/real-host-share-unavailable.json', import.meta.url), 'utf8')) as Record<string, PageState>
+const offSnap = (key: string, overrides: Partial<PageState> = {}) => ({ ...structuredClone(off[key]!), ...overrides })
 const status = (page: Page) => page.locator('header [role="img"]')
 
 async function nextAction(page: Page) {
@@ -76,7 +81,7 @@ test('real rerun with nothing new (learning null, 0 of 0 result) says Nothing ne
 test('real Team sharing: the switch is live, cancel saves nothing, a folder then turns sharing on', async ({ page }) => {
   await openApp(page, snap('08-finished'))
   await openSettings(page)
-  await expect(page.getByText("Team sharing isn't available in this version yet")).toHaveCount(0)
+  await expect(page.getByText("Team sharing isn't available in this version. Your lessons stay on this PC.")).toHaveCount(0)
   await expect(toggle(page)).toBeEnabled()
   await expect(toggle(page)).toHaveAttribute('aria-checked', 'false')
   // No folder yet: the switch opens the folder picker first.
@@ -139,5 +144,42 @@ for (const [key, badge] of [
     await page.getByRole('button', { name: 'List' }).click()
     await page.getByRole('button', { name: 'Retry the deploy once' }).first().click()
     await expect(page.getByText(badge, { exact: true })).toBeVisible()
+  })
+}
+
+test('real 6220ee3 host: shareAvailable false, switch off and disabled, nothing to pick or queue', async ({ page }) => {
+  expect(off['08-finished']!.shareAvailable).toBe(false)
+  await openApp(page, offSnap('08-finished'))
+  await openSettings(page)
+  await expect(toggle(page)).toBeDisabled()
+  await expect(toggle(page)).toHaveAttribute('aria-checked', 'false')
+  await expect(page.getByText("Team sharing isn't available in this version. Your lessons stay on this PC.")).toBeVisible()
+  await expect(page.getByRole('button', { name: /Choose folder|Change folder/ })).toHaveCount(0)
+  await expect(page.getByText(/Next to share/)).toHaveCount(0)
+  await expect(page.getByText(/^Sharing to /)).toHaveCount(0)
+})
+
+test('real 6220ee3 host: a stored team folder and share_unavailable replies still say nothing is shared', async ({ page }) => {
+  const refused = off['14-share-on']!
+  expect(refused.errorCode).toBe('share_unavailable')
+  expect(refused.notice).toBe('Team sharing is not available in this version.')
+  expect(refused.share).toBe(false)
+  expect(off['16b-team-files']).toEqual([])
+  // The real host still stores a picked folder while sharing is unavailable; the UI must not show it as sharing.
+  expect(off['13-pick-team']!.drivePath).toBe('G:\\My Drive\\Team')
+  await openApp(page, offSnap('16-after-publish'))
+  await openSettings(page)
+  await expect(page.getByText(/^Sharing to /)).toHaveCount(0)
+  await expect(page.getByText("Team sharing isn't available in this version. Your lessons stay on this PC.")).toBeVisible()
+})
+
+for (const key of ['14-share-on', '16-after-publish'] as const) {
+  test(`real 6220ee3 ${key}: work lessons say Only on this PC, never Waiting to share, even if share were true`, async ({ page }) => {
+    // share: true forced on top of the real snapshot: shareAvailable false must still win.
+    await openApp(page, offSnap(key, { share: true }))
+    await page.getByRole('button', { name: 'List' }).click()
+    await page.getByRole('button', { name: 'Retry the deploy once' }).first().click()
+    await expect(page.getByText('Only on this PC', { exact: true })).toBeVisible()
+    await expect(page.getByText('Waiting to share')).toHaveCount(0)
   })
 }

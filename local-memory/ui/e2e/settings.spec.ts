@@ -208,11 +208,11 @@ test('a cadence_too_short refusal shows the host sentence under When to learn, w
   await expect(page.getByText('✓ Saved')).toHaveCount(0)
 })
 
-test('without host sharing support the switch is disabled, says so, and never shows Saved', async ({ page }) => {
+test('without the share field the switch is disabled, says so, and never shows Saved', async ({ page }) => {
   await settings(page, pageState({ share: undefined }))
   const toggle = page.getByRole('switch')
   await expect(toggle).toBeDisabled()
-  await expect(page.getByText("Team sharing isn't available in this version yet")).toBeVisible()
+  await expect(page.getByText("Team sharing isn't available in this version. Your lessons stay on this PC.")).toBeVisible()
   await expect(page.getByText('Not sharing. Everything stays on this PC.')).toHaveCount(0)
   await toggle.click({ force: true })
   await page.waitForTimeout(200)
@@ -225,7 +225,7 @@ test('a host reply without the share field turns sharing off as unsupported, wit
   await page.getByRole('switch').click()
   expect(await nextAction(page)).toEqual({ action: 'set-share', enabled: 'true' })
   await reply(page, 'action', pageState({ share: undefined }))
-  await expect(page.getByText("Team sharing isn't available in this version yet")).toBeVisible()
+  await expect(page.getByText("Team sharing isn't available in this version. Your lessons stay on this PC.")).toBeVisible()
   await expect(page.getByRole('switch')).toBeDisabled()
   await expect(page.getByText('✓ Saved')).toHaveCount(0)
 })

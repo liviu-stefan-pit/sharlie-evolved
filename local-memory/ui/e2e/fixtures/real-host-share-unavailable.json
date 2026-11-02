@@ -1,0 +1,1913 @@
+{
+ "08-finished": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:28:36.784Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 6
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 6,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_102836",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.780Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 5; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "issue:proj1",
+     "kind": "issue",
+     "label": "proj1",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.781Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 3; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_3",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.782Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_4",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 4; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "issue:proj0",
+     "kind": "issue",
+     "label": "proj0",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_5",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 2; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_6",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.784Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "issue:proj0"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 6,
+   "chats": 6,
+   "text": "6 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "10-share-on-no-folder": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:28:37.036Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 6
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 6,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_102836",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.780Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 5; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "issue:proj1",
+     "kind": "issue",
+     "label": "proj1",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.781Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 3; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_3",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.782Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_4",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 4; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "issue:proj0",
+     "kind": "issue",
+     "label": "proj0",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_5",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 2; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_6",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.784Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "issue:proj0"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 0,
+   "chats": 0,
+   "text": "0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null,
+  "notice": "Team sharing is not available in this version.",
+  "errorCode": "share_unavailable"
+ },
+ "13-pick-team": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "G:\\My Drive\\Team",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:28:37.036Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 6
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 6,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_102836",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.780Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 5; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "issue:proj1",
+     "kind": "issue",
+     "label": "proj1",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.781Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 3; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_3",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.782Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_4",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 4; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "issue:proj0",
+     "kind": "issue",
+     "label": "proj0",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_5",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 2; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_6",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.784Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "issue:proj0"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 0,
+   "chats": 0,
+   "text": "0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null,
+  "notice": ""
+ },
+ "14-share-on": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "G:\\My Drive\\Team",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:28:37.036Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 6
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 6,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_102836",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.780Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 5; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "issue:proj1",
+     "kind": "issue",
+     "label": "proj1",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.781Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 3; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_3",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.782Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_4",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 4; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "issue:proj0",
+     "kind": "issue",
+     "label": "proj0",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_5",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 2; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_6",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.784Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "issue:proj0"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 0,
+   "chats": 0,
+   "text": "0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null,
+  "notice": "Team sharing is not available in this version.",
+  "errorCode": "share_unavailable"
+ },
+ "16-after-publish": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "G:\\My Drive\\Team",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "lastSharedAt": null,
+  "lastLearnedAt": "2026-11-02T10:28:37.303Z",
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 6
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 6,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [
+    {
+     "id": "card:card_20261102_102836",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.780Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 5; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "developer:ada@example.com",
+     "kind": "developer",
+     "label": "ada",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "team:platform",
+     "kind": "team",
+     "label": "platform",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "topic:deploys",
+     "kind": "topic",
+     "label": "deploys",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "tool:cursor",
+     "kind": "tool",
+     "label": "cursor",
+     "color": "#9d9d9d",
+     "degree": 6
+    },
+    {
+     "id": "issue:proj1",
+     "kind": "issue",
+     "label": "proj1",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_2",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.781Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 3; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_3",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.782Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 1; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_4",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 4; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "issue:proj0",
+     "kind": "issue",
+     "label": "proj0",
+     "color": "#9d9d9d",
+     "degree": 3
+    },
+    {
+     "id": "card:card_20261102_102836_5",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.783Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 2; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    },
+    {
+     "id": "card:card_20261102_102836_6",
+     "kind": "card",
+     "label": "Retry the deploy once",
+     "color": "#b89a6a",
+     "degree": 5,
+     "synced": false,
+     "scope": "work",
+     "title": "Retry the deploy once",
+     "created_at": "2026-11-02T10:28:36.784Z",
+     "solution": "Retry the deploy once, then read the log.",
+     "failure_modes": [
+      "retry the deploy number 0; the lock was held. mail [redacted]",
+      "The lock clears on its own within a minute.",
+      "When a deploy fails on a lock, retry once before changing config."
+     ]
+    }
+   ],
+   "links": [
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_2"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_2",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_3"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_3",
+     "target": "issue:proj1"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_4"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_4",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_5"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_5",
+     "target": "issue:proj0"
+    },
+    {
+     "source": "developer:ada@example.com",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "team:platform",
+     "target": "card:card_20261102_102836_6"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "topic:deploys"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "tool:cursor"
+    },
+    {
+     "source": "card:card_20261102_102836_6",
+     "target": "issue:proj0"
+    }
+   ]
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 0,
+   "chats": 0,
+   "text": "0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "16b-team-files": []
+}
