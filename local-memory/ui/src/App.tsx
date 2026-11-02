@@ -10,12 +10,12 @@ import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
 import { checkSources, loadState, onLearning, runAction, runLookup } from './host'
 import { SettingsView } from './SettingsView'
+import { applyTheme, readTheme } from './theme'
 import { SourceMenu } from './SourceMenu'
 import { type GraphNode, type PageState } from './types'
 
 type View = 'graph' | 'settings'
 
-const emptyProfile = { username: '', email: '', team: '' }
 
 export function App() {
   const [view, setView] = useState<View>('graph')
@@ -26,14 +26,6 @@ export function App() {
   const [ask, setAsk] = useState<AskState>({ phase: 'idle' })
   const askRef = useRef<HTMLInputElement>(null)
   const [selectedId, setSelectedId] = useState('')
-  const [profile, setProfile] = useState(emptyProfile)
-  const [provider, setProvider] = useState('')
-  const [vaultPath, setVaultPath] = useState('')
-  const [drivePath, setDrivePath] = useState('')
-  const [autoDrop, setAutoDrop] = useState(false)
-  const [cadence, setCadence] = useState<PageState['cadence']>('30m')
-  const [model, setModel] = useState('')
-  const [saving, setSaving] = useState(false)
   const [waiting, setWaiting] = useState(false)
   const [notice, setNotice] = useState('')
   const stateRef = useRef<PageState | null>(null)
@@ -59,13 +51,6 @@ export function App() {
     }
     stateRef.current = next
     setState(next)
-    setProfile(next.profile)
-    setProvider(next.provider)
-    setVaultPath(next.vaultPath)
-    setDrivePath(next.drivePath)
-    setAutoDrop(next.autoDrop)
-    setCadence(next.cadence)
-    setModel(next.model)
     setNotice(next.notice ?? '')
   }
 
@@ -102,6 +87,8 @@ export function App() {
     })
     setWaiting(false)
   }
+
+  useEffect(() => applyTheme(readTheme()), [])
 
   const [attempt, setAttempt] = useState(0)
   const [retrying, setRetrying] = useState(false)
@@ -245,102 +232,6 @@ export function App() {
     }
   }
 
-  async function toggleProvider(providerId: string, on: boolean) {
-    setSaving(true)
-    setNotice('')
-    try {
-      apply(
-        await runAction(on ? { action: 'activate-provider', provider: providerId } : { action: 'clear-provider' }),
-      )
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not change the provider')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function saveProviderKey(providerId: string, secret: string) {
-    setSaving(true)
-    setNotice('')
-    try {
-      const next = await runAction({ action: 'save-key', provider: providerId, secret })
-      apply(next)
-      return (next.notice ?? '') === ''
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not save the key')
-      return false
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function removeProvider(providerId: string) {
-    setSaving(true)
-    setNotice('')
-    try {
-      apply(await runAction({ action: 'revoke-key', provider: providerId }))
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not remove the key')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function chooseModel(modelId: string) {
-    setModel(modelId)
-    setSaving(true)
-    setNotice('')
-    try {
-      apply(await runAction({ action: 'select-model', model: modelId }))
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not choose the model')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function chooseParam(id: string, value: string) {
-    setSaving(true)
-    setNotice('')
-    try {
-      apply(await runAction({ action: 'set-model-param', id, value }))
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not set the model option')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function save() {
-    if (!state) return
-    setSaving(true)
-    setNotice('')
-    try {
-      let next = state
-      if (
-        profile.username !== state.profile.username ||
-        profile.email !== state.profile.email ||
-        profile.team !== state.profile.team
-      ) {
-        next = await runAction({
-          action: 'save-profile',
-          username: profile.username,
-          email: profile.email,
-          team: profile.team,
-        })
-      }
-      if (vaultPath !== state.vaultPath) next = await runAction({ action: 'set-knowledge', path: vaultPath })
-      if (autoDrop !== state.autoDrop) next = await runAction({ action: 'set-auto-drop', enabled: autoDrop })
-      if (drivePath !== state.drivePath) next = await runAction({ action: 'set-drive', path: drivePath })
-      if (cadence !== state.cadence) next = await runAction({ action: 'set-cadence', cadence })
-      apply(next)
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Could not save settings')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return (
     <div className="flex h-full flex-col bg-canvas text-ink">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-panel px-3">
@@ -467,29 +358,7 @@ export function App() {
         </div>
       ) : null}
       {view === 'settings' && state ? (
-        <SettingsView
-          state={state}
-          profile={profile}
-          provider={provider}
-          vaultPath={vaultPath}
-          drivePath={drivePath}
-          autoDrop={autoDrop}
-          cadence={cadence}
-          model={model}
-          saving={saving}
-          notice={notice}
-          onProfile={setProfile}
-          onVaultPath={setVaultPath}
-          onDrivePath={setDrivePath}
-          onAutoDrop={setAutoDrop}
-          onCadence={setCadence}
-          onToggleProvider={(providerId, on) => void toggleProvider(providerId, on)}
-          onSaveKey={saveProviderKey}
-          onRemoveKey={(providerId) => void removeProvider(providerId)}
-          onModel={(modelId) => void chooseModel(modelId)}
-          onParam={(id, value) => void chooseParam(id, value)}
-          onSave={() => void save()}
-        />
+        <SettingsView state={state} act={act} />
       ) : null}
       {view === 'graph' && state && !visible ? (
         <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p>

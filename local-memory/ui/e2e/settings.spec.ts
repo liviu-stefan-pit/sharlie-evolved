@@ -1,368 +1,225 @@
-import { expect, test } from '@playwright/test'
-import { fail, lastCall, openApp, pageState, reply } from './support'
+import { expect, test, type Page } from '@playwright/test'
+import { fail, graphWithNodes, lastCall, openApp, pageState, reply } from './support'
+import type { PageState } from '../src/types'
 
-async function settings(page: import('@playwright/test').Page, state = pageState()) {
+const TROUBLE = 'Something went wrong on this PC. Try again. If it keeps happening, open Details'
+
+async function settings(page: Page, state: PageState = pageState()) {
   await openApp(page, state)
   await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
 }
 
-test('settings keeps every control, including the model row', async ({ page }) => {
+async function nextAction(page: Page) {
+  await page.waitForFunction(() => window.__sharlieCalls.some((call) => call.cmd === 'action' && !call.done))
+  return (await lastCall(page, 'action'))?.payload
+}
+
+test('settings is one 640px column with About you, AI key, Team sharing, Advanced', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
   await settings(page)
-  await expect(page.getByLabel('Username')).toHaveValue('ada')
-  await expect(page.getByLabel('Email')).toHaveValue('ada@example.com')
-  await expect(page.getByLabel('Team')).toHaveValue('platform')
-  await expect(page.getByRole('switch', { name: 'Cursor' })).toBeChecked()
-  await expect(page.getByRole('switch', { name: 'Copilot' })).toBeDisabled()
-  await expect(page.getByLabel('Model')).toBeEnabled()
-  await expect(page.getByLabel('Model')).toHaveValue('composer')
-  await expect(page.getByLabel('Local vault')).toHaveValue('C:\\vault')
-  await expect(page.getByLabel('Auto-drop')).not.toBeChecked()
-  await expect(page.getByLabel('Folder')).toHaveValue('C:\\drive')
-  await expect(page.getByText('Learning tokens')).toBeVisible()
-  await expect(page.getByText('0 tokens')).toBeVisible()
-  await expect(page.getByLabel('Harvest cadence')).toHaveValue('30m')
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled()
-  await expect(page.getByLabel('Key')).toHaveCount(0)
-  await expect(page.getByText('Expires')).toHaveCount(0)
-})
-
-test('the only provider can be switched off and the key stays hidden', async ({ page }) => {
-  await settings(page)
-  await expect(page.getByText('••••')).toHaveCount(0)
-  await page.getByRole('switch', { name: 'Cursor' }).click()
-  await reply(
-    page,
-    'action',
-    pageState({ provider: '', model: '', models: [], savedProviders: ['cursor'], hasKey: true }),
-  )
-  await expect(page.getByRole('switch', { name: 'Cursor' })).not.toBeChecked()
-  await expect(page.getByLabel('Model')).toHaveCount(0)
-})
-
-test('effort and fast come from the model catalog', async ({ page }) => {
-  await settings(
-    page,
-    pageState({
-      model: 'effort-model',
-      modelParams: [
-        { id: 'effort', value: 'high' },
-        { id: 'fast', value: 'true' },
-      ],
-      models: [
-        {
-          id: 'effort-model',
-          displayName: 'Effort Model',
-          parameters: [
-            {
-              id: 'effort',
-              displayName: 'Effort',
-              values: [
-                { value: 'low', displayName: 'Low' },
-                { value: 'high', displayName: 'High' },
-              ],
-            },
-            {
-              id: 'fast',
-              displayName: 'Fast',
-              values: [{ value: 'false' }, { value: 'true' }],
-            },
-          ],
-        },
-      ],
-      keyExpiresAt: '2026-11-01T00:00:00.000Z',
-    }),
-  )
-  await expect(page.getByLabel('Effort')).toHaveValue('high')
-  await expect(page.getByLabel('Fast')).toBeChecked()
-  await expect(page.getByText('Expires 1 Nov 2026')).toBeVisible()
-  await expect(page.getByText('sk-live-key')).toHaveCount(0)
-})
-
-test('save returns to an enabled Save after success and after failure', async ({ page }) => {
-  await settings(page)
-  const save = page.getByRole('button', { name: 'Save' })
-  await page.getByLabel('Team').fill('labs')
-  await save.click()
-  await expect(page.getByRole('button', { name: 'Saving' })).toBeDisabled()
-  await reply(page, 'action', pageState())
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled()
-
-  await page.getByLabel('Team').fill('other')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('button', { name: 'Saving' })).toBeDisabled()
-  await fail(page, 'action', 'Could not save settings')
-  await expect(page.getByText('Could not save settings')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled()
-})
-
-async function actionCall(page: import('@playwright/test').Page) {
-  let call = await lastCall(page, 'action')
-  const pending = await page.evaluate(
-    () => window.__sharlieCalls?.some((item) => item.cmd === 'action' && !item.done) ?? false,
-  )
-  if (call === null || !pending) {
-    await page.waitForFunction(
-      () => window.__sharlieCalls?.some((item) => item.cmd === 'action' && !item.done) ?? false,
-    )
-    call = await lastCall(page, 'action')
+  for (const name of ['About you', 'AI key', 'Team sharing']) {
+    await expect(page.getByRole('heading', { name, exact: true, level: 2 })).toBeVisible()
   }
-  return call
-}
-
-const catalogModels = [
-  { id: 'composer', displayName: 'Composer' },
-  { id: 'other-model', displayName: 'Other Model' },
-]
-
-function effortState(
-  modelParams: { id: string; value: string }[] = [
-    { id: 'effort', value: 'high' },
-    { id: 'fast', value: 'true' },
-  ],
-) {
-  return pageState({
-    model: 'effort-model',
-    modelParams,
-    models: [
-      {
-        id: 'effort-model',
-        displayName: 'Effort Model',
-        parameters: [
-          {
-            id: 'effort',
-            displayName: 'Effort',
-            values: [
-              { value: 'low', displayName: 'Low' },
-              { value: 'high', displayName: 'High' },
-            ],
-          },
-          {
-            id: 'fast',
-            displayName: 'Fast',
-            values: [{ value: 'false' }, { value: 'true' }],
-          },
-        ],
-      },
-    ],
-  })
-}
-
-test('profile save sends the new username, email, and team', async ({ page }) => {
-  await settings(page)
-  await page.getByLabel('Username').fill('labs-user')
-  await page.getByLabel('Email').fill('labs@example.com')
-  await page.getByLabel('Team').fill('labs')
-  await page.getByRole('button', { name: 'Save' }).click()
-  expect((await actionCall(page))?.payload).toEqual({
-    action: 'save-profile',
-    username: 'labs-user',
-    email: 'labs@example.com',
-    team: 'labs',
-  })
-  await reply(
-    page,
-    'action',
-    pageState({ profile: { username: 'labs-user', email: 'labs@example.com', team: 'labs' } }),
-  )
-  await expect(page.getByLabel('Username')).toHaveValue('labs-user')
-  await expect(page.getByLabel('Email')).toHaveValue('labs@example.com')
-  await expect(page.getByLabel('Team')).toHaveValue('labs')
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Advanced' })).toHaveAttribute('aria-expanded', 'false')
+  const column = page.getByRole('heading', { name: 'Settings', level: 1 }).locator('..')
+  const box = await column.boundingBox()
+  expect(box?.width).toBeLessThanOrEqual(640)
+  await expect(page.getByRole('button', { name: /^Save$/ })).toHaveCount(0)
+  const text = (await page.locator('body').innerText()).toLowerCase()
+  for (const word of ['harvest', 'dropzone', 'auto-drop', 'vault', 'neo4j', 'copilot key', 'custom', 'tokens']) expect(text).not.toContain(word)
 })
 
-test('adding an Anthropic key sends save-key and hides the secret', async ({ page }) => {
+test('About you saves on blur with a Saved tick', async ({ page }) => {
   await settings(page)
-  await page.getByRole('button', { name: 'Add Anthropic key' }).click()
-  const secret = page.getByLabel('Anthropic key')
-  const saveKey = page.getByRole('button', { name: 'Save Anthropic key' })
-  await expect(secret).toBeVisible()
-  await expect(saveKey).toBeDisabled()
-  await secret.fill('sk-test-secret')
-  await expect(saveKey).toBeEnabled()
-  await saveKey.click()
-  expect((await actionCall(page))?.payload).toEqual({
-    action: 'save-key',
-    provider: 'anthropic',
-    secret: 'sk-test-secret',
-  })
-  await reply(page, 'action', pageState({ savedProviders: ['cursor', 'anthropic'], hasKey: true }))
-  await expect(page.getByText('sk-test-secret')).toHaveCount(0)
-  await expect(secret).toHaveCount(0)
+  await page.getByLabel('Team', { exact: true }).fill('core')
+  await page.getByLabel('Name', { exact: true }).click()
+  expect(await nextAction(page)).toEqual({ action: 'save-profile', username: 'ada', email: 'ada@example.com', team: 'core' })
+  await reply(page, 'action', pageState({ profile: { username: 'ada', email: 'ada@example.com', team: 'core' } }))
+  await expect(page.getByRole('status').filter({ hasText: '✓ Saved' })).toHaveCount(1)
 })
 
-test('canceling an Anthropic key sends no action', async ({ page }) => {
+test('providers are Anthropic, OpenAI, and Cursor only', async ({ page }) => {
   await settings(page)
-  await page.getByRole('button', { name: 'Add Anthropic key' }).click()
-  await expect(page.getByLabel('Anthropic key')).toBeVisible()
-  await page.getByRole('button', { name: 'Cancel Anthropic key' }).click()
+  expect(await page.getByLabel('Provider').locator('option').allTextContents()).toEqual(['Anthropic', 'OpenAI', 'Cursor'])
+})
+
+test('adding a key saves it, switches it on, and ticks Saved', async ({ page }) => {
+  await settings(page)
+  await page.getByLabel('Provider').selectOption('anthropic')
+  await page.getByLabel('Anthropic key').fill('sk-ant')
+  await page.getByRole('button', { name: 'Save key' }).click()
+  expect(await nextAction(page)).toEqual({ action: 'save-key', provider: 'anthropic', secret: 'sk-ant' })
+  await reply(page, 'action', pageState({ savedProviders: ['cursor', 'anthropic'] }))
+  expect(await nextAction(page)).toEqual({ action: 'activate-provider', provider: 'anthropic' })
+  await reply(page, 'action', pageState({ savedProviders: ['cursor', 'anthropic'], provider: 'anthropic' }))
+  await expect(page.getByText('Anthropic key saved · in use')).toBeVisible()
+  await expect(page.getByText('✓ Saved')).toBeVisible()
   await expect(page.getByLabel('Anthropic key')).toHaveCount(0)
+})
+
+test('a rejected key is shown once, inline, tied to the field', async ({ page }) => {
+  await settings(page)
+  await page.getByLabel('Provider').selectOption('openai')
+  const key = page.getByLabel('OpenAI key')
+  await key.fill('bad')
+  await key.press('Enter')
+  await reply(page, 'action', pageState({ notice: '401' }))
+  await expect(page.getByRole('alert')).toHaveCount(1)
+  await expect(page.getByRole('alert')).toHaveText('That key was rejected by OpenAI. Check it and try again')
+  await expect(key).toHaveAttribute('aria-describedby', /.+/)
+})
+
+test('removing a key asks first; Keep key sends nothing', async ({ page }) => {
+  await settings(page)
+  await page.getByRole('button', { name: 'Remove key…' }).click()
+  await expect(page.getByText('Remove the Cursor key from this PC? Sharlie stops learning until you add a key again.')).toBeVisible()
+  await page.getByRole('button', { name: 'Keep key' }).click()
   expect(await lastCall(page, 'action')).toBeNull()
+  await expect(page.getByRole('button', { name: 'Remove key…' })).toBeFocused()
+  await page.getByRole('button', { name: 'Remove key…' }).click()
+  await page.getByRole('button', { name: 'Remove key', exact: true }).click()
+  expect(await nextAction(page)).toEqual({ action: 'revoke-key', provider: 'cursor' })
 })
 
 test('replacing the Cursor key sends save-key', async ({ page }) => {
   await settings(page)
-  await page.getByRole('button', { name: 'Replace Cursor key' }).click()
-  await page.getByLabel('Cursor key').fill('sk-replace-secret')
-  await page.getByRole('button', { name: 'Save Cursor key' }).click()
-  expect((await actionCall(page))?.payload).toEqual({
-    action: 'save-key',
-    provider: 'cursor',
-    secret: 'sk-replace-secret',
-  })
+  await page.getByRole('button', { name: 'Replace key' }).click()
+  await page.getByLabel('Cursor key').fill('new')
+  await page.getByRole('button', { name: 'Save key' }).click()
+  expect(await nextAction(page)).toEqual({ action: 'save-key', provider: 'cursor', secret: 'new' })
+})
+
+test('a thrown host error goes to one pinned banner with one action and Details', async ({ page }) => {
+  await settings(page)
+  await page.getByRole('button', { name: 'Replace key' }).click()
+  await page.getByLabel('Cursor key').fill('new')
+  await page.getByRole('button', { name: 'Save key' }).click()
+  await fail(page, 'action', 'keyring: no secret service')
+  const banner = page.getByRole('alert')
+  await expect(banner).toHaveCount(1)
+  await expect(banner).toContainText(TROUBLE)
+  await expect(banner.getByRole('button', { name: 'Try again' })).toBeVisible()
+  await banner.getByText('Details', { exact: true }).click()
+  await expect(banner).toContainText('keyring: no secret service')
+  await banner.getByRole('button', { name: 'Try again' }).click()
+  expect(await nextAction(page)).toEqual({ action: 'save-key', provider: 'cursor', secret: 'new' })
   await reply(page, 'action', pageState())
-  await expect(page.getByText('sk-replace-secret')).toHaveCount(0)
+  await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
-test('removing the Cursor key sends revoke-key', async ({ page }) => {
+test('the banner stays pinned while the page scrolls and can be dismissed', async ({ page }) => {
+  await page.setViewportSize({ width: 560, height: 420 })
   await settings(page)
-  await page.getByRole('button', { name: 'Remove Cursor key' }).click()
-  expect((await actionCall(page))?.payload).toEqual({ action: 'revoke-key', provider: 'cursor' })
-  await reply(page, 'action', pageState({ savedProviders: [], hasKey: false, provider: '', model: '', models: [] }))
-  await expect(page.getByRole('button', { name: 'Add Cursor key' })).toBeVisible()
+  await page.getByLabel('Team', { exact: true }).fill('x')
+  await page.getByLabel('Name', { exact: true }).click()
+  await fail(page, 'action', 'boom')
+  const banner = page.getByRole('alert')
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  await page.getByRole('button', { name: 'Advanced' }).scrollIntoViewIfNeeded()
+  const box = await banner.boundingBox()
+  expect(box?.y ?? 999).toBeLessThan(100)
+  await banner.getByRole('button', { name: 'Dismiss' }).click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
-test('a failed key save shows the error and enables Save Anthropic key again', async ({ page }) => {
-  await settings(page)
-  await page.getByRole('button', { name: 'Add Anthropic key' }).click()
-  await page.getByLabel('Anthropic key').fill('sk-test-secret')
-  await page.getByRole('button', { name: 'Save Anthropic key' }).click()
-  await fail(page, 'action', 'Could not save the key')
-  await expect(page.getByText('Could not save the key')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Save Anthropic key' })).toBeEnabled()
+test('sharing is off by default with Lyra copy', async ({ page }) => {
+  await settings(page, pageState({ share: false }))
+  const toggle = page.getByRole('switch', { name: "Share work lessons with my team's Drive folder" })
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await expect(page.getByText('Only lessons from work projects are copied, after names and secrets are removed. Personal lessons never leave this PC.')).toBeVisible()
+  await expect(page.getByText('Not sharing. Everything stays on this PC.')).toBeVisible()
 })
 
-test('a saved Copilot provider can be turned on', async ({ page }) => {
-  await settings(page, pageState({ savedProviders: ['cursor', 'copilot'] }))
-  const copilot = page.getByRole('switch', { name: 'Copilot' })
-  await expect(copilot).toBeEnabled()
-  await expect(copilot).not.toBeChecked()
-  await copilot.click()
-  expect((await actionCall(page))?.payload).toEqual({ action: 'activate-provider', provider: 'copilot' })
-  await reply(page, 'action', pageState({ provider: 'copilot', savedProviders: ['cursor', 'copilot'] }))
-  await expect(copilot).toBeChecked()
+test('turning sharing on with no folder opens the picker, then set-share', async ({ page }) => {
+  await settings(page, pageState({ share: false, drivePath: '' }))
+  await page.getByRole('switch').click()
+  expect(await nextAction(page)).toEqual({ action: 'pick-folder', purpose: 'share' })
+  await reply(page, 'action', pageState({ share: false, drivePath: 'G:\\My Drive\\Sharlie' }))
+  expect(await nextAction(page)).toEqual({ action: 'set-share', enabled: 'true' })
+  const graph = graphWithNodes()
+  graph.nodes = graph.nodes.map((node) => (node.kind === 'card' ? { ...node, scope: 'work' } : node))
+  await reply(page, 'action', pageState({ share: true, drivePath: 'G:\\My Drive\\Sharlie', graph }))
+  await expect(page.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+  await expect(page.getByText('Sharing to G:\\My Drive\\Sharlie')).toBeVisible()
+  await expect(page.getByText('Next to share: 1 lesson')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Next to share' })).toContainText('Retry the deploy')
 })
 
-test('turning Cursor off sends clear-provider', async ({ page }) => {
-  await settings(page)
-  const cursor = page.getByRole('switch', { name: 'Cursor' })
-  await cursor.click()
-  expect((await actionCall(page))?.payload).toEqual({ action: 'clear-provider' })
-  await reply(
-    page,
-    'action',
-    pageState({ provider: '', model: '', models: [], savedProviders: ['cursor'], hasKey: true }),
-  )
-  await expect(cursor).not.toBeChecked()
+test('a cancelled picker leaves sharing off and sends nothing else', async ({ page }) => {
+  await settings(page, pageState({ share: false, drivePath: '' }))
+  await page.getByRole('switch').click()
+  await reply(page, 'action', pageState({ share: false, drivePath: '' }))
+  await page.waitForTimeout(200)
+  const actions = await page.evaluate(() => window.__sharlieCalls.filter((c) => c.cmd === 'action').length)
+  expect(actions).toBe(1)
+  await expect(page.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
 })
 
-test('a provider failure shows the error and leaves Copilot unchecked', async ({ page }) => {
-  await settings(page, pageState({ savedProviders: ['cursor', 'copilot'] }))
-  const copilot = page.getByRole('switch', { name: 'Copilot' })
-  await copilot.click()
-  await fail(page, 'action', 'Could not change the provider')
-  await expect(page.getByText('Could not change the provider')).toBeVisible()
-  await expect(copilot).not.toBeChecked()
+test('an unreachable team folder shows the one banner with Choose folder again', async ({ page }) => {
+  await settings(page, pageState({ share: false, drivePath: 'G:\\gone' }))
+  await page.getByRole('switch').click()
+  expect(await nextAction(page)).toEqual({ action: 'set-share', enabled: 'true' })
+  await reply(page, 'action', pageState({ share: false, drivePath: 'G:\\gone', errorCode: 'path_not_found', notice: 'That folder does not exist.' }))
+  const banner = page.getByRole('alert')
+  await expect(banner).toContainText("Your team folder isn't reachable.")
+  await banner.getByRole('button', { name: 'Choose folder again' }).click()
+  expect(await nextAction(page)).toEqual({ action: 'pick-folder', purpose: 'share' })
 })
 
-test('changing the model sends select-model, including None', async ({ page }) => {
-  await settings(page, pageState({ model: 'composer', models: catalogModels }))
-  const model = page.getByLabel('Model')
-  await model.selectOption('other-model')
-  expect((await actionCall(page))?.payload).toEqual({ action: 'select-model', model: 'other-model' })
-  await reply(page, 'action', pageState({ model: 'other-model', models: catalogModels }))
-  await expect(model).toHaveValue('other-model')
-  await model.selectOption('')
-  expect((await actionCall(page))?.payload).toEqual({ action: 'select-model', model: '' })
-  await reply(page, 'action', pageState({ model: '', models: catalogModels }))
-  await expect(model).toHaveValue('')
+test('turning sharing off sends set-share false', async ({ page }) => {
+  await settings(page, pageState({ share: true, drivePath: 'G:\\My Drive\\Sharlie' }))
+  await page.getByRole('switch').click()
+  expect(await nextAction(page)).toEqual({ action: 'set-share', enabled: 'false' })
 })
 
-test('a model failure shows the error', async ({ page }) => {
-  await settings(page, pageState({ model: 'composer', models: catalogModels }))
-  await page.getByLabel('Model').selectOption('other-model')
-  await fail(page, 'action', 'Could not choose the model')
-  await expect(page.getByText('Could not choose the model')).toBeVisible()
-})
-
-test('effort and fast send set-model-param', async ({ page }) => {
-  await settings(page, effortState())
-  await page.getByLabel('Effort').selectOption('low')
-  expect((await actionCall(page))?.payload).toEqual({ action: 'set-model-param', id: 'effort', value: 'low' })
-  await reply(
-    page,
-    'action',
-    effortState([
-      { id: 'effort', value: 'low' },
-      { id: 'fast', value: 'true' },
-    ]),
-  )
+test('Advanced holds model, options, cadence, folder, and theme', async ({ page }) => {
+  const models = [{ id: 'sonnet', displayName: 'Sonnet', parameters: [{ id: 'effort', displayName: 'Effort', values: [{ value: 'low' }, { value: 'high' }] }, { id: 'fast', displayName: 'Fast', values: [{ value: 'true' }, { value: 'false' }] }] }]
+  await settings(page, pageState({ models, model: 'sonnet', modelParams: [{ id: 'effort', value: 'low' }], cadence: '30m', chatsFound: 412 }))
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  await expect(page.getByLabel('Model')).toHaveValue('sonnet')
+  await page.getByLabel('Effort').selectOption('high')
+  expect(await nextAction(page)).toEqual({ action: 'set-model-param', id: 'effort', value: 'high' })
+  await reply(page, 'action', pageState({ models, model: 'sonnet', modelParams: [{ id: 'effort', value: 'high' }] }))
+  await expect(page.getByText('✓ Saved')).toBeVisible()
   await page.getByLabel('Fast').click()
-  expect((await actionCall(page))?.payload).toEqual({ action: 'set-model-param', id: 'fast', value: 'false' })
-  await reply(
-    page,
-    'action',
-    effortState([
-      { id: 'effort', value: 'low' },
-      { id: 'fast', value: 'false' },
-    ]),
+  expect(await nextAction(page)).toEqual({ action: 'set-model-param', id: 'fast', value: 'true' })
+  await reply(page, 'action', pageState({ models, model: 'sonnet' }))
+
+  const learn = page.getByLabel('When to learn')
+  expect(await learn.locator('option').allTextContents()).toEqual(['Every hour', 'Only when I start it'])
+  await expect(learn).toHaveValue('1h')
+  await learn.selectOption('manual')
+  expect(await nextAction(page)).toEqual({ action: 'set-cadence', cadence: 'manual' })
+  await reply(page, 'action', pageState({ cadence: 'manual' }))
+
+  await page.getByRole('button', { name: 'Choose folder' }).click()
+  expect(await nextAction(page)).toEqual({ action: 'pick-folder', purpose: 'knowledge' })
+  await reply(page, 'action', pageState({ errorCode: 'path_not_writable', notice: 'Sharlie cannot write to that folder.' }))
+  await expect(page.getByRole('alert')).toHaveText('Sharlie cannot write to that folder.')
+  await expect(page.getByRole('radio', { name: 'Match Windows' })).toBeChecked()
+})
+
+test('a model refusal shows inline next to the model', async ({ page }) => {
+  await settings(page, pageState({ models: [{ id: 'a', displayName: 'A' }, { id: 'b', displayName: 'B' }], model: 'a' }))
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  await page.getByLabel('Model').selectOption('b')
+  expect(await nextAction(page)).toEqual({ action: 'select-model', model: 'b' })
+  await reply(page, 'action', pageState({ models: [{ id: 'a', displayName: 'A' }, { id: 'b', displayName: 'B' }], model: 'a', notice: 'That model is not available.' }))
+  await expect(page.getByRole('alert')).toHaveText('That model is not available.')
+})
+
+test('every settings control is at least 36px tall at 360', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 })
+  await settings(page)
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  const small = await page.evaluate(() =>
+    [...document.querySelectorAll('main, body')[0]!.querySelectorAll('button, select, input:not([type=checkbox]):not([type=radio])')]
+      .filter((el) => (el as HTMLElement).offsetParent !== null && el.closest('header') === null)
+      .map((el) => ({ text: (el as HTMLElement).innerText || el.getAttribute('aria-label') || el.tagName, h: el.getBoundingClientRect().height }))
+      .filter((item) => item.h < 35.5),
   )
-  await expect(page.getByLabel('Fast')).not.toBeChecked()
-})
-
-test('a model option failure shows the error', async ({ page }) => {
-  await settings(page, effortState())
-  await page.getByLabel('Effort').selectOption('low')
-  await fail(page, 'action', 'Could not set the model option')
-  await expect(page.getByText('Could not set the model option')).toBeVisible()
-})
-
-test('vault, auto-drop, folder, and cadence save in that order', async ({ page }) => {
-  await settings(page)
-  const cadence = page.getByLabel('Harvest cadence')
-  await expect(cadence.locator('option')).toHaveText(['15m', '30m', '1h', 'manual'])
-  await page.getByLabel('Local vault').fill('D:\\vault')
-  await page.getByLabel('Auto-drop').check()
-  await page.getByLabel('Folder').fill('D:\\drive')
-  await cadence.selectOption('15m')
-  const kept = pageState({
-    vaultPath: 'D:\\vault',
-    autoDrop: true,
-    drivePath: 'D:\\drive',
-    cadence: '15m',
-  })
-  await page.getByRole('button', { name: 'Save' }).click()
-  expect((await actionCall(page))?.payload).toEqual({ action: 'set-knowledge', path: 'D:\\vault' })
-  await reply(page, 'action', kept)
-  expect((await actionCall(page))?.payload).toEqual({ action: 'set-auto-drop', enabled: true })
-  await reply(page, 'action', kept)
-  expect((await actionCall(page))?.payload).toEqual({ action: 'set-drive', path: 'D:\\drive' })
-  await reply(page, 'action', kept)
-  expect((await actionCall(page))?.payload).toEqual({ action: 'set-cadence', cadence: '15m' })
-  await reply(page, 'action', kept)
-  await expect(page.getByLabel('Local vault')).toHaveValue('D:\\vault')
-  await expect(page.getByLabel('Auto-drop')).toBeChecked()
-  await expect(page.getByLabel('Folder')).toHaveValue('D:\\drive')
-  await expect(cadence).toHaveValue('15m')
-})
-
-test('one unreported call renders the token line', async ({ page }) => {
-  await settings(page, pageState({ learningTokensUnreported: 1 }))
-  await expect(page.getByText('0 tokens · 1 call unreported', { exact: true })).toBeVisible()
-})
-
-test('the settings form scrolls and Save stays inside the viewport', async ({ page }) => {
-  await settings(page)
-  const form = page.locator('form').filter({ has: page.getByLabel('Local vault') })
-  expect(await form.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
-  const header = await page.locator('header').boundingBox()
-  expect(header?.height).toBe(48)
-  const save = page.getByRole('button', { name: 'Save' })
-  await save.scrollIntoViewIfNeeded()
-  const box = await save.boundingBox()
-  expect(box).toBeTruthy()
-  if (!box) return
-  expect(box.y).toBeGreaterThanOrEqual(0)
-  expect(box.y + box.height).toBeLessThanOrEqual(520)
-  expect(box.x).toBeGreaterThanOrEqual(0)
-  expect(box.x + box.width).toBeLessThanOrEqual(680)
+  expect(small).toEqual([])
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)
+  expect(overflow).toBe(false)
 })

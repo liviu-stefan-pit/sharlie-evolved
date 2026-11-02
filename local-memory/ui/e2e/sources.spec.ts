@@ -27,7 +27,7 @@ test('the sources menu closes on Escape, an outside click, and Settings', async 
   await button.click()
   await page.getByRole('button', { name: 'Settings' }).click()
   await expect(page.getByRole('menu', { name: 'Sources' })).toBeHidden()
-  await expect(page.getByLabel('Username')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'About you', exact: true })).toBeVisible()
 })
 
 test('an empty source list stays open as an empty message', async ({ page }) => {

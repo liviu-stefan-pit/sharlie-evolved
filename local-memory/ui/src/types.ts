@@ -102,6 +102,8 @@ export type PageState = {
   chatsFound?: number
   /** docs/HOST_ACTIONS.md: the one team-Drive switch, false by default. */
   share?: boolean
+  /** Assumed (not in docs/HOST_ACTIONS.md yet): ISO time of the last copy to the team folder. */
+  lastSharedAt?: string
   /** docs/HOST_ACTIONS.md: set when a pass finishes or is cancelled. */
   learningResult?: { lessons: number; chats: number; text: string } | null
 }
