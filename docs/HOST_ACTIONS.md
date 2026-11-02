@@ -181,6 +181,10 @@ Scans the installed tools again and returns the snapshot. Updates `sources`, `se
 
 When `share` is on, the host also scans the share folder. A file there is context only when it contains `scope: work`. Unscoped files in the share folder are ignored. The host does not call the Google Drive API.
 
+## Packaged smoke
+
+`SHARLIE_MOCK_MODEL=1` does nothing on a normal launch. The mock model runs only when that variable is set and the process was started with `--smoke`. That path starts the host, learns one fixture chat, checks that a second pass makes no model call, and checks that a planted secret is absent from the card. A crash or a missing result exits non-zero.
+
 ## What the UI does not need to send
 
 No Neo4j id, no service account, no Copilot key, no custom base URL, no token count. Model parameter controls are Advanced: `set-model-param` stays for Cursor, and it is not required before `start-learning` once the host cut lands. Until that cut, the current effort/fast gate still applies to a Cursor key.

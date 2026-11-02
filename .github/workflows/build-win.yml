@@ -30,7 +30,7 @@ jobs:
       - run: npx electron-builder --win nsis --publish never
       - name: Packaged app contains the Windows keyring module
         run: node scripts/assert-packaged.mjs
-      - name: Smoke the packaged window
+      - name: Smoke the packaged host with a mock first-run learn
         shell: pwsh
         working-directory: local-memory
         run: |
@@ -41,19 +41,30 @@ jobs:
           }
           $out = Join-Path $PWD 'smoke-out.txt'
           $err = Join-Path $PWD 'smoke-err.txt'
+          $env:SHARLIE_MOCK_MODEL = '1'
           $proc = Start-Process -FilePath $exe.FullName -ArgumentList '--smoke' -PassThru -RedirectStandardOutput $out -RedirectStandardError $err -WindowStyle Hidden
-          if (-not $proc.WaitForExit(20000)) {
+          if (-not $proc.WaitForExit(60000)) {
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-            Write-Error 'SMOKE_FAIL the window did not exit within 20s'
+            Write-Error 'SMOKE_FAIL the host did not exit within 60s'
             if (Test-Path $out) { Get-Content $out }
             if (Test-Path $err) { Get-Content $err }
             exit 1
           }
           Write-Host "exit $($proc.ExitCode)"
-          if (Test-Path $out) { Get-Content $out }
-          if (Test-Path $err) { Get-Content $err }
+          $stdout = ''
+          $stderr = ''
+          if (Test-Path $out) { $stdout = Get-Content $out -Raw; Write-Host $stdout }
+          if (Test-Path $err) { $stderr = Get-Content $err -Raw; Write-Host $stderr }
           if ($proc.ExitCode -ne 0) {
             Write-Error "SMOKE_FAIL Sharlie exited $($proc.ExitCode)"
+            exit 1
+          }
+          if ($stdout -notmatch 'SMOKE_OK') {
+            Write-Error 'SMOKE_FAIL the host did not report a finished learn'
+            exit 1
+          }
+          if ($stdout -notmatch '"cards":1' -or $stdout -notmatch '"calls":1' -or $stdout -notmatch '"rerunCalls":0' -or $stdout -match '"secretFound":true') {
+            Write-Error 'SMOKE_FAIL the fixture learn did not write one clean card'
             exit 1
           }
       - uses: actions/upload-artifact@v4

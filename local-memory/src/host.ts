@@ -119,12 +119,51 @@ async function ensureCopilotModels(directory: string, fetchImpl?: Post, machine?
   return app
 }
 
+let mockModelCalls = 0
+
+/** Counts lessons the smoke mock wrote. A normal launch never increments this. */
+export function mockModelCallCount() {
+  return mockModelCalls
+}
+
+export function resetMockModelCalls() {
+  mockModelCalls = 0
+}
+
+/** The mock model answers only when the packaged smoke asked for it. The env var alone does nothing. */
+export function mockModelEnabled() {
+  return process.argv.includes('--smoke') && process.env.SHARLIE_MOCK_MODEL === '1'
+}
+
+function mockLesson(request: Parameters<CompleteLesson>[0]): LessonDraft {
+  mockModelCalls += 1
+  return {
+    scope: 'work',
+    title: 'Retry the deploy once',
+    topics: ['deploys'],
+    summary: 'Retry a failed deploy once.',
+    situation: request.transcript.text,
+    whatToDo: 'Retry the deploy once, then read the log.',
+    why: 'The lock clears on its own within a minute.',
+    apply: 'When a deploy fails on a lock, retry once before changing config.',
+    otherNames: [],
+    belongsToProject: null,
+    clearlyOneProduct: true,
+    subjectProject: null,
+    generalTechnique: false,
+  }
+}
+
 export function desktopLesson(
   directory: () => string,
   fetchImpl?: Post,
   deps: ExchangeDeps = {},
   machine?: Machine,
+  mockModel = false,
 ): CompleteLesson {
+  if (mockModel) {
+    return async (request) => mockLesson(request)
+  }
   return async (request) => {
     const folder = directory()
     const app = await ensureCopilotModels(folder, fetchImpl, machine)
@@ -169,11 +208,18 @@ export async function openDesktopHarness(options: {
   readTranscripts?: () => Transcript[]
   fetchImpl?: Post
   deps?: ExchangeDeps
+  mockModel?: boolean
 }) {
   let session: ReturnType<typeof openUserSession>
   session = openUserSession(
     options.person,
-    desktopLesson(() => session.knowledgeDirectory(options.directory), options.fetchImpl, options.deps, options.machine),
+    desktopLesson(
+      () => session.knowledgeDirectory(options.directory),
+      options.fetchImpl,
+      options.deps,
+      options.machine,
+      options.mockModel === true,
+    ),
     options.machine,
     options.readTranscripts ?? (() => (options.machine ? readInstalledTranscripts(options.machine) : readInstalledTranscripts())),
   )
@@ -205,12 +251,20 @@ export async function openDesktopHarness(options: {
   return { session, timer }
 }
 
-export async function openRunningDesktopHost(options?: { onLearning?: () => void }) {
-  const directory = join(homedir(), '.sharlie', 'knowledge')
+export async function openRunningDesktopHost(options?: {
+  onLearning?: () => void
+  machine?: Machine
+  directory?: string
+  mockModel?: boolean
+}) {
+  const directory = options?.directory ?? join(homedir(), '.sharlie', 'knowledge')
+  const machine = options?.machine
   const harness = await openDesktopHarness({
     person: userInfo().username,
     directory,
-    readTranscripts: () => readInstalledTranscripts(),
+    machine,
+    mockModel: options?.mockModel,
+    readTranscripts: () => (machine ? readInstalledTranscripts(machine) : readInstalledTranscripts()),
   })
   mergeSynapseConfig()
   const host = await openDesktopHost({

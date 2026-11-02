@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openRunningDesktopHost } from '../src/host.ts'
+import { runSmokeLearn } from '../src/smoke-learn.ts'
 import { registerLoginItem, unregisterLoginItem } from '../src/login-item.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -178,6 +179,23 @@ if (registerFlag || unregisterFlag) {
   })
 } else if (smoke) {
   app.whenReady().then(async () => {
+    if (process.env.SHARLIE_MOCK_MODEL === '1') {
+      try {
+        const report = await runSmokeLearn()
+        console.log(JSON.stringify(report))
+        if (!report.ok) {
+          console.error(`SMOKE_FAIL ${report.reason ?? 'the fixture learn failed'}`)
+          app.exit(1)
+          return
+        }
+        console.log('SMOKE_OK')
+        app.exit(0)
+      } catch (error) {
+        console.error(`SMOKE_FAIL ${error instanceof Error ? error.message : 'the host crashed'}`)
+        app.exit(1)
+      }
+      return
+    }
     try {
       createWindow()
       const opened = window
