@@ -424,23 +424,54 @@ async function discardTemp(path: string) {
   await rm(path, { force: true }).catch(() => undefined)
 }
 
-async function placeFile(folder: string, name: string, body: string, replace: boolean) {
+type SaveHooks = {
+  rename: (from: string, to: string) => Promise<void>
+  wait: (ms: number) => Promise<void>
+}
+
+const defaultSaveHooks: SaveHooks = {
+  rename: (from, to) => rename(from, to),
+  wait: (ms) =>
+    new Promise((resolve) => {
+      setTimeout(resolve, ms)
+    }),
+}
+
+let saveHooks: SaveHooks = defaultSaveHooks
+
+/** Test hook. Pass null to restore the real rename and the real wait. */
+export function setKbSaveHooksForTests(hooks: Partial<SaveHooks> | null) {
+  saveHooks = hooks ? { ...defaultSaveHooks, ...hooks } : defaultSaveHooks
+}
+
+function saveFailure(reason: string) {
+  const error = new Error(reason) as Error & { reason: string }
+  error.reason = reason
+  return error
+}
+
+function failureReason(error: unknown) {
+  if (error && typeof error === 'object' && 'reason' in error && typeof error.reason === 'string') return error.reason
+  return ''
+}
+
+async function placeFile(folder: string, name: string, body: string) {
   const dest = join(folder, name)
   const tmp = join(folder, `.${name}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`)
   try {
     await writeFile(tmp, body, { encoding: 'utf8', flag: 'wx' })
-    try {
-      await rename(tmp, dest)
-    } catch (error) {
-      const code = errorCode(error)
-      if (replace && (code === 'EEXIST' || code === 'EPERM')) {
-        await writeFile(dest, body, 'utf8')
-        await discardTemp(tmp)
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      try {
+        await saveHooks.rename(tmp, dest)
         return
+      } catch (error) {
+        const code = errorCode(error)
+        if (code !== 'EEXIST' && code !== 'EPERM') throw error
+        if (attempt === 5) break
+        await saveHooks.wait(200)
       }
-      await discardTemp(tmp)
-      throw error
     }
+    throw saveFailure('could not finish saving the lesson')
   } catch (error) {
     await discardTemp(tmp)
     throw error
@@ -535,13 +566,15 @@ export async function writeLesson(
       links,
     }
     const body = `${JSON.stringify(record, null, 2)}\n`
-    await placeFile(folder, jsonName, body, jsonState === 'file')
+    await placeFile(folder, jsonName, body)
     const markdownName = `${id}.md`
     const markdownState = await fileExists(join(folder, markdownName))
     if (markdownState === 'directory') return refuse('that path is not a folder')
-    await placeFile(folder, markdownName, renderMarkdown(record), markdownState === 'file')
+    await placeFile(folder, markdownName, renderMarkdown(record))
     return { ok: true, lesson: { ...record, writer: writerKey, synced: true } }
   } catch (error) {
+    const reason = failureReason(error)
+    if (reason !== '') return refuse(reason)
     const code = errorCode(error)
     if (code === 'ENOENT') return refuse('that folder does not exist')
     if (code === 'EACCES' || code === 'EPERM' || code === 'EROFS' || code === 'ENOTDIR') {

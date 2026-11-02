@@ -2,7 +2,17 @@ import assert from 'node:assert/strict'
 import { accessSync, chmodSync, constants, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { listWriters, newInstallId, readIndex, suggestLinks, writeLesson, writerId, type KbLessonInput, type KbNode } from '../src/kb.ts'
+import {
+  listWriters,
+  newInstallId,
+  readIndex,
+  setKbSaveHooksForTests,
+  suggestLinks,
+  writeLesson,
+  writerId,
+  type KbLessonInput,
+  type KbNode,
+} from '../src/kb.ts'
 import { lesson, lockFolder, withFolder } from './kb-helpers.ts'
 
 const adaId = 'ada-11111111-1111-4111-8111-111111111111'
@@ -436,6 +446,44 @@ test('two people with the same name do not overwrite each other', async () => {
       (JSON.parse(readFileSync(join(folder, `${first.lesson.id}.json`), 'utf8')) as { summary: string }).summary,
       'Updated summary.',
     )
+  })
+})
+
+test('a rename that keeps failing removes the temp file and leaves the lesson as it was', async () => {
+  await withFolder(async (folder) => {
+    const created = await save(folder, lesson('ada', { summary: 'Keep me.' }))
+    assert.equal(created.ok, true)
+    if (!created.ok) return
+    const before = readFileSync(join(folder, `${created.lesson.id}.json`))
+    for (const code of ['EEXIST', 'EPERM']) {
+      const waits: number[] = []
+      let calls = 0
+      setKbSaveHooksForTests({
+        rename: async () => {
+          calls += 1
+          const error = new Error('busy') as NodeJS.ErrnoException
+          error.code = code
+          throw error
+        },
+        wait: async (ms) => {
+          waits.push(ms)
+        },
+      })
+      try {
+        const result = await save(folder, lesson('ada', { id: created.lesson.id, summary: 'Replaced.' }))
+        assert.equal(result.ok, false)
+        if (!result.ok) assert.equal(result.reason, 'could not finish saving the lesson')
+      } finally {
+        setKbSaveHooksForTests(null)
+      }
+      assert.equal(calls, 5)
+      assert.deepEqual(waits, [200, 200, 200, 200])
+      assert.deepEqual(readFileSync(join(folder, `${created.lesson.id}.json`)), before)
+      assert.equal(
+        readdirSync(folder).some((name) => name.endsWith('.tmp')),
+        false,
+      )
+    }
   })
 })
 
