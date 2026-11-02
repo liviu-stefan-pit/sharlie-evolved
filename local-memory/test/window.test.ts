@@ -627,6 +627,77 @@ test('start-learning without a profile returns profile_incomplete and does not s
   }
 })
 
+test('a fresh host reports 1h, and set-cadence 15m is refused', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const fresh = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as { cadence?: string }
+    assert.equal(fresh.cadence, '1h')
+
+    const refused = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-cadence', cadence: '15m' })),
+    ) as { errorCode?: string; notice?: string; cadence?: string }
+    assert.equal(refused.errorCode, 'cadence_too_short')
+    assert.equal(refused.notice, 'The schedule cannot be shorter than 1 hour.')
+    assert.equal(refused.cadence, '1h')
+
+    const halfHour = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-cadence', cadence: '30m' })),
+    ) as { errorCode?: string; cadence?: string }
+    assert.equal(halfHour.errorCode, 'cadence_too_short')
+    assert.equal(halfHour.cadence, '1h')
+
+    const manual = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-cadence', cadence: 'manual' })),
+    ) as { errorCode?: string; cadence?: string }
+    assert.equal(manual.errorCode, undefined)
+    assert.equal(manual.cadence, 'manual')
+
+    const stillManual = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-cadence', cadence: '15m' })),
+    ) as { errorCode?: string; cadence?: string }
+    assert.equal(stillManual.errorCode, 'cadence_too_short')
+    assert.equal(stillManual.cadence, 'manual')
+
+    const shortInterval = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'set-learner-interval', hours: '0.5' })),
+    ) as { errorCode?: string; cadence?: string }
+    assert.equal(shortInterval.errorCode, 'cadence_too_short')
+    assert.equal(shortInterval.cadence, 'manual')
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('saved 15m and 30m settings load as 1h', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  writeFileSync(
+    join(directory, 'settings.json'),
+    JSON.stringify({ learnerIntervalMs: 15 * 60 * 1000, publisherIntervalMs: 30 * 60 * 1000 }),
+  )
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const state = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as { cadence?: string }
+    assert.equal(state.cadence, '1h')
+    const saved = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as {
+      learnerIntervalMs?: number
+      publisherIntervalMs?: number
+    }
+    assert.equal(saved.learnerIntervalMs, 60 * 60 * 1000)
+    assert.equal(saved.publisherIntervalMs, 60 * 60 * 1000)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
 test('a broken host line returns a plain sentence and the raw detail', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const session = openUserSession('ada', (request) => draft(request.transcript.text), machineWith(machineRoot(directory), ['cursor']), () => [])

@@ -158,7 +158,7 @@ test('pause harvest stops the clock and leaves the registered jobs in place', ()
       false,
     )
     ada.resumeHarvest()
-    ada.pass(30 * 60 * 1000)
+    ada.pass(hour)
     assert.equal(
       cardFiles(folder).some((file) => readFileSync(join(folder, file), 'utf8').includes('title: read the lock log')),
       true,
@@ -613,6 +613,7 @@ test('the publisher job copies work cards and leaves personal cards on the machi
         false,
       )
       plantWorkNote(work, 'a work card added for the publisher')
+      assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
 
       transcripts.push({
         id: 'later',
@@ -621,7 +622,7 @@ test('the publisher job copies work cards and leaves personal cards on the machi
         changedAt: '2024-07-01T00:00:00.000Z',
         repo: 'sharlie-evolved',
       })
-      ada.pass(30 * 60 * 1000)
+      ada.pass(hour)
       assert.equal(
         cardFiles(work).some((file) => readFileSync(join(work, file), 'utf8').includes('title: read the lock log')),
         true,
@@ -632,9 +633,6 @@ test('the publisher job copies work cards and leaves personal cards on the machi
         ),
         true,
       )
-      assert.equal(existsSync(join(drive, 'Dropzone', 'ada', 'extra-note.md')), false)
-
-      ada.pass(30 * 60 * 1000)
       assert.equal(
         readFileSync(join(drive, 'Dropzone', 'ada', 'extra-note.md'), 'utf8'),
         'a work card added for the publisher',

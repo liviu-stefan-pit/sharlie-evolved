@@ -160,7 +160,7 @@ Off means the publisher does not run and auto-drop does not copy. On means both 
 
 Accepted: `1h`, `manual`. `manual` stores a 0 interval (no timer). `15m` and `30m` return `cadence_too_short` and the stored cadence stays `1h` or `manual`, whichever it already was. Default for a new settings file is `1h`.
 
-`set-learner-interval` and `set-publisher-interval` take `hours`. Values below 1 return `cadence_too_short` and do not change the interval. `0` is manual and is allowed. The learner and the publisher share this rule.
+`set-learner-interval` and `set-publisher-interval` take `hours`. Only `0` (manual) and `1` are stored. Values below 1 return `cadence_too_short` and do not change the interval. Any other value is rejected and does not change the interval. The learner and the publisher share this rule. A saved interval under one hour is rewritten to one hour the next time settings are loaded. Manual stays manual.
 
 ### `cancel-learning`
 

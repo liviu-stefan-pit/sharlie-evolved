@@ -29,7 +29,8 @@ The window says **"Sharlie learns from your work on this computer"**. It reads t
 
 Then press **Start learning**. A strip at the top shows "Learning… 37 of 412 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns.
 
-After your first **Start learning**, Sharlie learns new chats on its own every 30 minutes while it runs (it starts with Windows, in the tray). The status line at the top says **Learns every 30 minutes**, then adds **last learned …** after a pass. **Learn now** on Home learns right away. To learn only when you ask, open **Settings → Advanced → When to learn** and pick **Only when I start it**; the status line then says **Learns when you ask**.
+After your first **Start learning**, Sharlie learns new chats on its own every hour while it runs (it starts with Windows, in the tray). The status line at the top says **Learns every hour**, then adds **last learned …** after a pass. **Learn now** on Home learns right away. To learn only when you ask, open **Settings → Advanced → When to learn** and pick **Only when I start it**; the status line then says **Learns when you ask**.
+> **[DEV NOTE]** A 15 or 30 minute choice returns `cadence_too_short`. A saved interval under an hour is kept as one hour.
 
 > **[DEV NOTE]** Coming in this build: the first pass is planned to read only your newest 50 chats and leave older ones for later. Today it reads every new chat, newest first.
 

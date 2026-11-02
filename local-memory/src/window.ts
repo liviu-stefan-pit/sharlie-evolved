@@ -286,7 +286,10 @@ function applyWindow(app: WindowApp, params: URLSearchParams): ActionResult | Pr
   if (action === 'clear-provider') app.clearProvider()
   if (action === 'set-cadence') {
     const cadence = params.get('cadence')
-    if (cadence === '15m' || cadence === '30m' || cadence === '1h' || cadence === 'manual') app.setCadence(cadence)
+    if (cadence === '15m' || cadence === '30m') {
+      return refused('cadence_too_short', 'The schedule cannot be shorter than 1 hour.')
+    }
+    if (cadence === '1h' || cadence === 'manual') app.setCadence(cadence)
   }
   if (action === 'set-auto-drop' || action === 'set-share') {
     return applyShare(app, params)
@@ -299,13 +302,22 @@ function applyWindow(app: WindowApp, params: URLSearchParams): ActionResult | Pr
   if (action === 'close') app.close()
   if (action === 'set-learner-interval' || action === 'set-publisher-interval') {
     const hours = Number(params.get('hours'))
+    if (!Number.isFinite(hours) || hours < 0) {
+      return { notice: 'Learner interval must be 1 hour or manual' }
+    }
+    if (hours !== 0 && hours < 1) {
+      return refused('cadence_too_short', 'The schedule cannot be shorter than 1 hour.')
+    }
     const intervalMs = hours * hourMs
     try {
-      if (!Number.isFinite(hours) || hours < 0) throw new Error('Learner interval must be 15 minutes, 30 minutes, 1 hour, or manual')
       if (action === 'set-learner-interval') app.setLearnerInterval(intervalMs)
       else app.setPublisherInterval(intervalMs)
     } catch (error) {
-      return { notice: error instanceof Error ? error.message : 'Learner interval must be 15 minutes, 30 minutes, 1 hour, or manual' }
+      const notice = error instanceof Error ? error.message : 'Learner interval must be 1 hour or manual'
+      if (notice === 'The schedule cannot be shorter than 1 hour.') {
+        return refused('cadence_too_short', notice)
+      }
+      return { notice }
     }
   }
   if (action === 'start-learning') return mapStart(app.startLearning())

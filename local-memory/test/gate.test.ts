@@ -358,51 +358,80 @@ test('the model chosen in the app is the model that writes cards and answers loo
   })
 })
 
-test('the learner interval defaults to 30 minutes', () => {
+test('the learner interval defaults to 1 hour', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    assert.equal(app.learnerInterval(), 30 * 60 * 1000)
+    assert.equal(app.learnerInterval(), 60 * 60 * 1000)
+    assert.equal(app.cadence(), '1h')
   })
 })
 
-test('the publisher interval defaults to 30 minutes', () => {
+test('the publisher interval defaults to 1 hour', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    assert.equal(app.publisherInterval(), 30 * 60 * 1000)
+    assert.equal(app.publisherInterval(), 60 * 60 * 1000)
   })
 })
 
-test('the learner interval accepts 15 minutes, 30 minutes, 1 hour, and manual', () => {
+test('the learner interval accepts 1 hour and manual, and rejects anything else', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    app.setLearnerInterval(15 * 60 * 1000)
-    app.setLearnerInterval(30 * 60 * 1000)
     app.setLearnerInterval(60 * 60 * 1000)
     app.setLearnerInterval(0)
     assert.equal(app.learnerInterval(), 0)
-    assert.throws(() => app.setLearnerInterval(60 * 60 * 1000 - 1), /15 minutes, 30 minutes, 1 hour, or manual/)
-    assert.throws(() => app.setLearnerInterval(2 * 60 * 60 * 1000), /15 minutes, 30 minutes, 1 hour, or manual/)
+    assert.equal(app.cadence(), 'manual')
+    assert.throws(() => app.setLearnerInterval(15 * 60 * 1000), /shorter than 1 hour/)
+    assert.throws(() => app.setLearnerInterval(30 * 60 * 1000), /shorter than 1 hour/)
+    assert.throws(() => app.setLearnerInterval(2 * 60 * 60 * 1000), /1 hour or manual/)
     assert.equal(app.learnerInterval(), 0)
 
-    app.setLearnerInterval(30 * 60 * 1000)
+    app.setLearnerInterval(60 * 60 * 1000)
     const reopened = open(directory)
-    assert.equal(reopened.learnerInterval(), 30 * 60 * 1000)
+    assert.equal(reopened.learnerInterval(), 60 * 60 * 1000)
+    assert.equal(reopened.cadence(), '1h')
   })
 })
 
-test('the publisher interval accepts 15 minutes, 30 minutes, 1 hour, and manual', () => {
+test('the publisher interval accepts 1 hour and manual, and rejects anything else', () => {
   withDirectory((directory) => {
     const app = open(directory)
-    app.setPublisherInterval(15 * 60 * 1000)
-    assert.equal(app.publisherInterval(), 15 * 60 * 1000)
-    assert.equal(app.learnerInterval(), 30 * 60 * 1000)
-    assert.throws(() => app.setPublisherInterval(60 * 60 * 1000 - 1), /15 minutes, 30 minutes, 1 hour, or manual/)
-    assert.equal(app.publisherInterval(), 15 * 60 * 1000)
+    assert.throws(() => app.setPublisherInterval(30 * 60 * 1000), /shorter than 1 hour/)
+    assert.equal(app.publisherInterval(), 60 * 60 * 1000)
+    assert.equal(app.learnerInterval(), 60 * 60 * 1000)
+    assert.throws(() => app.setPublisherInterval(2 * 60 * 60 * 1000), /1 hour or manual/)
 
     app.setPublisherInterval(0)
     app.setPublisherInterval(60 * 60 * 1000)
     const reopened = open(directory)
     assert.equal(reopened.publisherInterval(), 60 * 60 * 1000)
+  })
+})
+
+test('a saved 15 minute or 30 minute cadence is migrated to 1 hour', () => {
+  withDirectory((directory) => {
+    writeFileSync(
+      join(directory, 'settings.json'),
+      JSON.stringify({ learnerIntervalMs: 15 * 60 * 1000, publisherIntervalMs: 30 * 60 * 1000 }),
+    )
+    const app = open(directory)
+    assert.equal(app.learnerInterval(), 60 * 60 * 1000)
+    assert.equal(app.publisherInterval(), 60 * 60 * 1000)
+    assert.equal(app.cadence(), '1h')
+    const saved = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as {
+      learnerIntervalMs: number
+      publisherIntervalMs: number
+    }
+    assert.equal(saved.learnerIntervalMs, 60 * 60 * 1000)
+    assert.equal(saved.publisherIntervalMs, 60 * 60 * 1000)
+
+    app.setCadence('manual')
+    writeFileSync(
+      join(directory, 'settings.json'),
+      JSON.stringify({ ...saved, learnerIntervalMs: 0, publisherIntervalMs: 0 }),
+    )
+    const manual = open(directory)
+    assert.equal(manual.cadence(), 'manual')
+    assert.equal(manual.learnerInterval(), 0)
   })
 })
 

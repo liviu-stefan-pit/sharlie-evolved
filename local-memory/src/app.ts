@@ -188,7 +188,6 @@ type Settings = {
 const emptyProfile = (): Profile => ({ username: '', email: '', team: '' })
 
 const hourMs = 60 * 60 * 1000
-const thirtyMin = 30 * 60 * 1000
 const importBatchSize = 10
 
 export type LearningProgress = {
@@ -312,12 +311,24 @@ function enqueueLessonWrite(write: () => void): Promise<void> {
   return finished
 }
 
-const fifteenMin = 15 * 60 * 1000
-
 function requireInterval(intervalMs: number, job: string) {
-  if (intervalMs !== 0 && intervalMs !== fifteenMin && intervalMs !== thirtyMin && intervalMs !== hourMs) {
-    throw new Error(`${job} interval must be 15 minutes, 30 minutes, 1 hour, or manual`)
+  if (intervalMs === 0 || intervalMs === hourMs) return
+  if (typeof intervalMs === 'number' && intervalMs > 0 && intervalMs < hourMs) {
+    throw new Error('The schedule cannot be shorter than 1 hour.')
   }
+  throw new Error(`${job} interval must be 1 hour or manual`)
+}
+
+/** Saved intervals under an hour become 1 hour. Manual (0) stays manual. */
+function storedInterval(value: unknown, fallback: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
+  if (value === 0) return 0
+  if (value > 0 && value < hourMs) return hourMs
+  return value
+}
+
+function intervalWasShort(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value < hourMs
 }
 
 const modelCatalog: Record<Provider, { models: string[]; defaultModel: string }> = {
@@ -475,8 +486,8 @@ function emptySettings(): Settings {
     pinnedKeyId: '',
     model: '',
     modelParams: [],
-    learnerIntervalMs: thirtyMin,
-    publisherIntervalMs: thirtyMin,
+    learnerIntervalMs: hourMs,
+    publisherIntervalMs: hourMs,
     drivePath: '',
     disabledTools: [],
     learningStarted: false,
@@ -551,6 +562,8 @@ function quarantineSettings(file: string) {
   }
 }
 
+let migratingCadence = false
+
 function readSettings(directory: string): Settings {
   const file = settingsPath(directory)
   try {
@@ -563,15 +576,15 @@ function readSettings(directory: string): Settings {
       return emptySettings()
     }
     const defaults = emptySettings()
-    return {
+    const settings: Settings = {
       profile: { ...defaults.profile, ...parsed.profile },
       vaultId: parsed.vaultId ?? defaults.vaultId,
       keys: parsed.keys ?? defaults.keys,
       pinnedKeyId: parsed.pinnedKeyId ?? defaults.pinnedKeyId,
       model: parsed.model ?? defaults.model,
       modelParams: parseSavedParams(parsed.modelParams),
-      learnerIntervalMs: parsed.learnerIntervalMs ?? defaults.learnerIntervalMs,
-      publisherIntervalMs: parsed.publisherIntervalMs ?? defaults.publisherIntervalMs,
+      learnerIntervalMs: storedInterval(parsed.learnerIntervalMs, defaults.learnerIntervalMs),
+      publisherIntervalMs: storedInterval(parsed.publisherIntervalMs, defaults.publisherIntervalMs),
       drivePath: parsed.drivePath ?? defaults.drivePath,
       disabledTools: parsed.disabledTools ?? defaults.disabledTools,
       learningStarted: parsed.learningStarted ?? defaults.learningStarted,
@@ -593,6 +606,15 @@ function readSettings(directory: string): Settings {
       lastSharedAt: typeof parsed.lastSharedAt === 'string' ? parsed.lastSharedAt : '',
       lastLearnedAt: typeof parsed.lastLearnedAt === 'string' ? parsed.lastLearnedAt : '',
     }
+    if (!migratingCadence && (intervalWasShort(parsed.learnerIntervalMs) || intervalWasShort(parsed.publisherIntervalMs))) {
+      migratingCadence = true
+      try {
+        writeSettings(directory, settings)
+      } finally {
+        migratingCadence = false
+      }
+    }
+    return settings
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptySettings()
     throw error
@@ -2032,13 +2054,10 @@ export function openApp(
     },
     cadence() {
       if (settings.learnerIntervalMs === 0) return 'manual' as const
-      if (settings.learnerIntervalMs === 15 * 60 * 1000) return '15m' as const
-      if (settings.learnerIntervalMs === hourMs) return '1h' as const
-      return '30m' as const
+      return '1h' as const
     },
-    setCadence(cadence: '15m' | '30m' | '1h' | 'manual') {
-      const interval =
-        cadence === '15m' ? fifteenMin : cadence === '1h' ? hourMs : cadence === 'manual' ? 0 : thirtyMin
+    setCadence(cadence: '1h' | 'manual') {
+      const interval = cadence === 'manual' ? 0 : hourMs
       settings.learnerIntervalMs = interval
       settings.publisherIntervalMs = interval
       writeSettings(directory, settings)
