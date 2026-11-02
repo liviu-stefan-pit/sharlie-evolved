@@ -3,8 +3,34 @@ import type { ListedModel, ModelRequest } from './app.ts'
 
 type Post = (
   url: string,
-  init: { method?: string; headers?: Record<string, string>; body?: string },
+  init: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal },
 ) => Promise<Response>
+
+const defaultModelTimeoutMs = 120_000
+
+function modelTimeoutMs() {
+  const raw = process.env.SHARLIE_MODEL_TIMEOUT_MS
+  if (raw === undefined || raw.trim() === '') return defaultModelTimeoutMs
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultModelTimeoutMs
+}
+
+function isModelTimeout(error: unknown) {
+  return error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')
+}
+
+async function postModel(
+  fetchImpl: Post,
+  url: string,
+  init: { method?: string; headers?: Record<string, string>; body?: string },
+) {
+  try {
+    return await fetchImpl(url, { ...init, signal: AbortSignal.timeout(modelTimeoutMs()) })
+  } catch (error) {
+    if (isModelTimeout(error)) throw new Error("The AI service didn't answer in time.")
+    throw error
+  }
+}
 
 export type ModelReply = {
   text: string
@@ -226,7 +252,8 @@ export async function callModel(
   if (request.provider === 'cursor') return cursorPrompt(request, deps)
   if (request.provider === 'copilot') {
     const chat = request.chatCompletions !== false
-    const response = await fetchImpl(
+    const response = await postModel(
+      fetchImpl,
       chat ? 'https://api.githubcopilot.com/chat/completions' : 'https://api.githubcopilot.com/responses',
       {
         method: 'POST',
@@ -254,7 +281,7 @@ export async function callModel(
   if (request.provider === 'custom') {
     const base = (request.baseUrl ?? '').replace(/\/$/, '')
     if (base === '') throw new Error('Custom provider needs a base URL')
-    const response = await fetchImpl(`${base}/chat/completions`, {
+    const response = await postModel(fetchImpl, `${base}/chat/completions`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -273,7 +300,7 @@ export async function callModel(
     return { text: openaiText(body.choices?.[0]?.message?.content), tokens: chatUsageTokens(body.usage) }
   }
   if (request.provider === 'openai') {
-    const response = await fetchImpl('https://api.openai.com/v1/chat/completions', {
+    const response = await postModel(fetchImpl, 'https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -291,7 +318,7 @@ export async function callModel(
     )
     return { text: openaiText(body.choices?.[0]?.message?.content), tokens: chatUsageTokens(body.usage) }
   }
-  const response = await fetchImpl('https://api.anthropic.com/v1/messages', {
+  const response = await postModel(fetchImpl, 'https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

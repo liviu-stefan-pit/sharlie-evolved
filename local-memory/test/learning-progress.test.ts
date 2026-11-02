@@ -846,3 +846,49 @@ test('cancel after the first model call sends no further calls and writes nothin
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('a model that never answers ends as model_error', async () => {
+  process.env.SHARLIE_MODEL_TIMEOUT_MS = '40'
+  const { callModel } = await import('../src/exchange.ts')
+  const { discardVault, openApp } = await import('../src/app.ts')
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-timeout-'))
+  try {
+    const app = openApp(
+      directory,
+      () =>
+        callModel(
+          { provider: 'anthropic', secret: 'sk-ant-api03-aaaa', model: 'claude-haiku', prompt: 'hi' },
+          (_url, init): Promise<Response> =>
+            new Promise((_resolve, reject) => {
+              const signal = init?.signal
+              const timer = setTimeout(() => reject(new Error('the abort signal did not fire')), 1000)
+              const fail = () => {
+                clearTimeout(timer)
+                reject(signal?.reason ?? new Error('aborted'))
+              }
+              if (!signal) {
+                clearTimeout(timer)
+                reject(new Error('no abort signal'))
+                return
+              }
+              if (signal.aborted) fail()
+              else signal.addEventListener('abort', fail, { once: true })
+            }),
+        ).then(() => draft('unused')),
+      machineWith(directory, ['cursor']),
+    )
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    const learned = await app.runLearner(
+      [{ id: 'slow', source: 'cursor', text: 'a chat that waits', changedAt: '2024-01-01T00:00:00.000Z' }],
+      { foreground: true },
+    )
+    assert.equal(learned.ran, false)
+    assert.equal('errorCode' in learned ? learned.errorCode : '', 'model_error')
+    assert.equal('notice' in learned ? learned.notice : '', "The AI service didn't answer in time.")
+  } finally {
+    delete process.env.SHARLIE_MODEL_TIMEOUT_MS
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
