@@ -117,12 +117,30 @@ test('a newly learned lesson glows once', async ({ page }) => {
   await expect(page.locator('[data-graph-glow="card:retry"]')).toHaveCount(0)
 })
 
-test('low-degree nodes stay unlabelled unless hovered or selected', async ({ page }) => {
-  await openApp(page, pageState({ graph: graphWithNodes() }))
-  await page.waitForFunction(() => !!window.__sharlieGraph?.screenCoords('card:retry'))
-  await page.waitForTimeout(300)
-  await expect(page.locator('[data-graph-label]')).toHaveCount(0)
-})
+function busyGraph() {
+  const graph = graphWithNodes()
+  graph.nodes = []
+  graph.links = []
+  for (let i = 0; i < 60; i++) {
+    graph.nodes.push({ id: `tool:t${i}`, kind: 'tool', label: `topic${i}`, color: '#9d9d9d', title: `topic${i}`, degree: 60 - i, x: 20 + (i % 10) * 30, y: 20 + Math.floor(i / 10) * 30, fx: 20 + (i % 10) * 30, fy: 20 + Math.floor(i / 10) * 30 })
+  }
+  return graph
+}
+
+for (const [width, cap] of [[1280, 12], [768, 12], [360, 6]] as const) {
+  test(`the top ${cap} nodes by degree are labelled at ${width}px, plus the selected one`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 720 })
+    await openApp(page, pageState({ graph: busyGraph() }))
+    await page.waitForFunction(() => !!window.__sharlieGraph?.screenCoords('tool:t0'))
+    const labels = page.locator('[data-graph-label]')
+    await expect(labels).toHaveCount(cap)
+    const ids = await labels.evaluateAll((items) => items.map((item) => item.getAttribute('data-graph-label')).sort())
+    expect(ids).toEqual(Array.from({ length: cap }, (_, i) => `tool:t${i}`).sort())
+    await clickNode(page, 'tool:t59')
+    await expect(page.locator('[data-graph-label="tool:t59"]')).toHaveCount(1)
+    await expect(labels).toHaveCount(cap + 1)
+  })
+}
 
 for (const [width, expected] of [[1280, 400], [900, 306]] as const) {
   test(`the lesson side panel is clamp(280px,34vw,400px) at ${width}`, async ({ page }) => {

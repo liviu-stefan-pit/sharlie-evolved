@@ -1,6 +1,6 @@
 import { Graph } from '@cosmos.gl/graph'
 import { useEffect, useRef, useState } from 'react'
-import { displayColor, displayRadius, isBusy, linkEnd, newness } from './graph'
+import { displayColor, displayRadius, linkEnd, newness } from './graph'
 import type { GraphData, GraphNode } from './types'
 
 type LabelItem = { id: string; label: string; x: number; y: number }
@@ -20,8 +20,10 @@ type SharlieGraphApi = {
 
 const EMPTY: ReadonlySet<string> = new Set()
 const LABEL_CAP = 12
+/** Middle of cosmos' default 4096 space. */
+const SEED_CENTER = 2048
+const LABEL_CAP_NARROW = 6
 const GLOW_MS = 600
-const LABEL_SIZE_FLOOR = 3.5
 const HOVER_ALPHA = 0.28
 /** Lyra's tokens from index.css; the host's old graph palette is ignored. */
 function token(name: string, fallback: string) {
@@ -289,7 +291,8 @@ export function GraphMap({
         return [neighbor[0] + jitter(node.id, 0), neighbor[1] + jitter(node.id, 1)] as [number, number]
       }
     }
-    return [jitter(node.id, 0) * 12, jitter(node.id, 1) * 12] as [number, number]
+    // Seed inside cosmos space ([0, spaceSize]); seeds at the origin sit on the edge and fly off.
+    return [SEED_CENTER + jitter(node.id, 0) * 12, SEED_CENTER + jitter(node.id, 1) * 12] as [number, number]
   }
 
   function paintColors(g: Graph, hover?: number) {
@@ -346,6 +349,30 @@ export function GraphMap({
     labelRaf.current = window.requestAnimationFrame(refreshLabels)
   }
 
+  const labelRetries = useRef(0)
+  // New nodes start in a tight seed cluster, so the first fit zooms far in; while the layout
+  // spreads, keep it in view until the person zooms or drags themselves.
+  const userMoved = useRef(false)
+  const lastFollow = useRef(0)
+  function followFit(final: boolean) {
+    const g = engine.current
+    if (!g || userMoved.current || ids.current.length === 0) return
+    const now = performance.now()
+    if (!final && now - lastFollow.current < 400) return
+    lastFollow.current = now
+    g.fitView(reducedMotion() ? 0 : 250, 0.1, false)
+  }
+  const rankCache = useRef<{ data: GraphData | null; order: number[] }>({ data: null, order: [] })
+  /** Node indices by degree, highest first (stable on ties); recomputed only when the graph changes. */
+  function ranked(data: GraphData) {
+    if (rankCache.current.data !== data) {
+      const order = data.nodes.map((_, index) => index)
+      order.sort((a, b) => (data.nodes[b]?.degree ?? 0) - (data.nodes[a]?.degree ?? 0) || a - b)
+      rankCache.current = { data, order }
+    }
+    return rankCache.current.order
+  }
+
   function refreshLabels() {
     const g = engine.current
     const data = graphRef.current
@@ -357,15 +384,10 @@ export function GraphMap({
     if (hovered.current != null) chosen.add(hovered.current)
     const selected = indexOf.current.get(selectedRef.current)
     if (selected != null) chosen.add(selected)
-    const sampled = [...g.getSampledPointPositionsMap().keys()]
-    sampled.sort((a, b) => (data.nodes[b]?.degree ?? 0) - (data.nodes[a]?.degree ?? 0))
-    for (const index of sampled) {
-      if (chosen.size >= LABEL_CAP) break
-      if (chosen.has(index)) continue
-      if (!isBusy(data.nodes[index]?.degree)) continue
-      if (g.spaceToScreenRadius(displayRadius(data.nodes[index]?.degree)) < LABEL_SIZE_FLOOR) continue
-      chosen.add(index)
-    }
+    // Lyra: the top nodes by degree are always labelled (12, or 6 on a narrow map), whatever the
+    // zoom; plus the hovered and selected node.
+    const cap = (frame.current?.clientWidth ?? window.innerWidth) < 480 ? LABEL_CAP_NARROW : LABEL_CAP
+    for (const index of ranked(data).slice(0, cap)) chosen.add(index)
     const now = performance.now()
     const glowIdx: number[] = []
     for (const [id, until] of glowing.current) {
@@ -396,6 +418,11 @@ export function GraphMap({
       next.push({ id: node.id, label: node.label, x: screen[0], y: screen[1] })
     }
     setLabels(next)
+    // Tracked positions arrive a frame after tracking starts: retry a few times until all show.
+    if (next.length < chosen.size && labelRetries.current < 10) {
+      labelRetries.current += 1
+      scheduleLabelsSoon()
+    } else labelRetries.current = 0
   }
 
   async function remember(g: Graph) {
@@ -491,13 +518,25 @@ export function GraphMap({
         linkVisibilityDistanceRange: linkFade(frame.current),
         linkVisibilityMinTransparency: LINK_MIN_ALPHA,
         rescalePositions: false,
-        onSimulationEnd: () => engine.current?.pause(),
+        onSimulationEnd: () => {
+          engine.current?.pause()
+          followFit(true)
+        },
+        onZoomStart: (_event, userDriven) => {
+          if (userDriven) userMoved.current = true
+        },
+        onDragStart: () => {
+          userMoved.current = true
+        },
         onPointClick: (index) => onSelectRef.current(ids.current[index] ?? ''),
         onBackgroundClick: () => onSelectRef.current(''),
         onPointMouseOver: (index) => applyHover(index),
         onPointMouseOut: () => applyHover(undefined),
         onZoom: () => scheduleLabels(),
-        onSimulationTick: () => scheduleLabels(),
+        onSimulationTick: () => {
+          followFit(false)
+          scheduleLabels()
+        },
       })
     }
     const g = engine.current
