@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron'
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,6 +33,9 @@ const HOST_START_TIMEOUT_MS = 20_000
 function startupSentence(error: unknown) {
   const detail = error instanceof Error ? error.message.split('\n')[0] : String(error)
   const settings = join(homedir(), '.sharlie', 'knowledge', 'settings.json')
+  if (/ENOTDIR|not a folder/.test(detail)) {
+    return `Sharlie's knowledge folder at ${dirname(settings)} is a file, not a folder. Move or rename that file, then press Retry. (${detail})`
+  }
   if (error instanceof SyntaxError || /JSON/.test(detail)) {
     return `Sharlie couldn't read its settings file at ${settings}. Fix or remove that file, then press Retry. (${detail})`
   }
@@ -67,6 +70,17 @@ function windowLoaded() {
   })
 }
 
+/**
+ * The knowledge path must be a folder. On Windows, reading settings.json through a file reports ENOENT
+ * (Linux says ENOTDIR), so without this check the host would start and then silently fail to save.
+ */
+function checkKnowledgeFolder() {
+  const folder = join(homedir(), '.sharlie', 'knowledge')
+  if (existsSync(folder) && !statSync(folder).isDirectory()) {
+    throw Object.assign(new Error(`ENOTDIR: ${folder} is a file, not a folder`), { code: 'ENOTDIR' })
+  }
+}
+
 /** Starts the host at most once at a time; never throws, never waits forever. */
 function startHost() {
   if (running) return Promise.resolve()
@@ -74,6 +88,7 @@ function startHost() {
   starting = (async () => {
     let timer: ReturnType<typeof setTimeout> | undefined
     try {
+      checkKnowledgeFolder()
       const opened = await Promise.race([
         openRunningDesktopHost({ onLearning: sendLearningSnapshot }),
         new Promise<never>((_, reject) => {

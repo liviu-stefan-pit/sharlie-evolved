@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -85,7 +85,9 @@ function start(prepare: (knowledge: string) => void) {
     assert.ok(line, `no report (exit ${run.status}, signal ${run.signal}): ${run.stderr.slice(0, 400)}`)
     return { status: run.status, report: JSON.parse(line) as { events: string[]; state?: { ok: boolean; error?: string; title?: string }; hung: boolean } }
   } finally {
-    chmodSync(knowledge, 0o755)
+    // Undo read-only bits so cleanup works (on Windows a read-only file blocks removal).
+    if (existsSync(knowledge)) chmodSync(knowledge, 0o755)
+    if (existsSync(join(knowledge, 'settings.json'))) chmodSync(join(knowledge, 'settings.json'), 0o644)
     chmodSync(join(home, '.sharlie'), 0o755)
     rmSync(home, { recursive: true, force: true })
   }
@@ -143,7 +145,8 @@ test('a read-only settings folder never crashes or hangs startup', () => {
   const dialogs = report.events.filter((event) => event.startsWith('dialog:'))
   if (report.state?.ok) assert.equal(dialogs.length, 0, 'a host that opens shows no error')
   else {
-    assert.equal(dialogs.length, 1)
+    // Windows ignores the folder's read-only bit but honours the file's, so either branch can happen.
+    assert.equal(dialogs.length, 0, 'the failure goes to the window, never a dialog')
     assert.match(report.state?.error ?? '', /press Retry\./)
   }
 })
@@ -153,7 +156,8 @@ test('a knowledge path that is a file fails to the window error screen, never a 
     rmSync(knowledge, { recursive: true, force: true })
     writeFileSync(knowledge, 'not a folder')
   })
-  assertPlainFailure(result, /^Sharlie /)
+  // Windows reports ENOENT (not ENOTDIR) for a path through a file, so main.ts checks the folder itself.
+  assertPlainFailure(result, /^Sharlie's knowledge folder at .+ is a file, not a folder\./)
 })
 
 test('a clean start waits for the window to load and opens without any dialog', () => {
