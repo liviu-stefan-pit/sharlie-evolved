@@ -3,7 +3,7 @@ import { canCancelLearning, cancelLearning } from './host'
 import { Trouble } from './Trouble'
 import type { PageState } from './types'
 
-export type PassEnd = { seq: number; added: number; error: string; result: PageState['learningResult'] }
+export type PassEnd = { seq: number; added: number; error: string; result: PageState['learningResult']; nothingNew?: boolean }
 
 type Props = {
   learning: PageState['learning']
@@ -20,7 +20,7 @@ type Props = {
 export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeLessons }: Props) {
   const id = useId()
   const active = waiting || learning?.active === true
-  const [done, setDone] = useState<{ text: string } | null>(null)
+  const [done, setDone] = useState<{ text: string; calm?: boolean } | null>(null)
   const [endError, setEndError] = useState('')
   const [details, setDetails] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -29,18 +29,20 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
 
   // `ended` is recorded by the App as snapshots arrive, so a pass that starts and ends between
   // two renders still reports. A refused start never starts a pass, so it never reports Done.
+  // Per-pass reset: a new start (waiting) or an active pass clears the last pass's summary and count.
   useEffect(() => {
-    if (learning?.active) {
+    if (active) {
       setDone(null)
       setEndError('')
     }
-  }, [learning?.active])
+  }, [active])
   useEffect(() => {
     if (!ended) return
     setCancelling(false)
     setEndError(ended.error)
     const r = ended.result
-    if (r?.text) setDone({ text: r.text.startsWith('Learning cancelled') ? r.text : `Done. ${r.text}` })
+    if (ended.nothingNew) setDone({ text: 'Nothing new to learn', calm: true })
+    else if (r?.text) setDone({ text: r.text.startsWith('Learning cancelled') ? r.text : `Done. ${r.text}` })
     else if (!ended.error) setDone({ text: `Done. ${ended.added} ${ended.added === 1 ? 'lesson' : 'lessons'} learned` })
     else setDone(null)
   }, [ended?.seq])
@@ -106,7 +108,7 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
           {label}
         </p>
         {step ? <p className="min-w-0 flex-1 truncate text-[13px] text-muted" title={step}>{step}</p> : <span className="flex-1" />}
-        {!active && done ? (
+        {!active && done && !done.calm ? (
           <button type="button" className="h-9 rounded-[10px] px-2 text-[15px] text-focus underline-offset-2 hover:underline" onClick={() => { setDone(null); onSeeLessons() }}>
             See what I know
           </button>

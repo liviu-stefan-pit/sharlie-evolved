@@ -102,11 +102,11 @@ test('a thrown Learn now error shows the plain sentence with Details', async ({ 
   await expect(learnNow(page)).toBeEnabled()
 })
 
-test('a rerun with nothing new (reply already over) ends with Done. 0 lessons learned and Last learned', async ({ page }) => {
+test('a rerun with nothing new (reply already over) says Nothing new to learn and Last learned', async ({ page }) => {
   await openApp(page, home())
   await learnNow(page).click()
   await reply(page, 'action', home({ learning: { active: false, done: 0, total: 0 } }))
-  await expect(page.getByText('Done. 0 lessons learned')).toBeVisible()
+  await expect(page.getByText('Nothing new to learn')).toBeVisible()
   await expect(page.getByText('Starting to learn…')).toHaveCount(0)
   await expect(learnNow(page)).toBeEnabled()
   await expect(page.getByRole('img', { name: 'Last learned just now' })).toBeVisible()
@@ -117,6 +117,89 @@ test('a rerun with nothing new (event before the reply) ends once', async ({ pag
   await learnNow(page).click()
   await emitLearning(page, home({ learning: { active: false, done: 0, total: 0 } }))
   await reply(page, 'action', home({ learning: { active: false, done: 0, total: 0 } }))
-  await expect(page.getByText('Done. 0 lessons learned')).toHaveCount(1)
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(1)
   await expect(learnNow(page)).toBeEnabled()
 })
+
+/** First pass: 3 lessons, ended with the host's result. */
+async function firstPassOfThree(page: Page) {
+  await openApp(page, home())
+  await learnNow(page).click()
+  await reply(page, 'action', home({ learning: { active: true, done: 0, total: 3 } }))
+  await emitLearning(page, home({ learning: null, learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }))
+  await expect(page.getByText('Done. 3 lessons learned')).toBeVisible()
+}
+
+for (const [name, after] of [
+  ['learning null, stale result', { learning: null, learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }],
+  ['finished 0 of 0, stale result', { learning: { active: false, done: 0, total: 0 }, learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }],
+  ['finished 0 of 0, result cleared', { learning: { active: false, done: 0, total: 0 }, learningResult: null }],
+  ['learning null, new empty result', { learning: null, learningResult: { lessons: 0, chats: 0, text: '0 lessons learned' } }],
+] as const) {
+  test(`3 lessons, then a rerun with nothing new (${name}) says Nothing new to learn, never the old count`, async ({ page }) => {
+    await firstPassOfThree(page)
+    await learnNow(page).click()
+    // The previous summary clears the moment a new pass starts.
+    await expect(page.getByText('Done. 3 lessons learned')).toHaveCount(0)
+    await reply(page, 'action', home(after))
+    const strip = page.getByRole('status').filter({ hasText: 'Nothing new to learn' })
+    await expect(strip).toBeVisible()
+    await expect(page.getByText('3 lessons learned')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'See what I know' })).toHaveCount(0)
+    // Calm, not amber or danger.
+    expect(await strip.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(230, 232, 238)')
+  })
+}
+
+test('3 lessons, then the empty event arrives before the reply: Nothing new to learn once', async ({ page }) => {
+  await firstPassOfThree(page)
+  await learnNow(page).click()
+  await emitLearning(page, home({ learning: { active: false, done: 0, total: 0 }, learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }))
+  await reply(page, 'action', home({ learning: { active: false, done: 0, total: 0 } }))
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(1)
+  await expect(page.getByText('3 lessons learned')).toHaveCount(0)
+})
+
+test('3 lessons, then 2 new: Done. 2 lessons learned, not 5', async ({ page }) => {
+  await firstPassOfThree(page)
+  await learnNow(page).click()
+  await reply(page, 'action', home({ learning: { active: true, done: 0, total: 2 } }))
+  await emitLearning(page, home({ learning: { active: true, done: 1, total: 2 } }))
+  await emitLearning(page, home({ learning: null, learningResult: { lessons: 2, chats: 2, text: '2 lessons learned' } }))
+  await expect(page.getByText('Done. 2 lessons learned')).toBeVisible()
+  await expect(page.getByText(/5 lessons|3 lessons learned/)).toHaveCount(0)
+})
+
+test('3 lessons, then 2 new without a host result: the count is this pass only', async ({ page }) => {
+  const base = graphWithNodes()
+  const withCards = (n: number) => ({
+    ...base,
+    nodes: [...base.nodes, ...Array.from({ length: n - 1 }, (_, i) => ({ ...base.nodes[0]!, id: `card:c${i}`, label: `c${i}`, title: `c${i}`, relations: [] }))],
+  })
+  await openApp(page, home({ graph: withCards(3) }))
+  await learnNow(page).click()
+  await reply(page, 'action', home({ graph: withCards(3), learning: { active: true, done: 0, total: 2 } }))
+  await emitLearning(page, home({ graph: withCards(5), learning: null, learningResult: null }))
+  await expect(page.getByText('Done. 2 lessons learned')).toBeVisible()
+})
+
+for (const width of [360, 768, 1280]) {
+  test(`Home bar at ${width}px: Filter at least 120px, targets 36px, no horizontal scroll`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 640 })
+    await openApp(page, home())
+    const filter = page.getByRole('searchbox', { name: 'Filter lessons' })
+    const box = await filter.boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(120)
+    for (const target of [learnNow(page), page.getByRole('button', { name: 'Map' }), page.getByRole('button', { name: 'List' })]) {
+      expect((await target.boundingBox())!.height).toBeGreaterThanOrEqual(36)
+    }
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+    const bar = await filter.evaluate((el) => {
+      let node: HTMLElement | null = el
+      while (node && !node.className.includes('border-b')) node = node.parentElement
+      return node ? node.scrollWidth - node.clientWidth : 0
+    })
+    expect(bar).toBeLessThanOrEqual(0)
+  })
+}

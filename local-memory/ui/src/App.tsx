@@ -33,6 +33,22 @@ export function App() {
   const passStart = useRef(0)
   /** A start was accepted but no pass has shown as active yet (an empty rerun ends without ever being active). */
   const awaitingPass = useRef(false)
+  /** learningResult as it stood when this start was pressed; the same result after the pass is the previous pass's. */
+  const resultAtStart = useRef('null')
+  const fresh = (result: PageState['learningResult'] | undefined) =>
+    result && JSON.stringify(result) !== resultAtStart.current ? result : null
+  /** A start that ended without an active phase: nothing new unless the host reports new lessons. */
+  function endWithoutPass(next: PageState) {
+    awaitingPass.current = false
+    const error = next.learning?.error ?? ''
+    const result = fresh(next.learningResult)
+    const nothingNew = !error && (!result || (result.lessons === 0 && result.chats === 0))
+    setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error, result: nothingNew ? null : result, nothingNew }))
+    if (!error) {
+      setLastLearned(Date.now())
+      setNow(Date.now())
+    }
+  }
   const passError = useRef('')
   const [passEnd, setPassEnd] = useState<PassEnd | null>(null)
   const [ranOnce, setRanOnce] = useState(false)
@@ -59,16 +75,8 @@ export function App() {
     const isActive = next.learning?.active === true
     const cards = next.graph.nodes.filter((node) => node.kind === 'card').length
     if (isActive) awaitingPass.current = false
-    if (!wasActive && !isActive && awaitingPass.current && next.learning) {
-      // The host had nothing new to read: it reports a finished pass of 0 without an active phase.
-      awaitingPass.current = false
-      const error = next.learning.error ?? ''
-      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error, result: next.learningResult ?? null }))
-      if (!error) {
-        setLastLearned(Date.now())
-        setNow(Date.now())
-      }
-    }
+    // The host had nothing new to read: it reports a finished pass of 0 without an active phase.
+    if (!wasActive && !isActive && awaitingPass.current && next.learning) endWithoutPass(next)
     if (!wasActive && isActive) {
       passStart.current = cards
       passError.current = ''
@@ -77,7 +85,9 @@ export function App() {
     if (next.learning?.error) passError.current = next.learning.error
     if (wasActive && !isActive) {
       const error = passError.current
-      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, result: next.learningResult ?? null }))
+      const result = fresh(next.learningResult)
+      const nothingNew = !error && !!result && result.lessons === 0 && result.chats === 0
+      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, result: nothingNew ? null : result, nothingNew }))
       if (!error) {
         setLastLearned(Date.now())
         setNow(Date.now())
@@ -299,6 +309,7 @@ export function App() {
     if (startBusy.current || stateRef.current?.learning?.active === true) return
     startBusy.current = true
     awaitingPass.current = true
+    resultAtStart.current = JSON.stringify(stateRef.current?.learningResult ?? null)
     setWaiting(true)
     setStartRefusal(null)
     setStartTrouble('')
@@ -313,8 +324,12 @@ export function App() {
         return
       }
       applyActionReply(next)
-      // A reply that already shows the pass over (nothing new to read) leaves nothing to wait for.
-      if (next.learning && !next.learning.active) setWaiting(false)
+      // A reply that shows no running pass (learning null, or finished 0 of 0) leaves nothing to wait for:
+      // a real pass is already active in the start reply.
+      if (!next.learning?.active) {
+        if (awaitingPass.current) endWithoutPass(next)
+        setWaiting(false)
+      }
     } catch (error) {
       awaitingPass.current = false
       setStartTrouble(error instanceof Error ? error.message : String(error))
@@ -421,7 +436,7 @@ export function App() {
                 type="search"
                 aria-label="Filter lessons"
                 placeholder="Filter"
-                className="h-9 w-full max-w-[220px] rounded-[10px] border border-border-input bg-field px-3 text-[13px] text-ink placeholder:text-muted"
+                className="h-9 w-full max-w-[220px] rounded-[10px] max-[479.98px]:max-w-none border border-border-input bg-field px-3 text-[13px] text-ink placeholder:text-muted"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
@@ -576,11 +591,12 @@ function HomeBar({ layout, canMap, onLayout, count, action, children }: { layout
     </button>
   )
   return (
-    <div className="relative z-10 flex shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 py-1.5">
+    // Under 480px the bar wraps: Filter takes its own full-width row so it never shrinks to a letter.
+    <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-canvas px-3 py-1.5">
       <p className="shrink-0 text-[13px] text-muted">{count === 1 ? '1 lesson' : `${count} lessons`}</p>
       {action}
-      <div className="min-w-0 flex-1">{children}</div>
-      <div role="group" aria-label="View" className="flex shrink-0 items-center rounded-[10px] bg-field p-0.5">
+      <div className="min-w-[120px] flex-1 max-[479.98px]:order-last max-[479.98px]:basis-full">{children}</div>
+      <div role="group" aria-label="View" className="ml-auto flex shrink-0 items-center rounded-[10px] bg-field p-0.5">
         {option('map', 'Map')}
         {option('list', 'List')}
       </div>
