@@ -398,7 +398,7 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
                 Share work lessons with my team's Drive folder
               </p>
               <p id={`${ids}-share-help`} className="mt-1 text-[13px] text-muted">
-                Only lessons from work projects are copied, after secrets such as keys and passwords are removed. Personal lessons never leave this PC.
+                Only lessons from work projects are copied. Removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI. Personal lessons never leave this PC.
               </p>
             </div>
           </div>

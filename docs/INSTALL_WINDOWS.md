@@ -20,8 +20,7 @@ To get the installer:
 
 ## 3. First run: four steps
 
-The window says **"Sharlie learns from your work on this computer"**. It reads the chats your coding tools already save and keeps short lessons on this PC. Before anything goes to your AI provider it removes secrets such as keys and passwords.
-> **[DEV NOTE]** Email redaction is not yet in code (pending). Other people's names in your chats are still sent to the model; don't claim either is removed.
+The window says **"Sharlie learns from your work on this computer"**. It reads the chats your coding tools already save and keeps short lessons on this PC. Removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI.
 
 1. **Found on this PC.** Sharlie lists the chats it found, e.g. "Cursor · 412". If it found none, see section 6.
 2. **About you.** Name, Email, Team. Each field saves when you leave it.
@@ -59,6 +58,8 @@ When it is on, only lessons marked **work** are copied into a folder for you ins
 | Where your knowledge folder is | `%USERPROFILE%\.sharlie\<your Windows user name>.json` |
 | **[DEV NOTE]** A small skill that tells Cursor and Claude where your lessons are | `%USERPROFILE%\.cursor\skills\local-knowledge\SKILL.md` and `%USERPROFILE%\.claude\skills\local-knowledge\SKILL.md` |
 | Your AI key | Windows Credential Manager, `sharlie-local-memory` |
+
+Other people's email addresses and secrets are removed before anything is sent. Names are not removed from what is sent to the AI, only from saved lessons when Sharlie spots them.
 
 Sharlie does not change any Cursor, Claude or VS Code settings or MCP config files. The only files it adds there are the two `SKILL.md` files above. It keeps no log files; errors show in the window.
 

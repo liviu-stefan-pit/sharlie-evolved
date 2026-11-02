@@ -127,7 +127,7 @@ test('sharing is off by default with Lyra copy', async ({ page }) => {
   await settings(page, pageState({ share: false }))
   const toggle = page.getByRole('switch', { name: "Share work lessons with my team's Drive folder" })
   await expect(toggle).toHaveAttribute('aria-checked', 'false')
-  await expect(page.getByText('Only lessons from work projects are copied, after secrets such as keys and passwords are removed. Personal lessons never leave this PC.')).toBeVisible()
+  await expect(page.getByText("Only lessons from work projects are copied. Removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI. Personal lessons never leave this PC.")).toBeVisible()
   await expect(page.getByText('Not sharing. Everything stays on this PC.')).toBeVisible()
 })
 
