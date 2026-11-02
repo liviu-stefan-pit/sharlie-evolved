@@ -240,7 +240,10 @@ test('clicking a card shows the lesson in it', () => {
     const card = app.graph().nodes.find((node) => node.kind === 'card' && node.label === 'Retry failed deploys')
     assert.ok(card)
 
-    assert.deepEqual(app.show(card.id), {
+    const shown = app.show(card.id)
+    assert.equal(shown.kind, 'card')
+    if (shown.kind !== 'card') return
+    assert.deepEqual(shown, {
       kind: 'card',
       title: 'Retry failed deploys',
       solution: 'Retry the deploy once, then read the log.',
@@ -249,7 +252,7 @@ test('clicking a card shows the lesson in it', () => {
         'The lock clears on its own within a minute.',
         'When a deploy fails on a lock, retry once before changing config.',
       ],
-      created_at: app.show(card.id).created_at,
+      created_at: shown.created_at,
       synced: false,
     })
   })

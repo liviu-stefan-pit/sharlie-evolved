@@ -5,7 +5,7 @@ import { basename, join } from 'node:path'
 import { test } from 'node:test'
 import { findCredentials } from '@napi-rs/keyring'
 import { discardVault, openApp } from '../src/app.ts'
-import { machineWith } from './machine.ts'
+import { machineWith, syncRun } from './machine.ts'
 
 function machineRoot(directory: string) {
   return join(tmpdir(), `sharlie-machine-${basename(directory)}`)
@@ -126,7 +126,7 @@ test('the first saved key stays on until the person chooses another, and clearin
     const reopened = open(directory)
     assert.equal(reopened.keys().filter((key) => key.active).length, 0)
     assert.equal(reopened.beginLearning(), 'Turn on a provider before learning can write cards.')
-    assert.equal(reopened.runLearner().ran, false)
+    assert.equal(syncRun(reopened.runLearner()).ran, false)
 
     const settings = readFileSync(join(directory, 'settings.json'), 'utf8')
     assert.equal(settings.includes('sk-proj-bbbb'), false)
@@ -153,9 +153,9 @@ test('Copilot has no model list, so discovery is skipped and the learner stays i
     assert.deepEqual(app.models(), [])
     assert.doesNotThrow(() => app.chosenModel())
     assert.equal(app.chosenModel(), '')
-    const skipped = app.runLearner([
+    const skipped = syncRun(app.runLearner([
       { source: 'cursor', text: 'retry the deploy', repo: 'sharlie-evolved' },
-    ])
+    ]))
     assert.equal(skipped.ran, false)
     assert.equal(skipped.model, undefined)
     assert.equal(calls, 0)
@@ -205,10 +205,10 @@ test('a Cursor key offers the models Cursor returned and the learner uses the fi
     assert.deepEqual(app.models(), ['composer-2.5', 'auto-smart'])
     assert.equal(app.chosenModel(), '')
     assert.equal(app.beginLearning(), 'Choose a model before learning can write cards.')
-    assert.equal(app.runLearner().ran, false)
+    assert.equal(syncRun(app.runLearner()).ran, false)
     app.selectModel('composer-2.5')
     assert.equal(app.chosenModel(), 'composer-2.5')
-    const ran = app.runLearner([{ source: 'cursor', text: 'retry the deploy', repo: 'sharlie-evolved' }])
+    const ran = syncRun(app.runLearner([{ source: 'cursor', text: 'retry the deploy', repo: 'sharlie-evolved' }]))
     assert.equal(ran.ran, true)
     assert.equal(ran.model, 'composer-2.5')
     assert.equal(calls, 1)
@@ -333,14 +333,14 @@ test('the model chosen in the app is the model that writes cards and answers loo
 
     const reopened = open(directory)
     assert.equal(reopened.chosenModel(), 'claude-sonnet-5-5')
-    assert.equal(reopened.runLearner().model, 'claude-sonnet-5-5')
+    assert.equal(syncRun(reopened.runLearner()).model, 'claude-sonnet-5-5')
     assert.equal(reopened.answerLookup().model, 'claude-sonnet-5-5')
 
     const openai = reopened.keys().find((key) => key.provider === 'openai')
     assert.ok(openai)
     reopened.activateKey(openai.id)
     assert.equal(reopened.chosenModel(), 'gpt-6-luna')
-    assert.equal(reopened.runLearner().model, 'gpt-6-luna')
+    assert.equal(syncRun(reopened.runLearner()).model, 'gpt-6-luna')
   })
 })
 
@@ -403,13 +403,13 @@ test('the learner does not run when username, email, or team is missing', () => 
       { username: 'ada', email: 'ada@example.com', team: '' },
     ]) {
       app.saveProfile(profile)
-      const skipped = app.runLearner()
+      const skipped = syncRun(app.runLearner())
       assert.equal(skipped.ran, false)
       assert.equal(skipped.model, undefined)
     }
 
     app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
-    assert.equal(app.runLearner().ran, true)
+    assert.equal(syncRun(app.runLearner()).ran, true)
   })
 })
 
@@ -418,12 +418,12 @@ test('the learner does not run when no active key is saved', () => {
     const app = open(directory)
     app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
 
-    const skipped = app.runLearner()
+    const skipped = syncRun(app.runLearner())
     assert.equal(skipped.ran, false)
     assert.equal(skipped.model, undefined)
 
     app.saveKey({ provider: 'openai', secret: 'sk-proj-bbbb' })
-    const ran = app.runLearner()
+    const ran = syncRun(app.runLearner())
     assert.equal(ran.ran, true)
     assert.equal(ran.model, 'gpt-6-luna')
   })

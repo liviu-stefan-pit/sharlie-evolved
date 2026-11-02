@@ -13,7 +13,7 @@ import {
   type LessonDraft,
   type Transcript,
 } from '../src/app.ts'
-import { machineWith } from './machine.ts'
+import { machineWith, syncRun } from './machine.ts'
 
 function withDirectory(run: (directory: string) => void) {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
@@ -178,7 +178,7 @@ test('a run before the profile and active key does not import, and the first rea
       },
       machine,
     )
-    assert.equal(app.runLearner(history).ran, false)
+    assert.equal(syncRun(app.runLearner(history)).ran, false)
     assert.deepEqual(seen, [])
     app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
     app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })

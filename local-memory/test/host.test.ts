@@ -153,7 +153,7 @@ test('Cursor uses Agent.prompt with the saved key, model id, and vault cwd', asy
     | { text: string; apiKey?: string; model?: { id: string; params?: { id: string; value: string }[] }; local?: { cwd: string } }
     | undefined
   mock.module('@cursor/sdk', {
-    exports: {
+    namedExports: {
       Agent: {
         async prompt(
           text: string,

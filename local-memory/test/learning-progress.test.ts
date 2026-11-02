@@ -9,7 +9,7 @@ const missingSecrets = new Set<string>()
 const secretErrors = new Map<string, Error>()
 
 mock.module('../src/vault.ts', {
-  exports: {
+  namedExports: {
     writeSecret() {},
     deleteSecret() {},
     deleteVault() {},

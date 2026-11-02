@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { discardVault, openApp, type LessonDraft, type Transcript } from '../src/app.ts'
-import { machineWith } from './machine.ts'
+import { machineWith, syncRun } from './machine.ts'
 
 function withDirectory(run: (directory: string) => void) {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
@@ -35,7 +35,7 @@ function draft(overrides: Partial<LessonDraft> = {}): LessonDraft {
   }
 }
 
-function ready(directory: string, complete: (request: { model: string; transcript: Transcript; transcripts: Transcript[]; projects: string[]; cards: { id: string; topics: string[] }[] }) => LessonDraft) {
+function ready(directory: string, complete: (request: { model: string; transcript: Transcript; transcripts: Transcript[]; projects: string[]; cards: { id: string; title: string; topics: string[] }[] }) => LessonDraft) {
   const app = openApp(directory, complete, machineWith(directory, ['cursor', 'claude']))
   app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
   app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
@@ -51,7 +51,7 @@ const transcript: Transcript = {
 test('one transcript becomes one markdown card with the lesson and its front matter', () => {
   withDirectory((directory) => {
     const app = ready(directory, () => draft())
-    const result = app.runLearner([transcript])
+    const result = syncRun(app.runLearner([transcript]))
 
     assert.equal(result.ran, true)
     const files = cardFiles(directory)
@@ -374,7 +374,7 @@ test('a card missing any required field is left unwritten', () => {
   for (const overrides of incomplete) {
     withDirectory((directory) => {
       const app = ready(directory, () => draft(overrides))
-      const learned = app.runLearner([transcript])
+      const learned = syncRun(app.runLearner([transcript]))
       assert.equal(learned.ran, true)
       assert.equal(cardFiles(directory).length, 0)
     })
@@ -402,13 +402,13 @@ test('the learner writes nothing until a profile and an active key are saved', (
       },
       machineWith(directory, ['cursor', 'claude']),
     )
-    assert.equal(app.runLearner([transcript]).ran, false)
+    assert.equal(syncRun(app.runLearner([transcript])).ran, false)
     app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
-    assert.equal(app.runLearner([transcript]).ran, false)
+    assert.equal(syncRun(app.runLearner([transcript])).ran, false)
     assert.equal(calls, 0)
     assert.equal(cardFiles(directory).length, 0)
     app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
-    assert.equal(app.runLearner([transcript]).ran, true)
+    assert.equal(syncRun(app.runLearner([transcript])).ran, true)
     assert.equal(calls, 1)
     assert.equal(cardFiles(directory).length, 1)
   })
