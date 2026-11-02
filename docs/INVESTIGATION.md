@@ -17,7 +17,7 @@ Entry points:
 | `local-memory/ui/` | Renderer. Built to `ui/dist`. Packaged loads the file; dev loads the Vite URL (`electron/main.ts:78-82`) |
 | `local-memory/src/lookup-cli.ts` | Local lookup command. The desktop app does not install it as a Cursor or Claude skill |
 | `local-memory/src/mcp.ts` | Stdio MCP server, also imported by the desktop host |
-| `local-memory/relay/run.ts` | Cron-only Drive → Neo4j relay |
+| `local-memory/relay/run.ts` | **Cut.** Cron-only Drive → Neo4j relay, no longer part of the product: the desktop host stopped importing it (2b46cba). The code, `npm run relay`, and `test/relay.test.ts` are still in the repo until they are deleted |
 
 Split: the renderer never touches the filesystem. Preload exposes `state`, `action`, `lookup`, and an `onLearning` subscription (`electron/preload.cjs:3-12`). `electron/main.ts:124-126` handles those over IPC and forwards JSON lines to `openDesktopHost` in `src/window.ts`. Learning snapshots are pushed with `webContents.send('learning')` (`electron/main.ts:45`).
 

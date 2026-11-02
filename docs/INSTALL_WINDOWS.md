@@ -43,6 +43,11 @@ Sharlie never talks to Google Drive itself. **Team sharing is off until you turn
 
 When it is on, only lessons marked **work** are copied, into `Dropzone\<your Name>` inside the Team folder (for example `G:\My Drive\Sharlie\Dropzone\Liviu`). **Personal lessons never leave this PC.** A lesson that isn't marked work counts as personal. Drive for Desktop does the uploading. Each lesson shows **Only on this PC**, **Waiting to share** or **Shared**. Turning sharing off stops new copies; lessons already copied stay in the Team folder.
 
+Only lessons learned from now on are shared. Earlier lessons stay on this PC.
+> **[DEV NOTE]** Pending the host's share-start change: on main today, the first share copies every work lesson, including ones learned before sharing was turned on. Delete this note when that change lands.
+
+If the folder you pick doesn't exist, or Sharlie can't write to it, Settings says so ("That folder does not exist." or "Sharlie cannot write to that folder.") and sharing stays off. Pick another folder and turn it on again.
+
 ## 5. What Sharlie writes, and where
 
 `%USERPROFILE%` is your user folder, e.g. `C:\Users\Liviu`.
