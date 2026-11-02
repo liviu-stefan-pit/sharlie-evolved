@@ -39,10 +39,11 @@ function useSaved() {
 }
 
 function Section({ title, saved, children, id }: { title: string; saved: boolean; children: ReactNode; id: string }) {
+  // tabIndex -1: Home's Learn now (no key yet) moves focus to the AI key heading.
   return (
     <section aria-labelledby={id} className="rounded-[14px] border border-line bg-panel px-4 py-4">
       <div className="flex items-center gap-3">
-        <h2 id={id} className="text-[18px] font-semibold text-ink">
+        <h2 id={id} tabIndex={-1} className="text-[18px] font-semibold text-ink">
           {title}
         </h2>
         <span role="status" className="text-[13px] text-synced">
@@ -63,8 +64,15 @@ function Inline({ id, text }: { id: string; text: string }) {
   )
 }
 
-export function SettingsView({ state, act }: { state: PageState; act: Act }) {
+export function SettingsView({ state, act, focusSection }: { state: PageState; act: Act; focusSection?: 'key' | null }) {
   const ids = useId()
+  // Opened from Home's Learn now with no key: bring the AI key section into view and focus its heading.
+  useEffect(() => {
+    if (focusSection !== 'key') return
+    const heading = document.getElementById(`${ids}-key`)
+    heading?.scrollIntoView({ block: 'start' })
+    heading?.focus({ preventScroll: true })
+  }, [focusSection])
   const [banner, setBanner] = useState<Banner>(null)
 
   /** Runs one action. Field errors (a refusal with a notice) return to the caller; a thrown error goes to the banner. */
@@ -390,7 +398,7 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
                 Share work lessons with my team's Drive folder
               </p>
               <p id={`${ids}-share-help`} className="mt-1 text-[13px] text-muted">
-                Only lessons from work projects are copied, after names and secrets are removed. Personal lessons never leave this PC.
+                Only lessons from work projects are copied, after secrets such as keys and passwords are removed. Personal lessons never leave this PC.
               </p>
             </div>
           </div>

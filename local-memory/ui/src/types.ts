@@ -109,6 +109,8 @@ export type PageState = {
    * running schedule for `cadence`. Until it says so the UI claims no schedule.
    */
   scheduled?: boolean
+  /** Assumed (not in docs/HOST_ACTIONS.md yet): ISO time the last pass ended. Until the host sends it, the UI keeps a session-local time. */
+  lastLearnedAt?: string
   /** docs/HOST_ACTIONS.md: set when a pass finishes or is cancelled. */
   learningResult?: { lessons: number; chats: number; text: string } | null
 }

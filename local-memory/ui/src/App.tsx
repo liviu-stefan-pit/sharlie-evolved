@@ -31,14 +31,19 @@ export function App() {
   const stateRef = useRef<PageState | null>(null)
 
   const passStart = useRef(0)
+  /** A start was accepted but no pass has shown as active yet (an empty rerun ends without ever being active). */
+  const awaitingPass = useRef(false)
   const passError = useRef('')
   const [passEnd, setPassEnd] = useState<PassEnd | null>(null)
   const [ranOnce, setRanOnce] = useState(false)
+  /** Session-local end time of the last pass; the host sends no last-run time yet (lastLearnedAt is preferred when it does). */
+  const [lastLearned, setLastLearned] = useState<number | null>(null)
+  const [settingsFocus, setSettingsFocus] = useState<'key' | null>(null)
 
   const [sessionNew, setSessionNew] = useState<ReadonlySet<string>>(() => new Set())
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 5 * 60 * 1000)
+    const timer = window.setInterval(() => setNow(Date.now()), 60 * 1000)
     return () => window.clearInterval(timer)
   }, [])
 
@@ -53,6 +58,17 @@ export function App() {
     const wasActive = stateRef.current?.learning?.active === true
     const isActive = next.learning?.active === true
     const cards = next.graph.nodes.filter((node) => node.kind === 'card').length
+    if (isActive) awaitingPass.current = false
+    if (!wasActive && !isActive && awaitingPass.current && next.learning) {
+      // The host had nothing new to read: it reports a finished pass of 0 without an active phase.
+      awaitingPass.current = false
+      const error = next.learning.error ?? ''
+      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error, result: next.learningResult ?? null }))
+      if (!error) {
+        setLastLearned(Date.now())
+        setNow(Date.now())
+      }
+    }
     if (!wasActive && isActive) {
       passStart.current = cards
       passError.current = ''
@@ -62,6 +78,10 @@ export function App() {
     if (wasActive && !isActive) {
       const error = passError.current
       setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, result: next.learningResult ?? null }))
+      if (!error) {
+        setLastLearned(Date.now())
+        setNow(Date.now())
+      }
     }
     stateRef.current = next
     setState(next)
@@ -273,7 +293,12 @@ export function App() {
   const [startRefusal, setStartRefusal] = useState<{ code: string; notice: string } | null>(null)
   const [startTrouble, setStartTrouble] = useState('')
 
+  // Same-tick clicks see the same render, so one start at a time is guarded by a ref.
+  const startBusy = useRef(false)
   async function startLearning() {
+    if (startBusy.current || stateRef.current?.learning?.active === true) return
+    startBusy.current = true
+    awaitingPass.current = true
     setWaiting(true)
     setStartRefusal(null)
     setStartTrouble('')
@@ -281,23 +306,69 @@ export function App() {
       const next = await tracked(() => runAction({ action: 'start-learning' }))
       // A refused start (no chats, profile incomplete...) never counts as a run.
       if (next.notice && !next.learning?.active) {
+        awaitingPass.current = false
         setStartRefusal({ code: refusalCode(next.errorCode, next.notice), notice: next.notice })
         apply({ ...next, notice: '' })
         setWaiting(false)
         return
       }
       applyActionReply(next)
+      // A reply that already shows the pass over (nothing new to read) leaves nothing to wait for.
+      if (next.learning && !next.learning.active) setWaiting(false)
     } catch (error) {
+      awaitingPass.current = false
       setStartTrouble(error instanceof Error ? error.message : String(error))
       setWaiting(false)
+    } finally {
+      startBusy.current = false
     }
   }
+
+  /** Home's Learn now: with no key saved it opens Settings at the AI key; otherwise the same start as first run. */
+  function learnNow() {
+    const current = stateRef.current
+    if (!current || active) return
+    if (!current.hasKey || current.savedProviders.length === 0) {
+      setSettingsFocus('key')
+      setView('settings')
+      return
+    }
+    void startLearning()
+  }
+  const learnedAt = state?.lastLearnedAt ? Date.parse(state.lastLearnedAt) : lastLearned
+  const learnNowButton = (
+    <button
+      type="button"
+      className="h-9 shrink-0 rounded-[10px] border border-border-input px-3 text-[13px] text-ink transition-colors duration-[120ms] hover:bg-field disabled:opacity-50"
+      disabled={active}
+      aria-describedby={active ? 'learn-now-why' : undefined}
+      onClick={learnNow}
+    >
+      Learn now
+      {active ? <span id="learn-now-why" className="sr-only"> (learning is already running)</span> : null}
+    </button>
+  )
+  const homeProblem = !firstRun && (startRefusal || startTrouble) ? (
+    <div className="shrink-0 border-b border-line bg-canvas px-3 py-2">
+      {startRefusal ? (
+        <p role="alert" className="text-[13px] text-danger">
+          {startRefusal.notice}
+          {startRefusal.code === 'key_missing' || startRefusal.code === 'model_missing' || startRefusal.code === 'profile_incomplete' ? (
+            <button type="button" className="ml-2 inline-flex h-9 items-center text-[13px] text-ink underline" onClick={() => { setSettingsFocus(startRefusal.code === 'profile_incomplete' ? null : 'key'); setView('settings') }}>
+              Open Settings
+            </button>
+          ) : null}
+        </p>
+      ) : null}
+      {startTrouble ? <Trouble raw={startTrouble} /> : null}
+    </div>
+  ) : null
 
   return (
     <div className="flex h-full flex-col bg-canvas text-ink">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-panel px-3">
         <h1 className="shrink-0 text-[13px] font-semibold">{state?.title ?? 'Sharlie'}</h1>
-        <StatusDot state={state} active={active} />
+        <StatusDot state={state} active={active} learnedAt={learnedAt ?? null} now={now} />
         <form role="search" aria-label="Ask Sharlie" className="flex min-w-0 flex-1 items-center gap-1.5" onSubmit={(event) => void submitAsk(event)}>
           <input
             ref={askRef}
@@ -317,7 +388,10 @@ export function App() {
           type="button"
           className={`relative h-9 shrink-0 rounded-full border px-3 text-[15px] text-ink transition-colors duration-[120ms] ${view === 'settings' ? 'border-border-input bg-white/[0.08]' : 'border-line bg-field hover:bg-white/[0.05]'}`}
           aria-pressed={view === 'settings'}
-          onClick={() => setView((current) => (current === 'settings' ? 'graph' : 'settings'))}
+          onClick={() => {
+            setSettingsFocus(null)
+            setView((current) => (current === 'settings' ? 'graph' : 'settings'))
+          }}
         >
           Settings
           {view === 'settings' ? <span aria-hidden="true" data-active-mark className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-focus" /> : null}
@@ -342,7 +416,7 @@ export function App() {
       {view === 'graph' && visible ? (
         <div className="flex min-h-0 flex-1 flex-col">
           {!firstRun && !homeEmpty && state ? (
-            <HomeBar layout={noWebgl ? 'list' : layout} canMap={!noWebgl} onLayout={setLayout} count={cardCount}>
+            <HomeBar layout={noWebgl ? 'list' : layout} canMap={!noWebgl} onLayout={setLayout} count={cardCount} action={learnNowButton}>
               <input
                 type="search"
                 aria-label="Filter lessons"
@@ -359,6 +433,7 @@ export function App() {
               />
             </HomeBar>
           ) : null}
+          {homeProblem}
           <div className="flex min-h-0 flex-1">
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
             {noWebgl || layout === 'list' ? (
@@ -400,6 +475,7 @@ export function App() {
                 >
                   {checkingHome ? 'Checking' : 'Check again'}
                 </button>
+                {learnNowButton}
                 {homeTrouble ? <Trouble raw={homeTrouble} className="max-w-md" /> : null}
               </div>
             ) : null}
@@ -424,7 +500,7 @@ export function App() {
         </div>
       ) : null}
       {view === 'settings' && state ? (
-        <SettingsView state={state} act={act} />
+        <SettingsView state={state} act={act} focusSection={settingsFocus} />
       ) : null}
       {view === 'graph' && state && !visible ? (
         <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p>
@@ -449,7 +525,7 @@ function useNarrow() {
 }
 
 /** Never claims learning is on when nothing is set up. */
-function StatusDot({ state, active }: { state: PageState | null; active: boolean }) {
+function StatusDot({ state, active, learnedAt, now }: { state: PageState | null; active: boolean; learnedAt: number | null; now: number }) {
   const setUp = !!state && firstTodo(state) === null
   const [label, tone] = !state
     ? ['Starting', 'border border-faint']
@@ -459,7 +535,7 @@ function StatusDot({ state, active }: { state: PageState | null; active: boolean
         ? ['Not set up yet', 'border border-faint']
         : state.paused
           ? ['Learning paused', 'bg-muted']
-          : [cadenceLabel(state), 'bg-synced']
+          : [statusLabel(state, learnedAt, now), 'bg-synced']
   return (
     <span className="flex shrink-0 items-center gap-1.5" title={label}>
       <span role="img" aria-label={label} className={`inline-block h-2 w-2 rounded-full ${tone}`} />
@@ -468,7 +544,26 @@ function StatusDot({ state, active }: { state: PageState | null; active: boolean
   )
 }
 
-function HomeBar({ layout, canMap, onLayout, count, children }: { layout: 'map' | 'list'; canMap: boolean; onLayout: (next: 'map' | 'list') => void; count: number; children?: ReactNode }) {
+/** "Last learned 5 min ago" once a pass has ended; manual or scheduled modes keep their wording in front. */
+function statusLabel(state: PageState, learnedAt: number | null, now: number) {
+  const base = cadenceLabel(state)
+  if (learnedAt == null || !Number.isFinite(learnedAt)) return base
+  const ago = relativeTime(learnedAt, now)
+  if (state.cadence !== 'manual' && state.scheduled !== true) return `Last learned ${ago}`
+  return `${base} · last learned ${ago}`
+}
+
+function relativeTime(at: number, now: number) {
+  const minutes = Math.floor(Math.max(0, now - at) / 60000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`
+  const days = Math.floor(hours / 24)
+  return days === 1 ? 'yesterday' : `${days} days ago`
+}
+
+function HomeBar({ layout, canMap, onLayout, count, action, children }: { layout: 'map' | 'list'; canMap: boolean; onLayout: (next: 'map' | 'list') => void; count: number; action?: ReactNode; children?: ReactNode }) {
   const option = (value: 'map' | 'list', text: string) => (
     <button
       type="button"
@@ -483,6 +578,7 @@ function HomeBar({ layout, canMap, onLayout, count, children }: { layout: 'map' 
   return (
     <div className="relative z-10 flex shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 py-1.5">
       <p className="shrink-0 text-[13px] text-muted">{count === 1 ? '1 lesson' : `${count} lessons`}</p>
+      {action}
       <div className="min-w-0 flex-1">{children}</div>
       <div role="group" aria-label="View" className="flex shrink-0 items-center rounded-[10px] bg-field p-0.5">
         {option('map', 'Map')}

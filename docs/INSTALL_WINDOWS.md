@@ -20,8 +20,8 @@ To get the installer:
 
 ## 3. First run: four steps
 
-The window says **"Sharlie learns from your work on this computer"**. It reads the chats your coding tools already save and keeps short lessons on this PC. Before anything goes to your AI provider it removes secrets and email addresses.
-> **[DEV NOTE]** Today the code removes secrets (API keys, tokens, passwords, private keys, private IP addresses) but not email addresses, and other people's names in your chats are still sent to the model. The first-run screen itself still says "removes names and secrets".
+The window says **"Sharlie learns from your work on this computer"**. It reads the chats your coding tools already save and keeps short lessons on this PC. Before anything goes to your AI provider it removes secrets such as keys and passwords.
+> **[DEV NOTE]** Email redaction is not yet in code (pending). Other people's names in your chats are still sent to the model; don't claim either is removed.
 
 1. **Found on this PC.** Sharlie lists the chats it found, e.g. "Cursor · 412". If it found none, see section 6.
 2. **About you.** Name, Email, Team. Each field saves when you leave it.
@@ -30,8 +30,8 @@ The window says **"Sharlie learns from your work on this computer"**. It reads t
 
 Then press **Start learning**. A strip at the top shows "Learning… 37 of 412 chats" and has a **Cancel** button. Lessons already written stay if you cancel. You can use the window while it learns.
 
-After that, the Home screen says **Learns when you open Sharlie**.
-> **[DEV NOTE]** Learning on open isn't wired up yet: the app never registers its learning job, so today nothing learns after the first pass unless you press **Start learning**. Don't promise hourly or background learning until the host reports a running schedule.
+After that, Home has a **Learn now** button to learn your newest chats again; the status line says **Learns when you open Sharlie** until the first pass of the session, then **Last learned …**.
+> **[DEV NOTE]** Learning on open isn't wired up yet: the app never registers its learning job, so today new chats are learned only when you press **Learn now**. Don't promise hourly or background learning until the host reports a running schedule.
 
 > **[DEV NOTE]** Coming in this build: the first pass is planned to read only your newest 50 chats and leave older ones for later. Today it reads every new chat, newest first.
 
