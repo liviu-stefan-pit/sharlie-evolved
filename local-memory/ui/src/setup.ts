@@ -2,6 +2,19 @@ import type { PageState } from './types'
 
 /** Providers that can actually learn (Lyra): Copilot stays a chat source, Custom is hidden. */
 /** Never promises more than the host runs: a schedule only when the host reports it registered. */
+/**
+ * The current host refuses a start with only a sentence (no errorCode yet). Map its known
+ * sentences to the documented codes so the refusal shows at the step it is about.
+ */
+export function refusalCode(errorCode: string | undefined, notice: string) {
+  if (errorCode) return errorCode
+  if (/save your username, email, and team/i.test(notice)) return 'profile_incomplete'
+  if (/turn on a provider/i.test(notice)) return 'key_missing'
+  if (/choose a model|no model list|choose effort/i.test(notice)) return 'model_missing'
+  if (/no chats|nothing to learn/i.test(notice)) return 'no_chats'
+  return ''
+}
+
 export function cadenceLabel(state: Pick<PageState, 'cadence' | 'scheduled'>) {
   if (state.cadence === 'manual') return 'Learns when you ask'
   if (state.scheduled !== true) return 'Learns when you open Sharlie'

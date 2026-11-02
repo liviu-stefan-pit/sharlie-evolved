@@ -218,6 +218,8 @@ export function SettingsView({ state, act }: { state: PageState; act: Act }) {
     const reply = await run(body, () => void advanced(at, body))
     if (!reply) return
     if (reply.notice) setAdvError({ at, text: reply.notice })
+    // A cancelled picker, or a host without pick-folder, leaves the folder unchanged: no Saved.
+    else if (at === 'folder' && reply.vaultPath === state.vaultPath) return
     else savedAdvanced.tick()
   }
 

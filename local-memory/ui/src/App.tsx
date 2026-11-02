@@ -5,7 +5,7 @@ import { LearningStrip, type PassEnd } from './LearningStrip'
 import { LessonList } from './LessonList'
 import { AskPanel, type AskState } from './Ask'
 import { Trouble } from './Trouble'
-import { cadenceLabel, firstTodo } from './setup'
+import { cadenceLabel, firstTodo, refusalCode } from './setup'
 import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
 import { checkSources, loadState, onLearning, runAction, runLookup } from './host'
@@ -244,7 +244,7 @@ export function App() {
       const next = await runAction({ action: 'start-learning' })
       // A refused start (no chats, profile incomplete...) never counts as a run.
       if (next.notice && !next.learning?.active) {
-        setStartRefusal({ code: next.errorCode ?? '', notice: next.notice })
+        setStartRefusal({ code: refusalCode(next.errorCode, next.notice), notice: next.notice })
         apply({ ...next, notice: '' })
         setWaiting(false)
         return

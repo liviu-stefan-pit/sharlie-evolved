@@ -346,3 +346,24 @@ for (const width of [360, 768, 1280]) {
     expect(stops).not.toContain('scroll')
   })
 }
+
+// The real host (src/window.ts) refuses a start with a notice and no errorCode yet.
+test('a real-host profile refusal without errorCode still lands at About you', async ({ page }) => {
+  await openApp(page, pageState())
+  await start(page).click()
+  const notice = 'Save your username, email, and team before learning can write cards.'
+  await reply(page, 'action', pageState({ notice, learning: null, learningResult: null }))
+  await expect(page.getByRole('alert')).toHaveCount(1)
+  await expect(page.getByRole('alert')).toHaveText(notice)
+  await expect(page.getByLabel('Name')).toBeFocused()
+  await expect(page.getByText(/^Done\./)).toHaveCount(0)
+})
+
+test('a real-host model refusal without errorCode shows once at the AI key step', async ({ page }) => {
+  await openApp(page, pageState())
+  await start(page).click()
+  const notice = 'Choose a model before learning can write cards.'
+  await reply(page, 'action', pageState({ notice, learning: null, learningResult: null }))
+  await expect(page.getByText(notice)).toHaveCount(1)
+  await expect(page.getByText(/^Done\./)).toHaveCount(0)
+})

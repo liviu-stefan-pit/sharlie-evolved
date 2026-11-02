@@ -254,3 +254,18 @@ test('every settings control is at least 36px tall at 360', async ({ page }) => 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)
   expect(overflow).toBe(false)
 })
+
+test('Choose folder that leaves the Lessons folder unchanged never shows Saved', async ({ page }) => {
+  await settings(page, pageState({ vaultPath: 'C:\\vault' }))
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  await page.getByRole('button', { name: 'Choose folder' }).click()
+  expect(await nextAction(page)).toEqual({ action: 'pick-folder', purpose: 'knowledge' })
+  // The real host has no pick-folder yet: it answers with the same snapshot and an empty notice.
+  await reply(page, 'action', pageState({ vaultPath: 'C:\\vault', notice: '' }))
+  await page.waitForTimeout(200)
+  await expect(page.getByText('✓ Saved')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Choose folder' }).click()
+  await page.waitForFunction(() => window.__sharlieCalls.filter((call) => call.cmd === 'action' && !call.done).length === 1)
+  await reply(page, 'action', pageState({ vaultPath: 'D:\\lessons', notice: '' }))
+  await expect(page.getByText('✓ Saved')).toBeVisible()
+})
