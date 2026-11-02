@@ -69,3 +69,7 @@ If your chats live somewhere else (for example Cursor installed for all users un
 ## If it won't start
 
 The window shows one plain sentence and a **Retry** button. Do what the sentence says, then press **Retry**. The technical text is under **Details** if you want to send it to the team.
+
+## If Sharlie looks empty after a crash or power cut
+
+Sharlie keeps a small list of its learning folders in `%USERPROFILE%\.sharlie\<your Windows user name>.json`. If a crash or power cut damaged that file, Sharlie starts fresh and does not say so. The old file is saved next to it as `<your Windows user name>.json.bak`. To get it back, close Sharlie (also from the tray), copy the `.bak` file over the `.json` file, then open Sharlie again.
