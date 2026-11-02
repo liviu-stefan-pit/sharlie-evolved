@@ -1,5 +1,6 @@
 import { cancelLearning, learningProgress, learningResult, openUserSession, type Provider } from './app.ts'
 import { listCopilotModels, listCursorCatalog } from './exchange.ts'
+import { mockModelEnabled } from './host.ts'
 import { runningUnderTest } from './login-item.ts'
 import { localGraph } from './synapse.ts'
 
@@ -62,6 +63,7 @@ function refused(errorCode: string, notice: string, detail?: string): ActionResu
 
 async function judgeKey(provider: 'anthropic' | 'openai' | 'cursor', secret: string) {
   const probe = keyProbe
+  if (mockModelEnabled()) return 'ok' as const
   if (!probe && runningUnderTest()) return 'ok' as const
   const fetchImpl = probe ?? (fetch as unknown as KeyProbe)
   const url =
