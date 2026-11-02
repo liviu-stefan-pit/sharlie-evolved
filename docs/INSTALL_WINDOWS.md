@@ -70,7 +70,7 @@ Sharlie only reads tools it finds installed, and only in these folders:
 - **Copilot in VS Code** (needs a `github.copilot-*` extension in `%USERPROFILE%\.vscode\extensions`): `%APPDATA%\Code\User\workspaceStorage` and `...\globalStorage\emptyWindowChatSessions`
 - **Copilot CLI:** `%USERPROFILE%\.copilot\session-state`
 
-Press **Show where I look** to see the exact folders on your PC. Use one of the tools for a while, then press **Check again** to look right away. Sharlie also looks again each time its window refreshes. It never starts learning on its own because of a rescan.
+Press **Show where I look** to see the exact folders on your PC. Use one of the tools for a while, then press **Check again** to look right away. Sharlie also looks again each time its window refreshes.
 
 If your chats live somewhere else (for example Cursor installed for all users under Program Files, or VS Code Insiders), Sharlie won't see them yet, because there is no setting to add a folder. Press **Show where I look** and send that list to the team.
 
