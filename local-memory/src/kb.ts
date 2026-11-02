@@ -37,7 +37,7 @@
  *   Sorted writer ids from readIndex. Never throws.
  */
 
-import { randomBytes, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
@@ -88,7 +88,7 @@ export type KbNode = {
   synced: true
 }
 
-export type KbWriteResult = { ok: true; lesson: KbNode } | { ok: false; reason: string }
+export type KbWriteResult = { ok: true; lesson: KbNode; unchanged?: boolean } | { ok: false; reason: string }
 
 const linkCap = 8
 const maxLessonBytes = 2_000_000
@@ -420,25 +420,49 @@ function renderMarkdown(lesson: LessonRecord) {
 
 const tempMaxAgeMs = 10 * 60 * 1000
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 async function sweepOldTemps(folder: string, writer: string) {
-  const prefix = `.${writer}-`
   const cutoff = Date.now() - tempMaxAgeMs
+  const tempName = new RegExp(
+    `^\\.${escapeRegExp(writer)}-${uuidPattern}\\.(?:json|md)\\.\\d+\\.[0-9a-f]{12}\\.tmp$`,
+  )
+  const orphanNote = new RegExp(`^${escapeRegExp(writer)}-${uuidPattern}\\.md$`)
   let names: string[] = []
   try {
     names = readdirSync(folder)
   } catch {
     return
   }
+  const present = new Set(names)
   for (const name of names) {
-    if (!name.startsWith(prefix) || !name.endsWith('.tmp')) continue
+    const staleTemp = tempName.test(name)
+    const orphan = orphanNote.test(name) && !present.has(`${name.slice(0, -'.md'.length)}.json`)
+    if (!staleTemp && !orphan) continue
     const path = join(folder, name)
     try {
       const info = statSync(path)
       if (!info.isFile() || info.mtimeMs >= cutoff) continue
       await rm(path, { force: true })
     } catch {
-      // A temp file that cannot be removed stays where it is.
+      // A file that cannot be removed stays where it is.
     }
+  }
+}
+
+function sha256(body: string | Buffer) {
+  return createHash('sha256').update(body).digest('hex')
+}
+
+async function sameBytes(path: string, body: string) {
+  try {
+    const info = await stat(path)
+    if (!info.isFile() || info.size !== Buffer.byteLength(body)) return false
+    return sha256(readFileSync(path)) === sha256(body)
+  } catch {
+    return false
   }
 }
 
@@ -591,10 +615,19 @@ export async function writeLesson(
     }
     const body = `${JSON.stringify(record, null, 2)}\n`
     const markdownName = `${id}.md`
+    const markdown = renderMarkdown(record)
     const markdownState = await fileExists(join(folder, markdownName))
     if (markdownState === 'directory') return refuse('that path is not a folder')
+    if (
+      jsonState === 'file' &&
+      markdownState === 'file' &&
+      (await sameBytes(join(folder, jsonName), body)) &&
+      (await sameBytes(join(folder, markdownName), markdown))
+    ) {
+      return { ok: true, lesson: { ...record, writer: writerKey, synced: true }, unchanged: true }
+    }
     await sweepOldTemps(folder, writerKey)
-    await placeFile(folder, markdownName, renderMarkdown(record))
+    await placeFile(folder, markdownName, markdown)
     await placeFile(folder, jsonName, body)
     return { ok: true, lesson: { ...record, writer: writerKey, synced: true } }
   } catch (error) {

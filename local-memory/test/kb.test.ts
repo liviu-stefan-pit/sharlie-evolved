@@ -551,23 +551,73 @@ test('the note is saved before the json, so a failed json rename leaves no json 
   })
 })
 
+function tempFile(writer: string, uuid: string, kind: 'json' | 'md', pid: number, hex = 'abcdefabcdef') {
+  return `.${writer}-${uuid}.${kind}.${pid}.${hex}.tmp`
+}
+
 test('a save deletes only this writer\'s temp files older than 10 minutes', async () => {
   await withFolder(async (folder) => {
     const old = new Date(Date.now() - 11 * 60 * 1000)
-    const ownOld = join(folder, `.${adaWriter}-stale.json.111.tmp`)
-    const ownFresh = join(folder, `.${adaWriter}-fresh.json.222.tmp`)
-    const otherOld = join(folder, `.${graceWriter}-stale.json.333.tmp`)
+    const ownUuid = '11111111-1111-4111-8111-111111111111'
+    const otherUuid = '22222222-2222-4222-8222-222222222222'
+    const longerWriter = 'ada-k3f9-bob-x7y2'
+    const ownOld = join(folder, tempFile(adaWriter, ownUuid, 'json', 111))
+    const ownFresh = join(folder, tempFile(adaWriter, ownUuid, 'md', 222))
+    const otherOld = join(folder, tempFile(graceWriter, otherUuid, 'json', 333))
+    const longerOld = join(folder, tempFile(longerWriter, otherUuid, 'json', 444))
     const ownNote = join(folder, `.${adaWriter}-notes.txt`)
-    for (const path of [ownOld, ownFresh, otherOld, ownNote]) writeFileSync(path, 'temp')
+    const ownOrphan = join(folder, `${adaWriter}-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.md`)
+    const freshOrphan = join(folder, `${adaWriter}-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.md`)
+    const otherOrphan = join(folder, `${graceWriter}-cccccccc-cccc-4ccc-8ccc-cccccccccccc.md`)
+    const longerOrphan = join(folder, `${longerWriter}-dddddddd-dddd-4ddd-8ddd-dddddddddddd.md`)
+    const keptId = `${adaWriter}-eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee`
+    const keptNote = join(folder, `${keptId}.md`)
+    const keptJson = join(folder, `${keptId}.json`)
+    for (const path of [ownOld, ownFresh, otherOld, longerOld, ownNote, ownOrphan, freshOrphan, otherOrphan, longerOrphan, keptNote, keptJson]) {
+      writeFileSync(path, 'temp')
+    }
     utimesSync(ownOld, old, old)
     utimesSync(otherOld, old, old)
+    utimesSync(longerOld, old, old)
+    utimesSync(ownOrphan, old, old)
+    utimesSync(otherOrphan, old, old)
+    utimesSync(longerOrphan, old, old)
+    utimesSync(keptNote, old, old)
     const result = await save(folder, lesson('ada', { title: 'Clear stale temps' }))
     assert.equal(result.ok, true)
     assert.equal(existsSync(ownOld), false)
+    assert.equal(existsSync(ownOrphan), false)
     assert.equal(existsSync(ownFresh), true)
+    assert.equal(existsSync(freshOrphan), true)
     assert.equal(existsSync(otherOld), true)
+    assert.equal(existsSync(longerOld), true)
     assert.equal(existsSync(ownNote), true)
+    assert.equal(existsSync(otherOrphan), true)
+    assert.equal(existsSync(longerOrphan), true)
+    assert.equal(existsSync(keptNote), true)
+    assert.equal(existsSync(keptJson), true)
+    assert.equal(readFileSync(longerOld, 'utf8'), 'temp')
     assert.equal(readFileSync(otherOld, 'utf8'), 'temp')
+  })
+})
+
+test('an identical lesson is left in place', async () => {
+  await withFolder(async (folder) => {
+    const created = await save(folder, lesson('ada', { title: 'Retry failed deploys', created_at: '2026-11-02T10:00:00.000Z' }))
+    assert.equal(created.ok, true)
+    if (!created.ok) return
+    const jsonPath = join(folder, `${created.lesson.id}.json`)
+    const before = statSync(jsonPath).mtimeMs
+    const again = await save(
+      folder,
+      lesson('ada', { id: created.lesson.id, title: 'Retry failed deploys', created_at: '2026-11-02T10:00:00.000Z' }),
+      readIndex(folder),
+    )
+    assert.equal(again.ok, true)
+    if (!again.ok) return
+    assert.equal(again.unchanged, true)
+    assert.equal(again.lesson.id, created.lesson.id)
+    assert.equal(statSync(jsonPath).mtimeMs, before)
   })
 })
 
