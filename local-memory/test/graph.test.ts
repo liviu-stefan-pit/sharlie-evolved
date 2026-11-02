@@ -61,6 +61,13 @@ test('the graph draws the whole local folder, personal cards and work cards', ()
       .map((node) => node.label)
       .sort()
     assert.deepEqual(titles, ['My scratch note', 'Retry failed deploys'])
+    const scope = (label: string) => {
+      const node = app.graph().nodes.find((item) => item.kind === 'card' && item.label === label)
+      assert.ok(node)
+      return node.scope
+    }
+    assert.equal(scope('Retry failed deploys'), 'work')
+    assert.equal(scope('My scratch note'), 'personal')
   })
 })
 

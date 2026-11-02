@@ -249,6 +249,7 @@ export type GraphNode = {
   color: string
   degree?: number
   synced?: boolean
+  scope?: 'work' | 'personal'
   title?: string
   created_at?: string
   solution?: string
@@ -297,6 +298,7 @@ export function localGraph(directory: string, drivePath = '', autoDrop = false) 
     const cardId = ensure('card', card.id, card.title)
     const node = nodes.get(cardId)!
     node.synced = copied
+    if (card.scope === 'work' || card.scope === 'personal') node.scope = card.scope
     node.color = copied ? syncedColor : pending
     node.title = card.title
     node.created_at = card.created_at
