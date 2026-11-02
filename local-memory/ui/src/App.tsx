@@ -79,19 +79,32 @@ export function App() {
     setWaiting(false)
   }
 
+  const [attempt, setAttempt] = useState(0)
+  const [retrying, setRetrying] = useState(false)
+
   useEffect(() => {
     let cancel = false
     loadState()
       .then((next) => {
-        if (!cancel) apply(next)
+        if (cancel) return
+        setHostError('')
+        apply(next)
       })
       .catch((error: unknown) => {
-        if (!cancel) setHostError(error instanceof Error ? error.message : 'Sharlie host is not available')
+        if (!cancel) setHostError(error instanceof Error && error.message ? error.message : 'Sharlie host is not available')
+      })
+      .finally(() => {
+        if (!cancel) setRetrying(false)
       })
     return () => {
       cancel = true
     }
-  }, [])
+  }, [attempt])
+
+  function retryHost() {
+    setRetrying(true)
+    setAttempt((value) => value + 1)
+  }
 
   useEffect(() => {
     return onLearning((incoming) => {
@@ -259,11 +272,8 @@ export function App() {
           {looking ? 'Looking up' : lookupError || lookupAnswer}
         </p>
       ) : null}
-      {!state ? (
-        <p className={`px-3 py-2 text-[13px] ${hostError ? 'text-pending' : 'text-muted'}`}>
-          {hostError || 'Loading the graph'}
-        </p>
-      ) : null}
+      {!state && hostError ? <ServiceDown detail={hostError} retrying={retrying} onRetry={retryHost} /> : null}
+      {!state && !hostError ? <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p> : null}
       {view === 'graph' && visible ? (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 flex-col">
@@ -336,6 +346,26 @@ export function App() {
         tokens={state?.learningTokens ?? 0}
         unreported={state?.learningTokensUnreported ?? 0}
       />
+    </div>
+  )
+}
+
+function ServiceDown({ detail, retrying, onRetry }: { detail: string; retrying: boolean; onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <h2 className="text-[13px] font-semibold text-ink">Sharlie couldn't start its background service</h2>
+      <p className="max-w-md text-[13px] break-words text-pending">{detail}</p>
+      <p className="max-w-md text-[13px] text-muted">
+        Retry below. If it keeps failing, quit Sharlie from the tray icon and open it again.
+      </p>
+      <button
+        type="button"
+        className="min-h-8 rounded-full border border-accent bg-accent px-4 py-1.5 text-[13px] font-medium text-on-accent transition-colors duration-[120ms] focus:border-focus disabled:opacity-50"
+        disabled={retrying}
+        onClick={onRetry}
+      >
+        {retrying ? 'Retrying' : 'Retry'}
+      </button>
     </div>
   )
 }

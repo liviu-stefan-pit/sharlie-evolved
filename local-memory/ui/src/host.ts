@@ -1,27 +1,65 @@
 import type { LookupResult, PageState } from './types'
 
+/** Plain reason shown on the service screen when the preload bridge never arrived. */
+export const MISSING_BRIDGE = 'The desktop bridge did not load, so the window cannot reach the background service.'
+
+// Never throws: a missing preload must turn into a readable error screen, not a blank window.
 function bridge() {
-  const sharlie = window.sharlie
-  if (!sharlie) throw new Error('Sharlie host is not available')
-  return sharlie
+  return typeof window === 'undefined' ? undefined : window.sharlie
 }
 
-export function loadState() {
-  return bridge().state()
+function missing<T>(): Promise<T> {
+  return Promise.reject(new Error(MISSING_BRIDGE))
 }
 
-export function runAction(body: Record<string, unknown>) {
-  return bridge().action(body)
+/** Run a bridge call so a synchronous throw inside it becomes a rejected promise too. */
+function call<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return Promise.resolve(run())
+  } catch (error) {
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)))
+  }
 }
 
-export function runLookup(query: string) {
-  return bridge().lookup(query)
+export function hasBridge() {
+  return !!bridge()
+}
+
+export function loadState(): Promise<PageState> {
+  const sharlie = bridge()
+  return sharlie ? call(() => sharlie.state()) : missing()
+}
+
+export function runAction(body: Record<string, unknown>): Promise<PageState> {
+  const sharlie = bridge()
+  return sharlie ? call(() => sharlie.action(body)) : missing()
+}
+
+export function runLookup(query: string): Promise<LookupResult> {
+  const sharlie = bridge()
+  return sharlie ? call(() => sharlie.lookup(query)) : missing()
 }
 
 export function onLearning(callback: (state: PageState) => void) {
-  const sharlie = window.sharlie
+  const sharlie = bridge()
   if (!sharlie?.onLearning) return () => {}
-  return sharlie.onLearning(callback)
+  try {
+    return sharlie.onLearning(callback)
+  } catch {
+    return () => {}
+  }
+}
+
+/** Optional host capability: stopping a learning run. Absent until the host ships it. */
+export function canCancelLearning() {
+  return typeof bridge()?.cancelLearning === 'function'
+}
+
+export function cancelLearning(): Promise<unknown> {
+  const sharlie = bridge()
+  if (!sharlie?.cancelLearning) return missing()
+  const cancel = sharlie.cancelLearning
+  return call(() => Promise.resolve(cancel()))
 }
 
 export type { LookupResult, PageState }
