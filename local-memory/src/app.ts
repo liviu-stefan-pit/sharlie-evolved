@@ -197,6 +197,7 @@ export type LearningProgress = {
   total: number
   lessons?: number
   error?: string
+  errorCode?: string
   /** Plain sentence for the window, such as "Reading Cursor chats". */
   label?: string
   /** Developer detail: source, file, and card title. */
@@ -804,7 +805,7 @@ function redactSecrets(text: string) {
     .replace(/\b172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
     .replace(/\b192\.168\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
     .replace(/\b169\.254\.\d{1,3}\.\d{1,3}\b/g, '[redacted]')
-    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[redacted]')
+    .replace(/[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[redacted]')
     .replace(
       /(?<![\w:])(?:(?:fc|fd)[0-9a-f]{2}|fe[89ab][0-9a-f])(?::[0-9a-f]{0,4}){1,7}(?![\w:])/gi,
       '[redacted]',
@@ -2241,26 +2242,31 @@ export function openApp(
       }
     },
     beginLearning(transcripts: Transcript[] = []) {
+      const didNotRun = (error: string, errorCode: string) => {
+        learningOutcome = null
+        emitLearning({ active: false, done: 0, total: 0, error, errorCode })
+        return error
+      }
       if (!profileIsComplete()) {
-        return 'Save your username, email, and team before learning can write cards.'
+        return didNotRun('Save your username, email, and team before learning can write cards.', 'profile_incomplete')
       }
       if (!settings.keys.some((key) => key.active)) {
-        return 'Turn on a provider before learning can write cards.'
+        return didNotRun('Turn on a provider before learning can write cards.', 'key_missing')
       }
       if (offeredModels().length === 0) {
-        return 'This SDK has no model list. Switch to Anthropic or OpenAI to start learning.'
+        return didNotRun('This SDK has no model list. Switch to Anthropic or OpenAI to start learning.', 'model_missing')
       }
       if (!offeredModels().includes(settings.model)) {
-        return 'Choose a model before learning can write cards.'
+        return didNotRun('Choose a model before learning can write cards.', 'model_missing')
       }
       if (!paramsReady()) {
-        return 'Choose effort and fast mode before learning can write cards.'
+        return didNotRun('Choose effort and fast mode before learning can write cards.', 'model_missing')
       }
       settings.learningStarted = true
       writeSettings(directory, settings)
       const running = this.runLearner(transcripts, { foreground: true })
-      if (running && typeof (running as Promise<unknown>).then === 'function') {
-        Promise.resolve(running).catch((error: unknown) => {
+      if (running instanceof Promise) {
+        void running.catch((error: unknown) => {
           if (!learningSnapshot?.active) return
           emitLearning({
             active: false,
@@ -2269,13 +2275,21 @@ export function openApp(
             error: learningErrorMessage(error),
           })
         })
+        return ''
       }
+      if (running.ran === false && running.notice) return running.notice
       return ''
     },
     runLearner(
       transcripts: Transcript[] = [],
       options?: { foreground?: boolean },
-    ): { ran: false } | { ran: true; model: string } | Promise<{ ran: true; model: string }> {
+    ):
+      | { ran: false; errorCode?: string; notice?: string }
+      | { ran: true; model: string }
+      | Promise<
+          | { ran: false; errorCode?: string; notice?: string }
+          | { ran: true; model: string }
+        > {
       if (
         !profileIsComplete() ||
         !settings.keys.some((key) => key.active) ||
@@ -2339,6 +2353,7 @@ export function openApp(
           total: learningSnapshot.total,
         }
         if (learningSnapshot.error) finished.error = learningSnapshot.error
+        if (learningSnapshot.errorCode) finished.errorCode = learningSnapshot.errorCode
         emitLearning(finished)
       }
       const settleIngest = (
@@ -2376,7 +2391,20 @@ export function openApp(
       if (!complete) throw new Error('No model')
       const generation = foreground ? startForeground(readable.length) : 0
       const stopped = () => generation !== 0 && cancelledGeneration === generation
+      let wroteLesson = false
+      const failedPass = () => foreground && Boolean(learningSnapshot?.error) && !wroteLesson
       const finishOk = () => {
+        if (failedPass() && learningSnapshot?.error) {
+          if (!learningSnapshot.errorCode) {
+            learningSnapshot = { ...learningSnapshot, errorCode: 'model_error' }
+            emitLearning(learningSnapshot)
+          }
+          return {
+            ran: false as const,
+            errorCode: learningSnapshot.errorCode ?? 'model_error',
+            notice: learningSnapshot.error,
+          }
+        }
         if (foreground && learningSnapshot && learningSnapshot.done === learningSnapshot.total) {
           rememberLearned()
           markIngestComplete()
@@ -2402,17 +2430,19 @@ export function openApp(
       try {
         this.activeKey()
       } catch (error) {
+        const message = learningErrorMessage(error)
         if (foreground) {
-          queueIngestLine(`failed · ${learningErrorMessage(error)}`)
+          queueIngestLine(`failed · ${message}`)
           learningSnapshot = {
             active: false,
             done: 0,
             total: readable.length,
-            error: learningErrorMessage(error),
+            error: message,
+            ...(isMissingKeySecret(error) ? { errorCode: 'secret_missing' } : {}),
           }
           flushIngest()
         }
-        if (isMissingKeySecret(error)) return { ran: true, model }
+        if (isMissingKeySecret(error)) return { ran: false, errorCode: 'secret_missing', notice: message }
         throw error
       }
       try {
@@ -2599,6 +2629,7 @@ export function openApp(
                 settings.importedTranscripts[transcriptKey(original)] = transcriptRevision(original)
                 writeSettings(directory, settings)
                 settleIngest(original, outcome.status, outcome.detail)
+                if (outcome.status === 'processed') wroteLesson = true
                 if (
                   foreground &&
                   outcome.status === 'processed' &&
@@ -2660,6 +2691,22 @@ export function openApp(
         if (chain) return chain.then(finishOk, failRun)
         return finishOk()
       } catch (error) {
+        const message = learningErrorMessage(error)
+        if (foreground) {
+          const done = learningSnapshot?.done ?? 0
+          const total = learningSnapshot?.total ?? readable.length
+          const lessons = learningSnapshot?.lessons
+          learningSnapshot = {
+            active: false,
+            done,
+            total,
+            error: message,
+            errorCode: 'model_error',
+            ...(typeof lessons === 'number' ? { lessons } : {}),
+          }
+          flushIngest()
+          return { ran: false, errorCode: 'model_error', notice: message }
+        }
         throw failRun(error)
       }
     },

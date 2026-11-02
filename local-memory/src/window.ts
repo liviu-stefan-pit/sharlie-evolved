@@ -251,6 +251,7 @@ function mapStart(sentence: string): ActionResult {
   if (sentence === '') return ok()
   if (sentence.startsWith('Save your username')) return refused('profile_incomplete', sentence)
   if (sentence.startsWith('Turn on a provider')) return refused('key_missing', sentence)
+  if (sentence.startsWith('No secret stored')) return refused('secret_missing', sentence)
   if (sentence.startsWith('Choose a model')) return refused('model_missing', sentence)
   if (sentence.startsWith('No AI coding chats')) return refused('no_chats', sentence)
   return { notice: sentence }
@@ -324,7 +325,12 @@ function applyWindow(app: WindowApp, params: URLSearchParams): ActionResult | Pr
       return { notice }
     }
   }
-  if (action === 'start-learning') return mapStart(app.startLearning())
+  if (action === 'start-learning') {
+    const sentence = app.startLearning()
+    const progress = learningProgress()
+    if (sentence !== '' && progress?.errorCode) return refused(progress.errorCode, sentence)
+    return mapStart(sentence)
+  }
   if (action === 'cancel-learning') cancelLearning()
   if (action === 'recheck-sources') return ok()
   if (action === 'select-model') {
@@ -432,7 +438,7 @@ async function pageState(app: WindowApp, session: Session) {
     chatsFound: session.sourceFolders().reduce((sum, source) => sum + source.chats, 0),
     scheduled: session.jobsRegistered(app.knowledgePath()),
     graph,
-    learning: snapshot?.active ? { ...snapshot, tokens, unreported } : null,
+    learning: snapshot && (snapshot.active || snapshot.error) ? { ...snapshot, tokens, unreported } : null,
     learningResult: learningResult(),
     learningTokens: tokens,
     learningTokensUnreported: unreported,

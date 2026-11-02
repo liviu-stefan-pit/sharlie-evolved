@@ -359,6 +359,24 @@ test('the stored card has other names removed and secrets redacted', () => {
   })
 })
 
+test('an apostrophe in an email is redacted with the whole address', () => {
+  withDirectory((directory) => {
+    let seen = ''
+    const app = ready(directory, (request) => {
+      seen = request.transcript.text
+      return draft({ situation: "Mail mark.o'neil@x.org when the lock clears." })
+    })
+    app.runLearner([{ ...transcript, text: "ping mark.o'neil@x.org about the lock" }])
+    assert.equal(seen.includes("mark.o'"), false)
+    assert.equal(seen.includes('neil@x.org'), false)
+    assert.match(seen, /\[redacted\]/)
+    const card = cardText(directory)
+    assert.equal(card.includes("mark.o'"), false)
+    assert.equal(card.includes('neil@x.org'), false)
+    assert.match(card, /Mail \[redacted\] when the lock clears\./)
+  })
+})
+
 test('a card missing any required field is left unwritten', () => {
   const incomplete: Partial<LessonDraft>[] = [
     { title: '  ' },

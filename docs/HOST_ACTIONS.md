@@ -64,6 +64,8 @@ A dead host, a broken IPC channel, or a missing preload rejects the promise. The
 | `share_unavailable` | Team sharing is turned off in this version | `Team sharing is not available in this version.` |
 | `profile_incomplete` | Learning without username, email, and team | `Save your username, email, and team before learning can write cards.` |
 | `key_missing` | Learning with no active provider | `Turn on a provider before learning can write cards.` |
+| `secret_missing` | A saved key has no secret in the vault | `No secret stored for key …` |
+| `model_error` | The model call failed and the pass wrote no lesson | The model error, one line |
 | `model_missing` | Learning with no chosen model | `Choose a model before learning can write cards.` |
 | `no_chats` | Start pressed when the scan found no chats | `No AI coding chats were found. Sharlie looks in Cursor, Copilot, and Claude.` |
 | `key_rejected` | The provider answered 401 or 403 | `That key was rejected by Anthropic.` (or OpenAI, or Cursor) `Check it and try again` |
@@ -93,6 +95,7 @@ learning: {
   total: number
   lessons: number
   error?: string
+  errorCode?: string
 } | null
 learningResult: { lessons: number; chats: number; text: string } | null
 ```
@@ -103,7 +106,7 @@ learningResult: { lessons: number; chats: number; text: string } | null
 
 `learning.done` and `learning.total` are chats in the current pass. Copy: `37 of 412 chats`. `learning.lessons` is how many cards this pass has written so far.
 
-When a pass finishes, `learning` becomes `null` and `learningResult` is set. `learningResult.text` is `58 lessons learned` (the number is `lessons`, singular when it is 1: `1 lesson learned`). A pass that writes nothing uses `0 lessons learned`. A pass that ends with `learning.error` still sets `learningResult` for the cards that did land, and the error stays on the last `learning` event before it clears.
+When a pass finishes cleanly, `learning` becomes `null` and `learningResult` is set. `learningResult.text` is `58 lessons learned` (the number is `lessons`, singular when it is 1: `1 lesson learned`). A pass that writes nothing uses `0 lessons learned`. A pass that fails, or does not run, keeps `learning` with `active: false`, `error` (a plain sentence), and `errorCode`. A pass that wrote cards and also hit an error still sets `learningResult` for the cards that did land.
 
 `scheduled` is true only when the learning timer is actually registered for this knowledge folder. The host registers it when it starts and the saved settings already have a username, email, team, an active key, and a model. It registers again after the save that completes those, with no `register` action from the window. A second start or a second save does not register twice. `scheduled` stays false until that registration is stored.
 
@@ -111,7 +114,7 @@ When a pass finishes, `learning` becomes `null` and `learningResult` is set. `le
 
 `shareAvailable` is `false` while `TEAM_SHARING_AVAILABLE` is off (`local-memory/src/team-sharing.ts`). In that state team sharing is not available in this version. `set-share` and `set-auto-drop` return `share_unavailable` and do not change the switch. The publisher and the auto-drop copy write nothing and do not create the team folder, even when saved settings already say sharing is on and the app is restarted. The commit that proves old lessons stay on this PC, and two installs with the same name do not overwrite each other, sets the flag to `true`.
 
-`lastLearnedAt` is an ISO time stored in settings and set when a pass ends without being cancelled, including a pass that writes nothing. It is `null` until then, and it is still there after a restart. An empty rerun sets `learning` to `null` and `learningResult` to `{ lessons: 0, chats: 0, text: "0 lessons learned" }`. It does not call the model and it does not report `learning.active`.
+`lastLearnedAt` is an ISO time stored in settings and set when a pass ends without being cancelled, including a pass that writes nothing. It is `null` until then, and it is still there after a restart. A failed pass does not move it. An empty rerun sets `learning` to `null` and `learningResult` to `{ lessons: 0, chats: 0, text: "0 lessons learned" }`. It does not call the model and it does not report `learning.active`. A saved key whose secret is gone returns `secret_missing`. `learning.error` contains `No secret stored`, and `lastLearnedAt` does not move.
 
 `cadence` from the host is only `1h` or `manual`. A saved 15m or 30m interval is loaded as `1h`.
 

@@ -26,10 +26,12 @@ function plant(machine: Machine, id: ToolId) {
   if (id === 'copilot-cli') touch(join(home, '.local', 'bin', 'copilot'))
 }
 
-type SyncLearner = { ran: false; model?: undefined } | { ran: true; model: string }
+type SyncLearner = { ran: false; model?: undefined; errorCode?: string; notice?: string } | { ran: true; model: string }
 
 /** Synchronous tests read `.ran` / `.model`. A promise means the learner did not finish in this turn. */
-export function syncRun(value: SyncLearner | Promise<{ ran: true; model: string }>): SyncLearner {
+export function syncRun(
+  value: SyncLearner | Promise<{ ran: true; model: string } | { ran: false; errorCode?: string; notice?: string }>,
+): SyncLearner {
   if (value instanceof Promise) throw new Error('the learner returned a promise in a synchronous test')
   return value
 }

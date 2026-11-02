@@ -559,13 +559,18 @@ test('a missing key secret records one failure, stops the run, and leaves chats 
       }
     })
     const learned = await app.runLearner(history, { foreground: true })
-    assert.equal(learned.ran, true)
+    assert.equal(learned.ran, false)
+    assert.equal('errorCode' in learned ? learned.errorCode : '', 'secret_missing')
+    assert.equal('notice' in learned ? learned.notice : '', missing)
+    assert.match('notice' in learned ? learned.notice ?? '' : '', /No secret stored/)
+    assert.equal(app.lastLearnedAt(), '')
     assert.equal(completeCalls, 0)
     assert.equal(app.learningTokens(), 0)
     assert.equal(app.initialIngestComplete(), false)
     const progress = learningProgress()
     assert.equal(progress?.active, false)
     assert.equal(progress?.error, missing)
+    assert.equal(progress?.errorCode, 'secret_missing')
     const journal = JSON.parse(readFileSync(join(directory, 'ingest-log.json'), 'utf8')) as {
       lines: string[]
     }
