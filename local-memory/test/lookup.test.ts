@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { isAbsolute, join, relative } from 'node:path'
 import { test } from 'node:test'
-import { fileURLToPath } from 'node:url'
 import { discardVault, lookupCursorAccount, openApp, type AnswerLookup, type LessonDraft, type Transcript } from '../src/app.ts'
-import { machineWith } from './machine.ts'
+import { machineWith, syncRun } from './machine.ts'
 
 function withDirectory(run: (directory: string) => void | Promise<void>) {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
@@ -467,47 +466,43 @@ test('Copilot model list marks chat completions unavailable when the entry says 
   ])
 })
 
-test('Cursor and Claude discovery skills point at the local knowledge and name the model, and the IDE model picker stays as it is', () => {
-  withDirectory((directory) => {
-    const machine = machineWith(directory, ['cursor', 'claude', 'copilot'])
-    const app = openApp(directory, undefined, machine)
+function insideFolder(file: string, folder: string) {
+  const fromFolder = relative(folder, file)
+  return fromFolder !== '' && !fromFolder.startsWith('..') && !isAbsolute(fromFolder)
+}
+
+test('a learn pass writes nothing outside the Sharlie data folder and the configured knowledge and share folders', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sharlie-confine-'))
+  const knowledge = join(root, 'knowledge')
+  const share = join(root, 'share')
+  try {
+    const machine = machineWith(join(root, 'machine'), ['cursor'])
+    const app = openApp(knowledge, () => draft({ scope: 'work' }), machine)
     app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
     app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
-    app.saveKey({ provider: 'openai', secret: 'sk-proj-bbbb' })
     app.selectModel('claude-sonnet-5-5')
-
-    const cursorPath = join(machine.home, '.cursor', 'skills', 'local-knowledge', 'SKILL.md')
-    const claudePath = join(machine.home, '.claude', 'skills', 'local-knowledge', 'SKILL.md')
-    const lookupCli = fileURLToPath(new URL('../src/lookup-cli.ts', import.meta.url))
-    const named = readFileSync(cursorPath, 'utf8')
-    assert.equal(readFileSync(claudePath, 'utf8'), named)
-    assert.equal(named.includes(directory), true)
-    assert.equal(named.includes('claude-sonnet-5-5'), true)
-    assert.equal(named.includes(`node "${lookupCli}" "${directory}"`), true)
-    assert.equal(named.includes('Use that command\'s output as the answer.'), true)
-    assert.equal(named.includes('This chat uses the model selected in the IDE.'), true)
-    assert.deepEqual(filesUnder(join(machine.home, '.cursor')), [cursorPath])
-    assert.deepEqual(filesUnder(join(machine.home, '.claude')), [claudePath])
-    assert.equal(
-      filesUnder(machine.home).some((file) => file.endsWith('SKILL.md') && file !== cursorPath && file !== claudePath),
-      false,
-    )
-
-    const openai = app.keys().find((key) => key.provider === 'openai')
-    assert.ok(openai)
-    app.activateKey(openai.id)
-    const switched = readFileSync(cursorPath, 'utf8')
-    assert.equal(readFileSync(claudePath, 'utf8'), switched)
-    assert.equal(switched.includes(directory), true)
-    assert.equal(switched.includes('gpt-6-luna'), true)
-    assert.equal(switched.includes('claude-sonnet-5-5'), false)
-    assert.equal(switched.includes('This chat uses the model selected in the IDE.'), true)
-
-    const reopened = readFileSync(cursorPath, 'utf8')
-    openApp(directory, undefined, machine)
-    assert.equal(readFileSync(cursorPath, 'utf8'), reopened)
-    assert.equal(readFileSync(claudePath, 'utf8'), reopened)
-  })
+    app.setDrivePath(share)
+    app.setAutoDrop(true)
+    const before = new Set(filesUnder(root))
+    const learned = syncRun(app.runLearner([
+      { source: 'cursor', text: 'the deploy failed after the lock timed out', repo: 'sharlie-evolved' },
+    ]))
+    assert.equal(learned.ran, true)
+    assert.equal(app.runPublisher().ran, true)
+    const allowed = [knowledge, share, join(machine.home, '.sharlie')]
+    const fresh = filesUnder(root).filter((file) => !before.has(file))
+    assert.ok(fresh.some((file) => insideFolder(file, knowledge)))
+    assert.ok(fresh.some((file) => insideFolder(file, share)))
+    for (const file of fresh) {
+      assert.equal(allowed.some((folder) => insideFolder(file, folder)), true, file)
+    }
+    assert.equal(filesUnder(root).some((file) => file.endsWith('SKILL.md')), false)
+    assert.deepEqual(filesUnder(join(machine.home, '.cursor')), [])
+    assert.deepEqual(filesUnder(join(machine.home, '.claude')), [])
+  } finally {
+    discardVault(knowledge)
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test('cursor account lookup reads key expiry from the me endpoint', async () => {

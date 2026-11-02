@@ -44,18 +44,6 @@ export function mergeSynapseConfig(_machine?: Machine): void {
   // Intentionally empty: no files are read or written.
 }
 
-function neo4jConfigured() {
-  return Boolean(process.env.NEO4J_URI && process.env.NEO4J_USER && process.env.NEO4J_PASSWORD)
-}
-
-async function neo4j(statement: string, parameters: Record<string, unknown>) {
-  const specifier = '../relay/neo4j.ts'
-  const relay = (await import(specifier)) as {
-    queryNeo4j: (statement: string, parameters: Record<string, unknown>) => Promise<unknown>
-  }
-  return relay.queryNeo4j(statement, parameters)
-}
-
 function cardText(card: SynapseCard) {
   return [card.title, card.solution, ...card.failure_modes, ...card.sources, ...card.relations.map((relation) => relation.target_entity)]
     .join('\n')
@@ -64,12 +52,6 @@ function cardText(card: SynapseCard) {
 
 export async function searchTeamKnowledge(query: string, tags: string[] = [], directory = knowledgeDirectory()) {
   const needles = [query, ...tags].map((tag) => tag.toLowerCase()).filter(Boolean)
-  if (neo4jConfigured()) {
-    return neo4j(
-      'MATCH (c:Card) WHERE toLower(c.title) CONTAINS $query OR toLower(c.solution) CONTAINS $query OR any(tag IN $tags WHERE toLower(c.title) CONTAINS tag OR toLower(c.solution) CONTAINS tag) RETURN c.id AS id, c.title AS title, c.solution AS solution, c.created_at AS created_at, c.source_type AS source_type LIMIT 20',
-      { query: query.toLowerCase(), tags: tags.map((tag) => tag.toLowerCase()) },
-    )
-  }
   return readCards(directory)
     .filter((card) => {
       const text = cardText(card)
@@ -85,12 +67,6 @@ export async function searchTeamKnowledge(query: string, tags: string[] = [], di
 }
 
 export async function entityRelations(entityName: string, directory = knowledgeDirectory()) {
-  if (neo4jConfigured()) {
-    return neo4j(
-      'MATCH (a)-[r]->(b) WHERE a.name = $name OR a.username = $name OR a.email = $name OR a.title = $name OR a.id = $name OR b.name = $name OR b.title = $name OR b.id = $name RETURN type(r) AS relation, coalesce(a.name, a.username, a.title, a.id) AS entity, coalesce(b.name, b.title, b.id) AS target_entity LIMIT 50',
-      { name: entityName },
-    )
-  }
   const name = entityName.toLowerCase()
   return readCards(directory).flatMap((card) => {
     const rows: { entity: string; relation: string; target_entity: string }[] = []

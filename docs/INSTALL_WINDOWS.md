@@ -56,12 +56,11 @@ When it is on, only lessons marked **work** are copied into a folder for you ins
 | Which chats were already learned | `%USERPROFILE%\.sharlie\knowledge\ingest-log.json` |
 | Lessons (cards, `.json` + `.md`) | `%USERPROFILE%\.sharlie\knowledge\cards\` (plus `inbox\` and `archive\` beside it) |
 | Where your knowledge folder is | `%USERPROFILE%\.sharlie\<your Windows user name>.json` |
-| **[DEV NOTE]** A small skill that tells Cursor and Claude where your lessons are | `%USERPROFILE%\.cursor\skills\local-knowledge\SKILL.md` and `%USERPROFILE%\.claude\skills\local-knowledge\SKILL.md` |
 | Your AI key | Windows Credential Manager, `sharlie-local-memory` |
 
 Other people's email addresses and secrets are removed before anything is sent. Names are not removed from what is sent to the AI, only from saved lessons when Sharlie spots them.
 
-Sharlie does not change any Cursor, Claude or VS Code settings or MCP config files. The only files it adds there are the two `SKILL.md` files above. It keeps no log files; errors show in the window.
+Sharlie does not change any Cursor, Claude or VS Code settings or MCP config files, and it does not add skill files under those tools. It keeps no log files; errors show in the window.
 
 ## 6. If nothing is found
 

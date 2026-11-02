@@ -15,7 +15,7 @@ Entry points:
 | `local-memory/electron/main.ts` | Real main process |
 | `local-memory/electron/preload.cjs` | `contextBridge` as `window.sharlie` |
 | `local-memory/ui/` | Renderer. Built to `ui/dist`. Packaged loads the file; dev loads the Vite URL (`electron/main.ts:78-82`) |
-| `local-memory/src/lookup-cli.ts` | CLI the discovery skill tells Cursor/Claude to run |
+| `local-memory/src/lookup-cli.ts` | Local lookup command. The desktop app does not install it as a Cursor or Claude skill |
 | `local-memory/src/mcp.ts` | Stdio MCP server, also imported by the desktop host |
 | `local-memory/relay/run.ts` | Cron-only Drive → Neo4j relay |
 
@@ -43,7 +43,7 @@ That loop is what ships. It is not an everyday-life assistant. See section 5.
 Overengineered or off the loop:
 
 - Neo4j + Google Drive API relay (`relay/relay.ts`, `.github/workflows/relay.yml`). Service-account upload, then Cypher, then move the file to `_Processed`. The PRD says the Drive folder is the end of the pipeline and a company database is out of scope (`docs/prd/local-memory.md:109-110`).
-- Desktop startup writes a Cursor/Claude MCP config and imports the Neo4j driver (`src/host.ts:203`, `src/host.ts:215`, `src/mcp.ts:7`, `src/mcp.ts:75`).
+- Desktop startup no longer writes a Cursor/Claude MCP config or skill file, and `src/mcp.ts` no longer imports the Neo4j relay. Team search reads the local cards.
 - `@cosmos.gl/graph` force graph for a card list (`ui/src/GraphMap.tsx`). It is the current KB view. Leave it to the UI team. Do not add features to it.
 - Four key providers plus a Custom base URL, OS keyring, login-item installers, and a second scheduled publisher (`src/login-item.ts`, `src/vault.ts`).
 - Shared `.claims.json` plus in-place rewrite (`src/synapse.ts:64-85`, `src/synapse.ts:146-154`, `src/synapse.ts:182-204`).
@@ -65,7 +65,7 @@ The only workflow is `.github/workflows/relay.yml` (cron, `ubuntu-latest`, Drive
 
 `package.json` has no `version`. electron-builder reads `metadata.version` and later calls `.split` on it (`node_modules/app-builder-lib/out/appInfo.js:29`, `appInfo.js:67`). With `version` missing that throws `Invalid major number in: undefined` once packaging asks for the Windows version form. The exe has never been built because the checked-in config cannot finish packaging.
 
-`build.files` is `electron/**`, `src/**`, `ui/dist/**`, `package.json` (`package.json:45-49`). It does not include `relay/**` or `node_modules`. The main process imports `src/host.ts`, which imports `src/mcp.ts`, which imports `../relay/neo4j.ts` (`src/mcp.ts:7`). After a version is added, launch still crashes: the relay module is outside the asar, and `neo4j-driver` / `@napi-rs/keyring` are not packed. `asarUnpack` of `src/**` does not fix that.
+`build.files` is `electron/**`, `src/**`, `ui/dist/**`, `package.json` (`package.json:45-49`). It does not include `relay/**` or `node_modules`. The desktop process no longer imports `relay/neo4j.ts`. `neo4j-driver` stays a relay-only dependency and is not required to launch the window.
 
 Cheapest route that can go green on `windows-latest`:
 

@@ -4,7 +4,6 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameS
 import { homedir } from 'node:os'
 import { basename, join, posix, relative, win32 } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { fileURLToPath } from 'node:url'
 import { registerLoginItem, unregisterLoginItem } from './login-item.ts'
 import { isFileMention, isLearningSource } from './graph-rules.ts'
 import { localGraph, publishCard, readCards, type CardRelation } from './synapse.ts'
@@ -1762,35 +1761,8 @@ export function readInstalledTranscripts(machine: Machine = thisMachine()): Tran
   return collectInstalledSources(machine).transcripts
 }
 
-function onDisk(file: string) {
-  if (file.includes('app.asar.unpacked')) return file
-  return file.replaceAll('app.asar', 'app.asar.unpacked')
-}
-
 function cardFile(directory: string, path: string) {
   return relative(directory, path).split('\\').join('/')
-}
-
-function discoverySkill(knowledge: string, model: string) {
-  const lookupCli = onDisk(fileURLToPath(new URL('./lookup-cli.ts', import.meta.url)))
-  return [
-    '---',
-    'name: local-knowledge',
-    'description: Look up a lesson in the local knowledge. Use when the person asks the local knowledge a question.',
-    '---',
-    '',
-    '# Local knowledge',
-    '',
-    `The local knowledge on this machine is \`${knowledge}\`.`,
-    '',
-    `The model that answers a lookup is \`${model}\`.`,
-    '',
-    `Ask by running \`node "${lookupCli}" "${knowledge}"\` followed by the question as one argument.`,
-    "Use that command's output as the answer.",
-    '',
-    'This chat uses the model selected in the IDE.',
-    '',
-  ].join('\n')
 }
 
 export function renderLookup(turn: LookupTurn) {
@@ -1837,15 +1809,6 @@ export async function ask(
   })
   const result = await app.lookup(question)
   return result.answer
-}
-
-function writeDiscoverySkills(machine: Machine, knowledge: string, model: string) {
-  const text = discoverySkill(knowledge, model)
-  for (const tool of ['.cursor', '.claude']) {
-    const folder = join(machine.home, tool, 'skills', 'local-knowledge')
-    mkdirSync(folder, { recursive: true })
-    writeFileSync(join(folder, 'SKILL.md'), text)
-  }
 }
 
 export function openApp(
@@ -1916,11 +1879,6 @@ export function openApp(
       ),
     )
   }
-  function refreshDiscovery() {
-    if (!offeredModels().includes(settings.model)) return
-    writeDiscoverySkills(machine, directory, settings.model)
-  }
-  refreshDiscovery()
   function listedTools(): InstalledTool[] {
     const disabled = new Set(settings.disabledTools)
     return scanTools(machine).map((tool) => ({
@@ -1984,7 +1942,6 @@ export function openApp(
         settings.modelParams = []
       }
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     lookupCursor(secret: string) {
       return cursorLookup(secret)
@@ -2014,14 +1971,12 @@ export function openApp(
       }
       syncModel()
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     rememberCopilot(account: CursorAccount) {
       if (account.models.length === 0) return
       settings.copilotModels = account.models
       syncModel()
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     customBaseUrl() {
       return settings.customBaseUrl
@@ -2062,7 +2017,6 @@ export function openApp(
       for (const key of settings.keys) key.active = key.id === id
       syncModel()
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     activateProvider(provider: Provider) {
       settings.selectedProvider = provider
@@ -2086,7 +2040,6 @@ export function openApp(
       settings.model = ''
       settings.modelParams = []
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     activeProvider() {
       return settings.selectedProvider || settings.keys.find((key) => key.active)?.provider || ''
@@ -2130,7 +2083,6 @@ export function openApp(
         syncModel()
       }
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     keys(): SavedKey[] {
       return settings.keys.map(({ id, provider, active }) => ({ id, provider, active }))
@@ -2158,13 +2110,11 @@ export function openApp(
         settings.modelParams = []
       }
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     clearModel() {
       settings.model = ''
       settings.modelParams = []
       writeSettings(directory, settings)
-      refreshDiscovery()
     },
     setModelParam(id: string, value: string) {
       const active = settings.keys.find((key) => key.active)

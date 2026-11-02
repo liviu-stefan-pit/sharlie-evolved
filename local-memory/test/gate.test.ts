@@ -175,8 +175,6 @@ test('Copilot has no model list, so discovery is skipped and the learner stays i
     assert.equal(skipped.ran, false)
     assert.equal(skipped.model, undefined)
     assert.equal(calls, 0)
-    assert.equal(existsSync(join(machine.home, '.cursor', 'skills', 'local-knowledge', 'SKILL.md')), false)
-    assert.equal(existsSync(join(machine.home, '.claude', 'skills', 'local-knowledge', 'SKILL.md')), false)
     assert.equal(readFileSync(join(directory, 'settings.json'), 'utf8').includes('sk-secret-value'), false)
   })
 })

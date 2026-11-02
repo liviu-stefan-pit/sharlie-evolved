@@ -24,7 +24,7 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 10. As a person setting up, I want the background model chosen in the app when the active key is Anthropic or OpenAI, so that I control which model writes and reads the knowledge.
 11. As a person with an Anthropic key, I want the default model to be Haiku 5.5, with Sonnet 5.5 and Opus 5.5 also listed, so that the cheap model runs unless I choose otherwise.
 12. As a person with an OpenAI key, I want the default model to be GPT-6 Luna, with GPT-6 Sol and GPT-6 Astra also listed, so that the cheap model runs unless I choose otherwise.
-13. As a person working in Cursor or Claude, I want the discovery skill to name the model the app is using, so that I can see it in the IDE.
+13. As a person working in Cursor or Claude, I want Sharlie to leave those tools' skill folders alone, so that it never writes a skill file there.
 14. As a person working in Cursor or Claude, I want that chat to use the model I selected in the IDE, so that the app does not change the IDE's picker.
 15. As a person opening the app, I want it to scan for Cursor, Copilot in VS Code, Claude, Cursor CLI, Claude CLI, and Copilot CLI, so that I see which of those tools this machine has.
 16. As a person opening the app, I want a label only for tools that are installed, so that missing tools do not fill the window.
@@ -65,7 +65,7 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 51. As a person who already runs the Drive client, I want the app to write files and not sign into Google, so that the client I installed does the upload.
 52. As a person asking the knowledge a question, I want the lookup to send every card's file name and summary first, so that the model can see the catalog without every full lesson.
 53. As a person asking the knowledge a question, I want the full text of only the cards the model picks, so that the answer is grounded in those lessons.
-54. As a person in Cursor or Claude, I want a discovery skill that points at the local knowledge and names the model, so that the IDE can find the cards.
+54. As a person in Cursor or Claude, I want lookup to stay inside Sharlie, so that the IDE is not given a skill that points at a TypeScript file.
 55. As a person on this machine, I want personal and work cards both included in lookup and in the graph, so that the local knowledge is the whole folder.
 56. As a person reviewing the knowledge, I want to click a node in the graph and see what is in it, so that I can look at a lesson after it has already been written.
 57. As a person looking at the window, I want the graph drawn with cosmos.gl on an open dark palette, so that the view stays quiet: canvas `#1f1f1f`, panels `#252526`, fields `#313131`, text `#cccccc`, links `#5c5c5c`, circle fill the gray-to-orange degree fade, Drive status green `#6f8f78` and gold `#b89a6a` in the drawer, and primary buttons `#0078d4`.
@@ -83,7 +83,7 @@ A desktop app for Windows and macOS records two background jobs. While the perso
 - A person can save four SDK keys: Cursor, Copilot, Anthropic, and OpenAI. At most one is active, and the person can turn that one off. All keys live in the operating system credential store. The window never shows the secret.
 - The first key saved is the one in use. Saving another key does not replace it. Turning a key on selects it, and turning the last one off leaves none in use. The learner stays idle until a key is on again.
 - Anthropic offers `claude-haiku-5-5` (default), `claude-sonnet-5-5`, and `claude-opus-5-5`. OpenAI offers `gpt-6-luna` (default), `gpt-6-sol`, and `gpt-6-astra`. No other model ids for those two. A saved Cursor key stores the models Cursor returns, including each model's parameters. No Cursor model is selected until the person picks one. Effort, Fast, and any other parameter from that model are part of the choice. Copilot has no model list. When a model is chosen, that model writes cards, chooses personal or work, chooses update or new, and answers lookups. A Cursor key shows an expiry date only when Cursor's API returns one.
-- A discovery skill for Cursor and a discovery skill for Claude name the chosen model and point at the local knowledge. An IDE chat uses the model selected in that IDE. The app does not change the IDE's picker.
+- Sharlie does not write skill files under Cursor, Claude, or Copilot. An IDE chat uses the model selected in that IDE. The app does not change the IDE's picker.
 - A lookup sends every card's file name and summary, then the full text of the cards the model selects. Personal and work cards on the machine are both included.
 - Each card is one markdown file. Front matter holds `id`, `at`, `author.username`, `author.email`, `author.team`, `scope` (`personal` or `work`), `sources`, `project`, `title`, `topics`, and `summary`. The body is four prose parts: the situation, what to do, why, and how someone who was not in the chat applies it. A missing required field means the card is not written.
 - `summary` is one or two sentences. Each lesson part stays within about 120 words. The summary and the lesson stay in the language of the source chat. `at` is the UTC time on the card.
@@ -114,7 +114,7 @@ There is no prior test suite in this repo to copy.
 - An interval shorter than one hour.
 - Showing tools that are not installed.
 - Changing the model selected inside an IDE chat.
-- Teaching Copilot a discovery skill. The skills in this version are for Cursor and Claude. Copilot remains a transcript source.
+- Installing skill files under Cursor, Claude, or Copilot. Those tools stay transcript sources.
 
 ## Further Notes
 
