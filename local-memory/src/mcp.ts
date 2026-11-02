@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { homedir, userInfo } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { type Machine } from './app.ts'
 import { readCards, type SynapseCard } from './synapse.ts'
 
@@ -22,11 +22,6 @@ function thisMachine(): Machine {
   }
 }
 
-function roaming(machine: Machine) {
-  if (machine.platform === 'darwin') return join(machine.home, 'Library', 'Application Support')
-  return join(machine.home, 'AppData', 'Roaming')
-}
-
 function knowledgeDirectory(machine: Machine = thisMachine()) {
   if (process.env.SHARLIE_KNOWLEDGE) return process.env.SHARLIE_KNOWLEDGE
   try {
@@ -40,49 +35,13 @@ function knowledgeDirectory(machine: Machine = thisMachine()) {
   return join(machine.home, '.sharlie', 'knowledge')
 }
 
-function readConfig(path: string) {
-  if (!existsSync(path)) return {}
-  const raw = readFileSync(path, 'utf8').trim()
-  if (raw === '') return {}
-  let value: unknown
-  try {
-    value = JSON.parse(raw) as unknown
-  } catch {
-    throw new Error(`MCP config is not valid JSON: ${path}`)
-  }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`MCP config is not a JSON object: ${path}`)
-  }
-  return value as Record<string, unknown>
-}
-
-function mergeJson(path: string, key: 'mcpServers' | 'servers', entry: unknown) {
-  const parsed = readConfig(path)
-  const current = parsed[key]
-  const servers = current && typeof current === 'object' && !Array.isArray(current) ? { ...(current as Record<string, unknown>) } : {}
-  servers.synapse = entry
-  parsed[key] = servers
-  mkdirSync(join(path, '..'), { recursive: true })
-  writeFileSync(path, `${JSON.stringify(parsed, null, 2)}\n`)
-}
-
-function onDisk(file: string) {
-  if (file.includes('app.asar.unpacked')) return file
-  return file.replaceAll('app.asar', 'app.asar.unpacked')
-}
-
-export function mergeSynapseConfig(machine: Machine = thisMachine()) {
-  const entry = {
-    command: 'node',
-    args: [onDisk(fileURLToPath(new URL('./mcp.ts', import.meta.url)))],
-  }
-  mergeJson(join(machine.home, '.cursor', 'mcp.json'), 'mcpServers', entry)
-  const vscode = join(roaming(machine), 'Code', 'User', 'mcp.json')
-  mergeJson(vscode, 'servers', entry)
-  mergeJson(vscode, 'mcpServers', entry)
-  const claude = join(machine.home, '.claude.json')
-  mergeJson(claude, 'mcpServers', entry)
-  mergeJson(join(machine.home, '.claude', 'settings.json'), 'mcpServers', entry)
+/**
+ * Sharlie no longer writes other tools' MCP configs (~/.cursor/mcp.json, VS Code's mcp.json,
+ * ~/.claude/settings.json, and never ~/.claude.json). Kept as a no-op so existing callers compile
+ * and do nothing; registering the server is the person's own choice in each tool.
+ */
+export function mergeSynapseConfig(_machine?: Machine): void {
+  // Intentionally empty: no files are read or written.
 }
 
 function neo4jConfigured() {

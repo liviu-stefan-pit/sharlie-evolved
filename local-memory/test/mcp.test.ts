@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -88,7 +88,7 @@ test('search and relations read cards and leave transcript text out', async () =
   }
 })
 
-test('mergeSynapseConfig adds synapse beside existing servers in a temp home', () => {
+test('mergeSynapseConfig writes nothing: no MCP config is created or changed in a temp home', () => {
   const root = mkdtempSync(join(tmpdir(), 'sharlie-home-'))
   try {
     const machine = machineWith(root, [])
@@ -97,55 +97,17 @@ test('mergeSynapseConfig adds synapse beside existing servers in a temp home', (
     const claude = join(machine.home, '.claude.json')
     const settings = join(machine.home, '.claude', 'settings.json')
     mkdirSync(join(cursor, '..'), { recursive: true })
-    mkdirSync(join(vscode, '..'), { recursive: true })
     mkdirSync(join(settings, '..'), { recursive: true })
-    writeFileSync(cursor, JSON.stringify({ mcpServers: { other: { command: 'other' } }, theme: 'keep' }))
-    writeFileSync(vscode, JSON.stringify({ servers: { other: { command: 'code' } }, locale: 'en' }))
-    writeFileSync(claude, JSON.stringify({ mcpServers: { other: { command: 'claude' } }, numStartups: 3 }))
-    writeFileSync(settings, JSON.stringify({ mcpServers: { other: { command: 'settings' } }, permissions: { allow: [] } }))
+    const before = {
+      [cursor]: JSON.stringify({ mcpServers: { other: { command: 'other' } } }),
+      [claude]: '{\n  // a comment\n  "numStartups": 3\n}',
+      [settings]: '{',
+    }
+    for (const [path, text] of Object.entries(before)) writeFileSync(path, text)
     mergeSynapseConfig(machine)
-    const read = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
-    const cursorConfig = read(cursor)
-    const cursorServers = cursorConfig.mcpServers as Record<string, { command: string; args?: string[] }>
-    assert.equal(cursorServers.other?.command, 'other')
-    assert.equal(cursorServers.synapse?.command, 'node')
-    assert.equal(cursorServers.synapse?.args?.[0]?.endsWith('mcp.ts'), true)
-    assert.equal(cursorConfig.theme, 'keep')
-    const vscodeConfig = read(vscode)
-    const vscodeServers = vscodeConfig.servers as Record<string, { command: string }>
-    const vscodeMcp = vscodeConfig.mcpServers as Record<string, { command: string }>
-    assert.equal(vscodeServers.other?.command, 'code')
-    assert.equal(vscodeServers.synapse?.command, 'node')
-    assert.equal(vscodeMcp.synapse?.command, 'node')
-    assert.equal(vscodeConfig.locale, 'en')
-    const claudeConfig = read(claude)
-    const claudeServers = claudeConfig.mcpServers as Record<string, { command: string }>
-    assert.equal(claudeServers.other?.command, 'claude')
-    assert.equal(claudeServers.synapse?.command, 'node')
-    assert.equal(claudeConfig.numStartups, 3)
-    const settingsConfig = read(settings)
-    const settingsServers = settingsConfig.mcpServers as Record<string, { command: string }>
-    assert.equal(settingsServers.other?.command, 'settings')
-    assert.equal(settingsServers.synapse?.command, 'node')
-    assert.deepEqual((settingsConfig.permissions as { allow: unknown[] }).allow, [])
-    mergeSynapseConfig(machine)
-    const again = read(cursor).mcpServers as Record<string, unknown>
-    assert.equal(Object.keys(again).filter((name) => name === 'synapse').length, 1)
-    assert.equal(again.other !== undefined, true)
-  } finally {
-    rmSync(root, { recursive: true, force: true })
-  }
-})
-
-test('an unreadable MCP config is left in place', () => {
-  const root = mkdtempSync(join(tmpdir(), 'sharlie-home-'))
-  try {
-    const machine = machineWith(root, [])
-    const cursor = join(machine.home, '.cursor', 'mcp.json')
-    mkdirSync(join(cursor, '..'), { recursive: true })
-    writeFileSync(cursor, '{')
-    assert.throws(() => mergeSynapseConfig(machine), /not valid JSON/)
-    assert.equal(readFileSync(cursor, 'utf8'), '{')
+    mergeSynapseConfig()
+    for (const [path, text] of Object.entries(before)) assert.equal(readFileSync(path, 'utf8'), text, path)
+    assert.equal(existsSync(vscode), false)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
