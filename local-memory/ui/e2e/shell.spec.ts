@@ -5,7 +5,7 @@ test('the header stays up while the page loads, errors, and switches views', asy
   await installHost(page)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Sharlie', exact: true })).toBeVisible()
-  await expect(page.getByLabel('Search')).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Ask Sharlie' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sources' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Settings' })).toBeVisible()
   await expect(page.getByText('Loading the graph')).toBeVisible()

@@ -3,6 +3,7 @@ import { Drawer } from './Drawer'
 import { FirstRun } from './FirstRun'
 import { LearningStrip, type PassEnd } from './LearningStrip'
 import { LessonList } from './LessonList'
+import { AskPanel, type AskState } from './Ask'
 import { Trouble } from './Trouble'
 import { firstTodo } from './setup'
 import { filterGraph } from './graph'
@@ -21,9 +22,9 @@ export function App() {
   const [state, setState] = useState<PageState | null>(null)
   const [hostError, setHostError] = useState('')
   const [query, setQuery] = useState('')
-  const [lookupAnswer, setLookupAnswer] = useState('')
-  const [lookupError, setLookupError] = useState('')
-  const [looking, setLooking] = useState(false)
+  const [question, setQuestion] = useState('')
+  const [ask, setAsk] = useState<AskState>({ phase: 'idle' })
+  const askRef = useRef<HTMLInputElement>(null)
   const [selectedId, setSelectedId] = useState('')
   const [profile, setProfile] = useState(emptyProfile)
   const [provider, setProvider] = useState('')
@@ -178,20 +179,33 @@ export function App() {
     return stateRef.current ?? next
   }
 
-  async function submitSearch(event: FormEvent) {
+  async function submitAsk(event: FormEvent) {
     event.preventDefault()
-    setLooking(true)
-    setLookupError('')
-    setLookupAnswer('')
+    const asked = question.trim()
+    if (asked === '' || ask.phase === 'asking') {
+      askRef.current?.focus()
+      return
+    }
+    if (cardCount === 0) {
+      setAsk({ phase: 'empty-lessons', question: asked })
+      return
+    }
+    setAsk({ phase: 'asking', question: asked })
     try {
-      const result = await runLookup(query)
-      setLookupAnswer(result.answer ?? '')
+      const result = await runLookup(asked)
+      setAsk({ phase: 'answered', question: asked, answer: result.answer ?? '', cited: Array.isArray(result.cited) ? result.cited : [] })
     } catch (error) {
-      setLookupError(error instanceof Error ? error.message : 'Lookup failed')
-    } finally {
-      setLooking(false)
+      setAsk({ phase: 'failed', question: asked, raw: error instanceof Error ? error.message : String(error) })
     }
   }
+
+  function openLesson(id: string) {
+    // A cited lesson hidden by the filter still opens: clear the filter first.
+    if (visible && !visible.nodes.some((node) => node.id === id)) setQuery('')
+    setView('graph')
+    setSelectedId(id)
+  }
+
 
   const [startRefusal, setStartRefusal] = useState<{ code: string; notice: string } | null>(null)
   const [startTrouble, setStartTrouble] = useState('')
@@ -317,14 +331,19 @@ export function App() {
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-panel px-3">
         <h1 className="shrink-0 text-[13px] font-semibold">{state?.title ?? 'Sharlie'}</h1>
         <StatusDot state={state} active={active} />
-        <form className="min-w-0 flex-1" onSubmit={(event) => void submitSearch(event)}>
+        <form role="search" aria-label="Ask Sharlie" className="flex min-w-0 flex-1 items-center gap-1.5" onSubmit={(event) => void submitAsk(event)}>
           <input
-            className="h-9 w-full rounded-full border border-border-input bg-field px-3 text-[15px] text-ink transition-colors duration-[120ms] placeholder:text-muted hover:bg-white/[0.05]"
-            aria-label="Search"
-            placeholder="Search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            ref={askRef}
+            className="h-9 w-full min-w-0 rounded-full border border-border-input bg-field px-3 text-[15px] text-ink transition-colors duration-[120ms] placeholder:text-muted hover:bg-white/[0.05]"
+            aria-label="Ask Sharlie"
+            placeholder="Ask Sharlie"
+            enterKeyHint="send"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
           />
+          <button type="submit" className="hidden h-9 shrink-0 rounded-full border border-accent bg-accent px-3 text-[15px] text-on-accent disabled:opacity-60 sm:inline-block" disabled={ask.phase === 'asking'}>
+            Ask
+          </button>
         </form>
         <SourceMenu sources={state?.sources ?? []} view={view} />
         <button
@@ -349,17 +368,25 @@ export function App() {
           }}
         />
       ) : null}
-      {looking || lookupError || lookupAnswer ? (
-        <p className={`border-b border-line px-3 py-2 text-[13px] ${lookupError && !looking ? 'text-pending' : 'text-muted'}`}>
-          {looking ? 'Looking up' : lookupError || lookupAnswer}
-        </p>
-      ) : null}
+      <AskPanel ask={ask} nodes={graph?.nodes ?? []} onOpen={openLesson} onClose={() => setAsk({ phase: 'idle' })} onStartLearning={() => { setAsk({ phase: 'idle' }); setView('graph') }} />
       {!state && hostError ? <ServiceDown detail={hostError} retrying={retrying} onRetry={retryHost} /> : null}
       {!state && !hostError ? <p className="px-3 py-2 text-[13px] text-muted">Loading the graph</p> : null}
       {view === 'graph' && visible ? (
         <div className="flex min-h-0 flex-1 flex-col">
           {!firstRun && !homeEmpty && state ? (
-            <HomeBar layout={noWebgl ? 'list' : layout} canMap={!noWebgl} onLayout={setLayout} count={cardCount} />
+            <HomeBar layout={noWebgl ? 'list' : layout} canMap={!noWebgl} onLayout={setLayout} count={cardCount}>
+              <input
+                type="search"
+                aria-label="Filter lessons"
+                placeholder="Filter"
+                className="h-9 w-full max-w-[220px] rounded-[10px] border border-border-input bg-field px-3 text-[13px] text-ink placeholder:text-muted"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setQuery('')
+                }}
+              />
+            </HomeBar>
           ) : null}
           <div className="relative flex min-h-0 flex-1 flex-col">
             {noWebgl || layout === 'list' ? (
@@ -378,6 +405,14 @@ export function App() {
                 onUnsupported={() => setNoWebgl(true)}
               />
             )}
+            {!firstRun && !homeEmpty && query.trim() !== '' && visible.nodes.length === 0 ? (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-canvas px-6 text-center">
+                <p className="text-[15px] text-ink">No lessons match “{query.trim()}”.</p>
+                <button type="button" className="h-9 rounded-[10px] border border-border-input px-3 text-[15px] text-ink hover:bg-field" onClick={() => setQuery('')}>
+                  Clear filter
+                </button>
+              </div>
+            ) : null}
             {homeEmpty ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas px-6 text-center">
                 <p className="text-[18px] text-ink">No lessons yet. Sharlie will learn as you work.</p>

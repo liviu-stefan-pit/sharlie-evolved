@@ -115,6 +115,8 @@ export function formatLearningCount(done: number, total: number, tokens: number,
 export type LookupResult = {
   model?: string
   answer?: string
+  /** Assumed (not in docs/HOST_ACTIONS.md yet): ids or card files of the lessons the answer used. */
+  cited?: string[]
 }
 
 export const providers = [
