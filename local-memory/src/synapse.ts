@@ -316,7 +316,7 @@ export function localGraph(directory: string, drivePath = '', autoDrop = false) 
       if (!isLearningSource(name)) continue
       connect(cardId, ensure('tool', name, name))
     }
-    const framework = projectName(card.context.framework)
+    const framework = projectName(card.context?.framework)
     if (framework !== '') connect(cardId, ensure('issue', framework, framework))
   }
   for (const node of nodes.values()) {

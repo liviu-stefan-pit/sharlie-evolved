@@ -808,7 +808,7 @@ function scrubText(text: string, names: string[], keep: string[]) {
 function knowledgeProjects(directory: string) {
   const found: string[] = []
   for (const card of readCards(directory)) {
-    const project = card.context.framework
+    const project = card.context?.framework
     if (project && project !== 'none' && !found.includes(project)) found.push(project)
   }
   return found
@@ -822,21 +822,38 @@ type StoredCard = KnownCard & {
 }
 
 function readStoredCards(directory: string): StoredCard[] {
-  return readCards(directory).map((card) => ({
-    path: join(directory, 'cards', `${card.id}.md`),
-    id: card.id,
-    at: card.created_at,
-    author: card.author,
-    sources: card.sources,
-    project: card.context.framework || 'none',
-    title: card.title,
-    topics: card.topics.map((topic) => topic.trim()).filter((topic) => topic !== '' && !isFileMention(topic)),
-    summary: card.title,
-    situation: card.failure_modes[0] ?? '',
-    whatToDo: card.solution,
-    why: card.failure_modes[1] ?? '',
-    apply: card.failure_modes[2] ?? '',
-  }))
+  const stored: StoredCard[] = []
+  for (const card of readCards(directory)) {
+    try {
+      if (!card || typeof card.id !== 'string' || card.id === '') continue
+      if (!card.context || typeof card.context !== 'object') continue
+      if (!card.author || typeof card.author !== 'object') continue
+      const topics = Array.isArray(card.topics) ? card.topics : []
+      const modes = Array.isArray(card.failure_modes) ? card.failure_modes : []
+      const sources = Array.isArray(card.sources) ? card.sources : []
+      stored.push({
+        path: join(directory, 'cards', `${card.id}.md`),
+        id: card.id,
+        at: typeof card.created_at === 'string' ? card.created_at : '',
+        author: card.author,
+        sources,
+        project: card.context.framework || 'none',
+        title: typeof card.title === 'string' ? card.title : '',
+        topics: topics
+          .filter((topic): topic is string => typeof topic === 'string')
+          .map((topic) => topic.trim())
+          .filter((topic) => topic !== '' && !isFileMention(topic)),
+        summary: typeof card.title === 'string' ? card.title : '',
+        situation: typeof modes[0] === 'string' ? modes[0] : '',
+        whatToDo: typeof card.solution === 'string' ? card.solution : '',
+        why: typeof modes[1] === 'string' ? modes[1] : '',
+        apply: typeof modes[2] === 'string' ? modes[2] : '',
+      })
+    } catch {
+      continue
+    }
+  }
+  return stored
 }
 
 function transcriptKey(transcript: Transcript) {
@@ -2746,7 +2763,7 @@ export function openApp(
       const linked = cards.filter(
         (card) =>
           card.sources.includes(key) ||
-          (kind === 'issue' && card.context.framework === key) ||
+          (kind === 'issue' && card.context?.framework === key) ||
           card.relations.some((relation) => relation.target_entity === key),
       )
       if (kind === 'tool' || kind === 'issue' || kind === 'antipattern') return named(key, linked)

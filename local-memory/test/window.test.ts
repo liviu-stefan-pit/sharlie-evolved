@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { discardVault, openUserSession, type LessonDraft } from '../src/app.ts'
+import { discardVault, openUserSession, readInstalledTranscripts, type LessonDraft } from '../src/app.ts'
 import { openDesktopHost, setKeyProbe } from '../src/window.ts'
 import { machineWith } from './machine.ts'
 
@@ -308,6 +308,60 @@ test('start-learning with no chats does not mark learning active', async () => {
     assert.equal(reply.learning, null)
     const settings = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as { learningStarted?: boolean }
     assert.equal(settings.learningStarted, false)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('a hand-made card with no context does not fail start-learning', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  const chat = join(machine.home, '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'chat', 'chat.jsonl')
+  mkdirSync(join(chat, '..'), { recursive: true })
+  writeFileSync(chat, JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'retry the deploy' }] } }))
+  mkdirSync(join(directory, 'cards'), { recursive: true })
+  writeFileSync(join(directory, 'cards', 'card_broken.json'), '{')
+  writeFileSync(
+    join(directory, 'cards', 'card_handmade.json'),
+    JSON.stringify({
+      id: 'card_handmade',
+      title: 'Handmade note',
+      topics: [],
+      solution: 'keep',
+      failure_modes: [],
+      relations: [],
+      sources: ['cursor'],
+      created_at: '2026-01-01T00:00:00.000Z',
+      author: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+    }),
+  )
+  const session = openUserSession('ada', (request) => draft(request.transcript.text), machine, () =>
+    readInstalledTranscripts(machine),
+  )
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    await host.line(JSON.stringify({ cmd: 'action', action: 'save-profile', username: 'ada', email: 'ada@example.com', team: 'platform' }))
+    await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-aaaa' }))
+    const reply = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      notice?: string
+      errorCode?: string
+      detail?: string
+      learning?: unknown
+    }
+    assert.equal(reply.notice ?? '', '')
+    assert.equal(reply.errorCode ?? '', '')
+    assert.equal(reply.detail ?? '', '')
+    assert.equal(reply.learning ?? null, null)
+    const names = readdirSync(join(directory, 'cards'))
+    assert.equal(names.includes('card_handmade.json'), true)
+    assert.equal(names.includes('card_broken.json'), true)
+    assert.equal(
+      names.some((name) => name.endsWith('.md') && name.startsWith('card_')),
+      true,
+    )
   } finally {
     discardVault(directory)
     rmSync(directory, { recursive: true, force: true })
