@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { discardVault, openUserSession, type LessonDraft, type Transcript } from '../src/app.ts'
+import { openDesktopHost } from '../src/window.ts'
 import { runningUnderTest } from '../src/login-item.ts'
 import { machineWith } from './machine.ts'
 
@@ -685,4 +686,27 @@ test('sharing settings on still write nothing after a restart, sync, and timer t
     assert.equal(existsSync(drive), false)
     assert.equal(existsSync(join(drive, 'Dropzone')), false)
   })
+})
+
+test('a truncated registry file is set aside and the app still starts', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'sharlie-registry-'))
+  const machine = machineWith(root, ['cursor'])
+  const registry = join(machine.home, '.sharlie', 'ada.json')
+  mkdirSync(join(registry, '..'), { recursive: true })
+  writeFileSync(registry, '{"directories":["C:\\\\half')
+  const knowledge = join(root, 'knowledge')
+  mkdirSync(knowledge, { recursive: true })
+  const session = openUserSession('ada', () => draft('unused'), machine, () => [])
+  try {
+    session.logIn()
+    const host = await openDesktopHost({ directory: knowledge, session })
+    const state = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as { title?: string }
+    assert.equal(state.title, 'Sharlie')
+    assert.equal(existsSync(registry), false)
+    assert.equal(existsSync(`${registry}.bak`), true)
+    assert.match(readFileSync(`${registry}.bak`, 'utf8'), /half/)
+  } finally {
+    discardVault(knowledge)
+    rmSync(root, { recursive: true, force: true })
+  }
 })

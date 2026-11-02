@@ -36,7 +36,7 @@ function startupSentence(error: unknown) {
   if (/ENOTDIR|not a folder/.test(detail)) {
     return `Sharlie's knowledge folder at ${dirname(settings)} is a file, not a folder. Move or rename that file, then press Retry. (${detail})`
   }
-  if (error instanceof SyntaxError || /JSON/.test(detail)) {
+  if ((error instanceof SyntaxError || /JSON/.test(detail)) && detail.includes('settings.json')) {
     return `Sharlie couldn't read its settings file at ${settings}. Fix or remove that file, then press Retry. (${detail})`
   }
   if (/EACCES|EPERM|EROFS|read-only/i.test(detail)) {

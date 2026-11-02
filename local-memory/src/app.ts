@@ -3125,13 +3125,21 @@ export function openUserSession(
       return knowledge ? { directories, knowledge } : { directories }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { directories: [] }
+      if (error instanceof SyntaxError) {
+        try {
+          renameSync(registryPath(), `${registryPath()}.bak`)
+        } catch {
+          // The broken file stays. Startup still continues with an empty registry.
+        }
+        return { directories: [] }
+      }
       throw error
     }
   }
 
   function writeRegistryFile(registry: { directories: string[]; knowledge?: string }) {
     mkdirSync(join(machine.home, '.sharlie'), { recursive: true })
-    writeFileSync(registryPath(), JSON.stringify(registry))
+    writeAtomic(registryPath(), JSON.stringify(registry))
   }
 
   function registeredDirectories() {
