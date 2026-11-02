@@ -287,7 +287,9 @@ test('a failed first run keeps the card and shows the error once', async ({ page
       ingest: { visible: true, tokens: 0, unreported: 0, lines: ['Found 12 transcripts', `failed · ${failed}`] },
     }),
   )
-  await expect(page.getByRole('alert').getByText(failed, { exact: true })).toBeVisible()
+  // The host's raw "No secret stored" becomes the action to take, with a way to Settings.
+  await expect(page.getByRole('alert').getByText('Add your AI key again in Settings.')).toHaveCount(1)
+  await expect(page.getByRole('alert').getByRole('button', { name: 'Open Settings' })).toBeVisible()
   await expect(page.getByText('Learning stopped')).toBeVisible()
   await expect(start(page)).toBeEnabled()
 })

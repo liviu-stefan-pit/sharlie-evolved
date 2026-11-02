@@ -2,10 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { LessonDetail } from './LessonDetail'
 import { FirstRun } from './FirstRun'
 import { LearningStrip, type PassEnd } from './LearningStrip'
+
+const learnProblemText = (text: string, code: string) => learnProblem(text, code).text
 import { LessonList } from './LessonList'
 import { AskPanel, type AskState } from './Ask'
 import { Details, splitHostError, Trouble } from './Trouble'
-import { cadenceLabel, firstTodo, refusalCode } from './setup'
+import { cadenceLabel, DID_NOT_RUN, firstTodo, learnProblem, refusalCode } from './setup'
 import { filterGraph } from './graph'
 import { GraphMap } from './GraphMap'
 import { checkSources, loadState, onLearning, runAction, runLookup } from './host'
@@ -37,23 +39,28 @@ export function App() {
   const resultAtStart = useRef('null')
   const fresh = (result: PageState['learningResult'] | undefined) =>
     result && JSON.stringify(result) !== resultAtStart.current ? result : null
-  /** A start that ended without an active phase: nothing new unless the host reports new lessons. */
+  /**
+   * A start that ended without an active phase. An error always wins. "Nothing new to learn" only when the
+   * host says a pass ran over zero chats: a new learningResult of 0 lessons / 0 chats, or a finished 0 of 0.
+   * Anything else (learning null and no new result) means no pass ran: say so, never "Nothing new".
+   */
   function endWithoutPass(next: PageState) {
     awaitingPass.current = false
-    const error = next.learning?.error ?? ''
+    const error = next.learning?.error || (next.errorCode ? next.notice || next.errorCode : '')
     const result = fresh(next.learningResult)
-    const nothingNew = !error && (!result || (result.lessons === 0 && result.chats === 0))
-    setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error, result: nothingNew ? null : result, nothingNew }))
-    if (!error) {
-      setLastLearned(Date.now())
-      setNow(Date.now())
-    }
+    const ranEmpty =
+      (!!result && result.lessons === 0 && result.chats === 0) ||
+      (!result && !!next.learning && !next.learning.active && next.learning.total === 0)
+    const end = (patch: Partial<PassEnd>) =>
+      setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error: '', result: null, ...patch }))
+    if (error) end({ error: next.errorCode && !next.learning?.error ? learnProblemText(error, next.errorCode) : error })
+    else if (ranEmpty) end({ nothingNew: true })
+    else if (result) end({ result })
+    else end({ didNotRun: true, error: DID_NOT_RUN })
   }
   const passError = useRef('')
   const [passEnd, setPassEnd] = useState<PassEnd | null>(null)
   const [ranOnce, setRanOnce] = useState(false)
-  /** Session-local end time of the last pass; the host sends no last-run time yet (lastLearnedAt is preferred when it does). */
-  const [lastLearned, setLastLearned] = useState<number | null>(null)
   const [settingsFocus, setSettingsFocus] = useState<'key' | null>(null)
 
   const [sessionNew, setSessionNew] = useState<ReadonlySet<string>>(() => new Set())
@@ -88,10 +95,6 @@ export function App() {
       const result = fresh(next.learningResult)
       const nothingNew = !error && !!result && result.lessons === 0 && result.chats === 0
       setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, result: nothingNew ? null : result, nothingNew }))
-      if (!error) {
-        setLastLearned(Date.now())
-        setNow(Date.now())
-      }
     }
     stateRef.current = next
     setState(next)
@@ -350,7 +353,8 @@ export function App() {
     }
     void startLearning()
   }
-  const learnedAt = state?.lastLearnedAt ? Date.parse(state.lastLearnedAt) : lastLearned
+  // Only the host's own record of a finished pass: a click or a failed start never moves "last learned".
+  const learnedAt = state?.lastLearnedAt ? Date.parse(state.lastLearnedAt) : null
   const learnNowButton = (
     <button
       type="button"
@@ -367,8 +371,8 @@ export function App() {
     <div className="shrink-0 border-b border-line bg-canvas px-3 py-2">
       {startRefusal ? (
         <p role="alert" className="text-[13px] text-danger">
-          {startRefusal.notice}
-          {startRefusal.code === 'key_missing' || startRefusal.code === 'model_missing' || startRefusal.code === 'profile_incomplete' ? (
+          {learnProblem(startRefusal.notice, startRefusal.code).text}
+          {learnProblem(startRefusal.notice, startRefusal.code).settings || startRefusal.code === 'profile_incomplete' ? (
             <button type="button" className="ml-2 inline-flex h-9 items-center text-[13px] text-ink underline" onClick={() => { setSettingsFocus(startRefusal.code === 'profile_incomplete' ? null : 'key'); setView('settings') }}>
               Open Settings
             </button>
@@ -419,6 +423,10 @@ export function App() {
           onState={applyActionReply}
           waiting={waiting}
           lines={state.ingest?.visible ? state.ingest.lines : []}
+          onOpenSettings={() => {
+            setSettingsFocus('key')
+            setView('settings')
+          }}
           onSeeLessons={() => {
             setQuery('')
             setView('graph')

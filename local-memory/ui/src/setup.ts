@@ -15,6 +15,21 @@ export function refusalCode(errorCode: string | undefined, notice: string) {
   return ''
 }
 
+/**
+ * A learning error the person can act on. A key secret missing from Windows Credential Manager
+ * (host text "No secret stored for key …", or a code naming it) means: add the key again.
+ */
+export const DID_NOT_RUN = "Learning didn't run, and Sharlie gave no reason. Check your AI key in Settings, then press Learn now again."
+
+export function learnProblem(text: string, code = ''): { text: string; settings: boolean } {
+  if (text === DID_NOT_RUN) return { text, settings: true }
+  if (/secret_missing|missing_secret|key_secret/i.test(code) || /no secret stored|secret (is )?missing|key secret/i.test(text)) {
+    return { text: 'Add your AI key again in Settings.', settings: true }
+  }
+  if (code === 'key_missing' || code === 'model_missing') return { text, settings: true }
+  return { text, settings: false }
+}
+
 export function cadenceLabel(state: Pick<PageState, 'cadence' | 'scheduled'>) {
   if (state.cadence === 'manual') return 'Learns when you ask'
   if (state.scheduled !== true) return 'Learns when you open Sharlie'

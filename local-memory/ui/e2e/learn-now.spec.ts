@@ -48,7 +48,7 @@ test('the learning strip shows progress, Learn now is disabled while active, the
   await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible()
   await expect(learnNow(page)).toBeDisabled()
   await expect(learnNow(page)).toHaveAccessibleName(/learning is already running/)
-  await emitLearning(page, home({ learning: null, learningResult: { lessons: 0, chats: 3, text: '0 lessons learned' } }))
+  await emitLearning(page, home({ learning: null, learningResult: { lessons: 0, chats: 3, text: '0 lessons learned' }, lastLearnedAt: new Date().toISOString() }))
   await expect(page.getByText('Done. 0 lessons learned')).toBeVisible()
   await expect(learnNow(page)).toBeEnabled()
   await expect(page.getByRole('img', { name: 'Last learned just now' })).toBeVisible()
@@ -69,7 +69,7 @@ test('manual mode keeps "Learns when you ask" in front of the last-learned time'
   await expect(page.getByRole('img', { name: 'Learns when you ask' })).toBeVisible()
   await learnNow(page).click()
   await reply(page, 'action', home({ cadence: 'manual', learning: { active: true, done: 0, total: 1 } }))
-  await emitLearning(page, home({ cadence: 'manual', learning: null, learningResult: { lessons: 1, chats: 1, text: '1 lesson learned' } }))
+  await emitLearning(page, home({ cadence: 'manual', learning: null, learningResult: { lessons: 1, chats: 1, text: '1 lesson learned' }, lastLearnedAt: new Date().toISOString() }))
   await expect(page.getByRole('img', { name: 'Learns when you ask · last learned just now' })).toBeVisible()
 })
 
@@ -105,7 +105,7 @@ test('a thrown Learn now error shows the plain sentence with Details', async ({ 
 test('a rerun with nothing new (reply already over) says Nothing new to learn and Last learned', async ({ page }) => {
   await openApp(page, home())
   await learnNow(page).click()
-  await reply(page, 'action', home({ learning: { active: false, done: 0, total: 0 } }))
+  await reply(page, 'action', home({ learning: { active: false, done: 0, total: 0 }, lastLearnedAt: new Date().toISOString() }))
   await expect(page.getByText('Nothing new to learn')).toBeVisible()
   await expect(page.getByText('Starting to learn…')).toHaveCount(0)
   await expect(learnNow(page)).toBeEnabled()
@@ -131,7 +131,6 @@ async function firstPassOfThree(page: Page) {
 }
 
 for (const [name, after] of [
-  ['learning null, stale result', { learning: null, learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }],
   ['finished 0 of 0, stale result', { learning: { active: false, done: 0, total: 0 }, learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }],
   ['finished 0 of 0, result cleared', { learning: { active: false, done: 0, total: 0 }, learningResult: null }],
   ['learning null, new empty result', { learning: null, learningResult: { lessons: 0, chats: 0, text: '0 lessons learned' } }],
@@ -203,3 +202,73 @@ for (const width of [360, 768, 1280]) {
     expect(bar).toBeLessThanOrEqual(0)
   })
 }
+
+// Sentinel MAJOR 2: key secret gone from Credential Manager, unread chats, the host returns ran:true.
+const earlier = '2026-11-01T08:00:00.000Z'
+
+test('real missing-secret reply (learning null, no result, no error) never says Nothing new or moves last learned', async ({ page }) => {
+  // Captured from the real host on main: learning null, learningResult null, lastLearnedAt unchanged.
+  await openApp(page, home({ lastLearnedAt: earlier, learningResult: { lessons: 2, chats: 2, text: '2 lessons learned' } }))
+  const before = await page.locator('header [role="img"]').getAttribute('aria-label')
+  await learnNow(page).click()
+  await reply(page, 'action', home({ lastLearnedAt: earlier, learningResult: null, learning: null }))
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(0)
+  await expect(page.getByRole('alert').getByText("Learning didn't run, and Sharlie gave no reason.", { exact: false })).toBeVisible()
+  await expect(page.getByRole('alert').getByRole('button', { name: 'Open Settings' })).toBeVisible()
+  await expect(page.locator('header [role="img"]')).toHaveAttribute('aria-label', before!)
+  await expect(page.locator('header [role="img"]')).not.toHaveAttribute('aria-label', /just now/)
+})
+
+test('a finished snapshot carrying the missing-secret error shows "Add your AI key again in Settings" with a link', async ({ page }) => {
+  await openApp(page, home({ lastLearnedAt: earlier }))
+  await learnNow(page).click()
+  await reply(page, 'action', home({ lastLearnedAt: earlier, learning: { active: false, done: 0, total: 4, error: 'No secret stored for key key-1' } }))
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(0)
+  await expect(page.getByRole('alert').getByText('Add your AI key again in Settings.')).toHaveCount(1)
+  await page.getByRole('alert').getByRole('button', { name: 'Open Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'AI key' })).toBeFocused()
+})
+
+test('the error event arriving before the reply also wins over Nothing new', async ({ page }) => {
+  await openApp(page, home({ lastLearnedAt: earlier }))
+  await learnNow(page).click()
+  await emitLearning(page, home({ lastLearnedAt: earlier, learning: { active: false, done: 0, total: 0, error: 'No secret stored for key key-1' } }))
+  await reply(page, 'action', home({ lastLearnedAt: earlier, learning: null, learningResult: { lessons: 0, chats: 0, text: '0 lessons learned' } }))
+  await expect(page.getByText('Add your AI key again in Settings.')).toHaveCount(1)
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(0)
+})
+
+test('a refused start with a missing-secret errorCode shows the same plain fix and Settings link', async ({ page }) => {
+  await openApp(page, home())
+  await learnNow(page).click()
+  await reply(page, 'action', home({ notice: 'No secret stored for key key-1', errorCode: 'key_secret_missing' }))
+  await expect(page.getByRole('alert').filter({ hasText: 'Add your AI key again in Settings.' })).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Open Settings' })).toBeVisible()
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(0)
+})
+
+test('an unknown error on an empty finish shows the host text, not Nothing new', async ({ page }) => {
+  await openApp(page, home())
+  await learnNow(page).click()
+  await reply(page, 'action', home({ learning: { active: false, done: 0, total: 0, error: 'model timed out' } }))
+  await expect(page.getByRole('alert').getByText('model timed out')).toBeVisible()
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(0)
+})
+
+test('last learned comes only from the host: a pass that ends without lastLearnedAt leaves the status unchanged', async ({ page }) => {
+  await openApp(page, home())
+  await learnNow(page).click()
+  await reply(page, 'action', home({ learning: { active: true, done: 0, total: 1 } }))
+  await emitLearning(page, home({ learning: null, learningResult: { lessons: 1, chats: 1, text: '1 lesson learned' } }))
+  await expect(page.getByText('Done. 1 lesson learned')).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Learns when you open Sharlie' })).toBeVisible()
+})
+
+test('learning null with the previous result (stale) is not a finished pass: says it did not run', async ({ page }) => {
+  await openApp(page, home({ learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }))
+  await learnNow(page).click()
+  await reply(page, 'action', home({ learning: null, learningResult: { lessons: 3, chats: 3, text: '3 lessons learned' } }))
+  await expect(page.getByText('Nothing new to learn')).toHaveCount(0)
+  await expect(page.getByText('3 lessons learned')).toHaveCount(0)
+  await expect(page.getByText("Learning didn't run", { exact: false })).toBeVisible()
+})

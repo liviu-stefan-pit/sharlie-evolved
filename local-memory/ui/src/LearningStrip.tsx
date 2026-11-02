@@ -1,9 +1,18 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { canCancelLearning, cancelLearning } from './host'
 import { Trouble } from './Trouble'
+import { learnProblem } from './setup'
 import type { PageState } from './types'
 
-export type PassEnd = { seq: number; added: number; error: string; result: PageState['learningResult']; nothingNew?: boolean }
+export type PassEnd = {
+  seq: number
+  added: number
+  error: string
+  result: PageState['learningResult']
+  nothingNew?: boolean
+  /** The start was accepted but no pass ran and the host said neither why nor that it finished. */
+  didNotRun?: boolean
+}
 
 type Props = {
   learning: PageState['learning']
@@ -14,10 +23,12 @@ type Props = {
   waiting: boolean
   lines: string[]
   onSeeLessons: () => void
+  /** Opens Settings at the AI key (for a missing or unusable key). */
+  onOpenSettings?: () => void
 }
 
 /** Slim strip under the header: "Learning… 37 of 412 chats", Cancel, then "Done. 58 lessons learned". */
-export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeLessons }: Props) {
+export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeLessons, onOpenSettings }: Props) {
   const id = useId()
   const active = waiting || learning?.active === true
   const [done, setDone] = useState<{ text: string; calm?: boolean } | null>(null)
@@ -41,7 +52,8 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
     setCancelling(false)
     setEndError(ended.error)
     const r = ended.result
-    if (ended.nothingNew) setDone({ text: 'Nothing new to learn', calm: true })
+    if (ended.didNotRun) setDone(null)
+    else if (ended.nothingNew) setDone({ text: 'Nothing new to learn', calm: true })
     else if (r?.text) setDone({ text: r.text.startsWith('Learning cancelled') ? r.text : `Done. ${r.text}` })
     else if (!ended.error) setDone({ text: `Done. ${ended.added} ${ended.added === 1 ? 'lesson' : 'lessons'} learned` })
     else setDone(null)
@@ -132,7 +144,12 @@ export function LearningStrip({ learning, ended, onState, waiting, lines, onSeeL
       {cancelError ? <Trouble raw={cancelError} className="px-3 pb-2" /> : null}
       {error && !cancelError ? (
         <p role="alert" className="px-3 pb-2 text-[13px] text-danger">
-          {error}
+          {learnProblem(error).text}
+          {learnProblem(error).settings && onOpenSettings ? (
+            <button type="button" className="ml-2 inline-flex h-9 items-center text-[13px] text-ink underline" onClick={onOpenSettings}>
+              Open Settings
+            </button>
+          ) : null}
         </p>
       ) : null}
       {details && lines.length > 0 ? (
