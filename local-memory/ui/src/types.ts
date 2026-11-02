@@ -1,4 +1,5 @@
-export type SourceFolder = { tool: string; path: string }
+/** `chats` per docs/HOST_ACTIONS.md: transcript files this tool contributed. */
+export type SourceFolder = { tool: string; path: string; chats?: number }
 
 export type CardRelation = {
   entity: string
@@ -84,15 +85,21 @@ export type PageState = {
   customBaseUrl: string
   sources: SourceFolder[]
   graph: GraphData
-  learning: { active: boolean; done: number; total: number; error?: string; tokens?: number; unreported?: number } | null
+  learning: { active: boolean; done: number; total: number; lessons?: number; error?: string; tokens?: number; unreported?: number } | null
   learningTokens: number
   learningTokensUnreported: number
   ingest: IngestState | null
   notice?: string
-  /** Optional (host may add it): chats found across the sources on this PC. */
-  chatCount?: number
-  /** Optional (host may add it): every folder Sharlie looks in, found or not. */
-  searchedFolders?: Array<{ tool: string; path: string }>
+  /** docs/HOST_ACTIONS.md: stable token for a refused command (notice holds the sentence). */
+  errorCode?: string
+  /** docs/HOST_ACTIONS.md: every folder the scan looked in, in scan order. */
+  searched?: Array<{ tool: string; path: string }>
+  /** docs/HOST_ACTIONS.md: sum of sources[].chats. */
+  chatsFound?: number
+  /** docs/HOST_ACTIONS.md: the one team-Drive switch, false by default. */
+  share?: boolean
+  /** docs/HOST_ACTIONS.md: set when a pass finishes or is cancelled. */
+  learningResult?: { lessons: number; chats: number; text: string } | null
 }
 
 export function formatTokenTotal(tokens: number, unreported: number) {

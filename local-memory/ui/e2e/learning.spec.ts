@@ -9,7 +9,7 @@ async function nextAction(page: Page) {
 }
 
 test('the first-run card explains what Sharlie does', async ({ page }) => {
-  await openApp(page, pageState({ chatCount: 412 }))
+  await openApp(page, pageState({ sources: [{ tool: 'Cursor', path: 'C:\\c', chats: 412 }], chatsFound: 412 }))
   await expect(page.getByRole('heading', { name: 'Sharlie learns from your work on this computer' })).toBeVisible()
   await expect(page.getByText('It reads the chats your coding tools already save, keeps short lessons on this PC, and removes names and secrets first.')).toBeVisible()
   await expect(page.getByRole('heading', { name: /Found: Cursor · 412 chats/ })).toBeVisible()
@@ -123,33 +123,49 @@ test('nothing found: neutral step, Check again, Start held with the reason', asy
   await expect(page.getByText('Nothing to learn from yet')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Show where I look' })).toHaveCount(0)
 
-  // Without the host's checkSources the UI reads state again, once, only when asked.
-  const stateCount = () => page.evaluate(() => window.__sharlieCalls.filter((call) => call.cmd === 'state').length)
-  const before = await stateCount()
+  // Check again is one explicit recheck-sources action; it never starts learning.
   await page.getByRole('button', { name: 'Check again' }).click()
-  await reply(page, 'state', pageState({ sources: [] }))
+  expect(await nextAction(page)).toEqual({ action: 'recheck-sources' })
+  await reply(page, 'action', pageState({ sources: [] }))
   await expect(page.getByText('Still nothing found.')).toBeVisible()
   await page.getByRole('button', { name: 'Check again' }).click()
-  await reply(page, 'state', pageState({ chatCount: 412 }))
+  await reply(page, 'action', pageState({ sources: [{ tool: 'Cursor', path: 'C:\\c', chats: 412 }], chatsFound: 412 }))
   await expect(page.getByRole('heading', { name: /Found: Cursor · 412 chats/ })).toBeVisible()
   await expect(start(page)).toBeEnabled()
-  await page.waitForTimeout(500)
-  expect(await stateCount()).toBe(before + 2)
+  await page.waitForTimeout(300)
+  const actions = await page.evaluate(() => window.__sharlieCalls.filter((call) => call.cmd === 'action').map((call) => call.payload))
+  expect(actions).toEqual([{ action: 'recheck-sources' }, { action: 'recheck-sources' }])
 })
 
-test('Check again uses the host checkSources when present and lists the folders searched', async ({ page }) => {
-  const searchedFolders = [
+test('chatsFound 0 holds Start even when a tool folder exists', async ({ page }) => {
+  await openApp(page, pageState({ sources: [{ tool: 'Cursor', path: 'C:\\c', chats: 0 }], chatsFound: 0 }))
+  await expect(page.getByRole('heading', { name: /Found on this PC: nothing yet/ })).toBeVisible()
+  await expect(start(page)).toBeDisabled()
+})
+
+test('several sources join as one summary', async ({ page }) => {
+  await openApp(page, pageState({ sources: [{ tool: 'Cursor', path: 'a', chats: 400 }, { tool: 'Claude CLI', path: 'b', chats: 12 }], chatsFound: 412 }))
+  await expect(page.getByRole('heading', { name: /Found: Cursor, Claude CLI · 412 chats/ })).toBeVisible()
+})
+
+test('a no_chats refusal from the host shows its sentence', async ({ page }) => {
+  await openApp(page, pageState())
+  await start(page).click()
+  const notice = 'No AI coding chats were found. Sharlie looks in Cursor, Copilot, and Claude.'
+  await reply(page, 'action', pageState({ errorCode: 'no_chats', notice }))
+  await expect(page.getByRole('alert').getByText(notice)).toBeVisible()
+})
+
+test('Show where I look lists every folder searched', async ({ page }) => {
+  const searched = [
     { tool: 'Cursor', path: 'C:\\Users\\ada\\AppData\\Roaming\\Cursor\\User\\workspaceStorage' },
     { tool: 'Claude', path: 'C:\\Users\\ada\\.claude\\projects' },
   ]
-  await openApp(page, pageState({ sources: [], searchedFolders }), { checkSources: true })
+  await openApp(page, pageState({ sources: [], searched }))
   await page.getByRole('button', { name: 'Show where I look' }).click()
   const list = page.getByRole('list', { name: 'Folders Sharlie looks in' })
   await expect(list.getByRole('listitem')).toHaveCount(2)
   await expect(list).toContainText('.claude\\projects')
-  await page.getByRole('button', { name: 'Check again' }).click()
-  await reply(page, 'check', pageState({ chatCount: 7 }))
-  await expect(page.getByRole('heading', { name: /Found: Cursor · 7 chats/ })).toBeVisible()
 })
 
 test('Start collapses into the learning strip and counts chats', async ({ page }) => {
@@ -185,9 +201,23 @@ test('Cancel shows only when the host can cancel, and calls it', async ({ page }
   await openApp(page, pageState({ learning: { active: true, done: 3, total: 10 } }), { cancelLearning: true })
   await page.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.getByRole('button', { name: 'Cancelling' })).toBeDisabled()
-  await reply(page, 'cancel', null)
-  await emitLearning(page, pageState({ learning: { active: false, done: 3, total: 10 } }))
+  await reply(page, 'cancel', pageState({ learning: null, learningResult: { lessons: 2, chats: 3, text: 'Learning cancelled · 2 lessons learned' } }))
   await expect(page.getByRole('button', { name: /Cancel/ })).toHaveCount(0)
+  await expect(page.getByText('Learning cancelled · 2 lessons learned')).toBeVisible()
+})
+
+test('the host learningResult text ends the pass', async ({ page }) => {
+  await openApp(page, pageState({ learning: { active: true, done: 411, total: 412, lessons: 57 } }))
+  await emitLearning(page, pageState({ learning: null, learningResult: { lessons: 58, chats: 412, text: '58 lessons learned' }, graph: graphWithNodes() }))
+  await expect(page.getByText('Done. 58 lessons learned')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'See what I know' })).toBeVisible()
+})
+
+test('an error on the last event stays after learning clears', async ({ page }) => {
+  await openApp(page, pageState({ learning: { active: true, done: 1, total: 2 } }))
+  await emitLearning(page, pageState({ learning: { active: true, done: 1, total: 2, error: 'model timed out' } }))
+  await emitLearning(page, pageState({ learning: null, learningResult: { lessons: 0, chats: 1, text: '0 lessons learned' } }))
+  await expect(page.getByRole('alert').getByText('model timed out')).toBeVisible()
 })
 
 test('the learning log sits behind Details and sticks to the bottom', async ({ page }) => {

@@ -45,7 +45,7 @@ export function profileHold(state: PageState) {
 
 /** First unfinished required step, or null when Start can run. Sharing never blocks Start. */
 export function firstTodo(state: PageState): 'found' | 'profile' | 'key' | null {
-  if (foundTools(state).length === 0) return 'found'
+  if (nothingToLearn(state)) return 'found'
   if (profileHold(state)) return 'profile'
   if (keyHold(state)) return 'key'
   return null
@@ -54,6 +54,27 @@ export function firstTodo(state: PageState): 'found' | 'profile' | 'key' | null 
 /** Distinct tool names found on this PC, in the order the host lists them. */
 export function foundTools(state: PageState) {
   const seen: string[] = []
-  for (const source of state.sources) if (!seen.includes(source.tool)) seen.push(source.tool)
+  for (const source of state.sources) {
+    if (source.chats === 0) continue
+    if (!seen.includes(source.tool)) seen.push(source.tool)
+  }
   return seen
+}
+
+/** Chats found on this PC: the host's chatsFound, else the sum of sources[].chats, else unknown. */
+export function chatsFound(state: PageState): number | undefined {
+  if (typeof state.chatsFound === 'number') return state.chatsFound
+  const counts = state.sources.map((source) => source.chats).filter((n): n is number => typeof n === 'number')
+  return counts.length > 0 ? counts.reduce((a, b) => a + b, 0) : undefined
+}
+
+export function nothingToLearn(state: PageState) {
+  return foundTools(state).length === 0 || chatsFound(state) === 0
+}
+
+/** "Cursor, Claude CLI · 412 chats" */
+export function foundSummary(state: PageState) {
+  const count = chatsFound(state)
+  const tools = foundTools(state).join(', ')
+  return count === undefined ? tools : `${tools} · ${count.toLocaleString('en-US')} ${count === 1 ? 'chat' : 'chats'}`
 }

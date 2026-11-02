@@ -130,7 +130,9 @@ export function App() {
   const empty = !!state && state.graph.nodes.length === 0 && !active
   const ready = !!state && firstTodo(state) === null
   const finishedRun =
-    !!state && !state.learning?.error && (ranOnce || state.learning?.active === false || state.ingest?.visible === true)
+    !!state &&
+    !state.learning?.error &&
+    (ranOnce || state.learning?.active === false || state.ingest?.visible === true || !!state.learningResult)
   // A finished run that found nothing gets the Home empty state, never a blank graph.
   const homeEmpty = empty && ready && finishedRun
   const firstRun = empty && !homeEmpty
@@ -298,6 +300,8 @@ export function App() {
       {state ? (
         <LearningStrip
           learning={state.learning ?? null}
+          result={state.learningResult ?? null}
+          onState={applyActionReply}
           waiting={waiting}
           lines={state.ingest?.visible ? state.ingest.lines : []}
           cardCount={cardCount}

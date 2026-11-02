@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { firstTodo, foundTools, keyHold, keyProviders, nothingFound, profileHold } from './setup'
+import { firstTodo, foundSummary, keyHold, keyProviders, nothingFound, nothingToLearn, profileHold } from './setup'
 import type { PageState } from './types'
 
 type Props = {
@@ -127,7 +127,7 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
     }
   }
 
-  const tools = foundTools(state)
+  const found = !nothingToLearn(state)
   const [checking, setChecking] = useState(false)
   const [checkError, setCheckError] = useState('')
   const [checked, setChecked] = useState(false)
@@ -145,7 +145,7 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
       setChecking(false)
     }
   }
-  const folders = state.searchedFolders ?? []
+  const folders = state.searched ?? []
   const pHold = profileHold(state)
   const kHold = keyHold(state)
   const todo = firstTodo(state)
@@ -177,15 +177,11 @@ export function FirstRun({ state, act, starting, startError, onStart, onOpenSett
         <Step
           n={1}
           id={`${ids}-found`}
-          title={
-            tools.length > 0
-              ? `Found: ${tools.join(', ')}${typeof state.chatCount === 'number' ? ` · ${state.chatCount.toLocaleString('en-US')} chats` : ''}`
-              : 'Found on this PC: nothing yet'
-          }
-          done={tools.length > 0}
+          title={found ? `Found: ${foundSummary(state)}` : 'Found on this PC: nothing yet'}
+          done={found}
           hold={checkError}
         >
-          {tools.length > 0 ? (
+          {found ? (
             <p className="text-[13px] text-muted">Sharlie reads these chats on this PC.</p>
           ) : (
             <>

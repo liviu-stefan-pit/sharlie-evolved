@@ -55,20 +55,16 @@ export function canCancelLearning() {
   return typeof bridge()?.cancelLearning === 'function'
 }
 
-export function cancelLearning(): Promise<unknown> {
+export function cancelLearning(): Promise<PageState> {
   const sharlie = bridge()
   if (!sharlie?.cancelLearning) return missing()
   const cancel = sharlie.cancelLearning
   return call(() => Promise.resolve(cancel()))
 }
 
-/** Check again: the host's rescan when it has one, otherwise a fresh state read. */
+/** Check again (docs/HOST_ACTIONS.md `recheck-sources`): rescans, never starts learning. */
 export function checkSources(): Promise<PageState> {
-  const sharlie = bridge()
-  if (!sharlie) return missing()
-  const check = sharlie.checkSources
-  if (typeof check === 'function') return call(() => Promise.resolve(check()))
-  return loadState()
+  return runAction({ action: 'recheck-sources' })
 }
 
 export type { LookupResult, PageState }

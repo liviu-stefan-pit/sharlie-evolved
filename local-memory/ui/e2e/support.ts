@@ -179,20 +179,19 @@ export async function lastCall(page: Page, cmd: string) {
   }, cmd)
 }
 
-export type HostExtras = { cancelLearning?: boolean; checkSources?: boolean }
+export type HostExtras = { cancelLearning?: boolean }
 
-/** Optional host methods (window.sharlie.cancelLearning / checkSources) the UI codes against. */
+/** Optional host methods (window.sharlie.cancelLearning) the UI checks for before use. */
 export async function addHostExtras(page: Page, extras: HostExtras) {
   await page.addInitScript((flags: HostExtras) => {
     const sharlie = window.sharlie as Record<string, unknown>
     if (flags.cancelLearning) sharlie.cancelLearning = () => window.__sharlieCall('cancel')
-    if (flags.checkSources) sharlie.checkSources = () => window.__sharlieCall('check')
   }, extras)
 }
 
 export async function openApp(page: Page, state: PageState, extras: HostExtras = {}) {
   await installHost(page)
-  if (extras.cancelLearning || extras.checkSources) await addHostExtras(page, extras)
+  if (extras.cancelLearning) await addHostExtras(page, extras)
   await page.goto('/')
   await reply(page, 'state', state)
   await expect(page.getByRole('heading', { name: 'Sharlie', exact: true })).toBeVisible()

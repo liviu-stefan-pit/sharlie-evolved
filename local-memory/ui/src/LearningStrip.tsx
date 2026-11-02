@@ -4,6 +4,10 @@ import type { PageState } from './types'
 
 type Props = {
   learning: PageState['learning']
+  /** docs/HOST_ACTIONS.md learningResult: set when a pass finishes or is cancelled. */
+  result?: PageState['learningResult']
+  /** Adopt the snapshot cancelLearning resolves with. */
+  onState: (next: PageState) => void
   waiting: boolean
   lines: string[]
   /** Lesson cards in the graph right now (to report how many a run added). */
@@ -12,11 +16,17 @@ type Props = {
 }
 
 /** Slim strip under the header: "Learning… 37 of 412 chats", Cancel, then "Done. 58 lessons learned". */
-export function LearningStrip({ learning, waiting, lines, cardCount, onSeeLessons }: Props) {
+export function LearningStrip({ learning, result, onState, waiting, lines, cardCount, onSeeLessons }: Props) {
   const id = useId()
   const active = waiting || learning?.active === true
   const startCards = useRef<number | null>(null)
-  const [done, setDone] = useState<{ lessons: number } | null>(null)
+  const [done, setDone] = useState<{ text: string } | null>(null)
+  const lastError = useRef('')
+  if (learning?.error) lastError.current = learning.error
+  // The host clears `learning` after the last event, so keep its error visible after the pass ends.
+  const [endError, setEndError] = useState('')
+  const resultRef = useRef(result)
+  resultRef.current = result
   const [details, setDetails] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState('')
@@ -24,7 +34,11 @@ export function LearningStrip({ learning, waiting, lines, cardCount, onSeeLesson
 
   useEffect(() => {
     if (active) {
-      if (startCards.current === null) startCards.current = cardCount
+      if (startCards.current === null) {
+        startCards.current = cardCount
+        lastError.current = learning?.error ?? ''
+        setEndError('')
+      }
       setDone(null)
       return
     }
@@ -33,7 +47,10 @@ export function LearningStrip({ learning, waiting, lines, cardCount, onSeeLesson
       const added = Math.max(0, cardCount - startCards.current)
       startCards.current = null
       setCancelling(false)
-      if (!learning?.error) setDone({ lessons: added })
+      setEndError(lastError.current)
+      const r = resultRef.current
+      if (r?.text) setDone({ text: r.text.startsWith('Learning cancelled') ? r.text : `Done. ${r.text}` })
+      else if (!lastError.current) setDone({ text: `Done. ${added} ${added === 1 ? 'lesson' : 'lessons'} learned` })
     }
   }, [active, cardCount, learning?.error])
 
@@ -44,7 +61,7 @@ export function LearningStrip({ learning, waiting, lines, cardCount, onSeeLesson
     if (node && stick.current) node.scrollTop = node.scrollHeight
   }, [lines, details])
 
-  const error = learning?.error ?? ''
+  const error = learning?.error || endError
   if (!active && !done && !error && lines.length === 0) return null
 
   const total = learning?.total ?? 0
@@ -52,7 +69,7 @@ export function LearningStrip({ learning, waiting, lines, cardCount, onSeeLesson
   const known = active && total > 0
   const label = !active
     ? done
-      ? `Done. ${done.lessons} ${done.lessons === 1 ? 'lesson' : 'lessons'} learned`
+      ? done.text
       : error
         ? 'Learning stopped'
         : 'Learning finished'
@@ -67,7 +84,8 @@ export function LearningStrip({ learning, waiting, lines, cardCount, onSeeLesson
     setCancelling(true)
     setCancelError('')
     try {
-      await cancelLearning()
+      const next = await cancelLearning()
+      if (next && typeof next === 'object' && 'graph' in next) onState(next)
     } catch (e) {
       setCancelling(false)
       setCancelError(e instanceof Error ? e.message : 'Could not cancel')
