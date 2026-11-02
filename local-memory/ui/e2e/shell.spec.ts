@@ -153,3 +153,22 @@ test('header controls are 36px tall and every one shows the focus ring', async (
     await expect(focused).toHaveCSS('outline-width', '2px')
   }
 })
+
+test('only Ask has the primary fill; the active page is marked with an underline', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  const filled = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('header button')]
+        .filter((el) => getComputedStyle(el).backgroundColor === 'rgb(0, 120, 212)')
+        .map((el) => (el as HTMLElement).innerText.trim()),
+    )
+  expect(await filled()).toEqual(['Ask'])
+  await page.getByRole('button', { name: 'Settings' }).click()
+  expect(await filled()).toEqual(['Ask'])
+  const settings = page.getByRole('button', { name: 'Settings' })
+  await expect(settings).toHaveAttribute('aria-pressed', 'true')
+  await expect(settings.locator('[data-active-mark]')).toHaveCSS('background-color', 'rgb(61, 155, 255)')
+  await settings.click()
+  await expect(page.locator('[data-active-mark]')).toHaveCount(0)
+})

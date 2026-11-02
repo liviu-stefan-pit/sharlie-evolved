@@ -254,11 +254,12 @@ export function App() {
         <SourceMenu sources={state?.sources ?? []} view={view} />
         <button
           type="button"
-          className={`h-9 shrink-0 rounded-full border px-3 text-[15px] transition-colors duration-[120ms] ${view === 'settings' ? 'border-accent bg-accent text-on-accent' : 'border-line bg-field text-ink hover:bg-white/[0.05]'}`}
+          className={`relative h-9 shrink-0 rounded-full border px-3 text-[15px] text-ink transition-colors duration-[120ms] ${view === 'settings' ? 'border-border-input bg-white/[0.08]' : 'border-line bg-field hover:bg-white/[0.05]'}`}
           aria-pressed={view === 'settings'}
           onClick={() => setView((current) => (current === 'settings' ? 'graph' : 'settings'))}
         >
           Settings
+          {view === 'settings' ? <span aria-hidden="true" data-active-mark className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-focus" /> : null}
         </button>
       </header>
       {state ? (
