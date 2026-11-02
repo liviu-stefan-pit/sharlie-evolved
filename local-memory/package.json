@@ -67,7 +67,7 @@
     },
     "nsis": {
       "include": "electron/installer.nsh",
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
       "allowElevation": false
     },

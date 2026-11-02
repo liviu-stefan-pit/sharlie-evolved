@@ -42,6 +42,22 @@ jobs:
           $out = Join-Path $PWD 'smoke-out.txt'
           $err = Join-Path $PWD 'smoke-err.txt'
           $env:SHARLIE_MOCK_MODEL = '1'
+          function Assert-FlagExits([string]$flag) {
+            $flagOut = Join-Path $PWD "$flag-out.txt"
+            $flagErr = Join-Path $PWD "$flag-err.txt"
+            $flagProc = Start-Process -FilePath $exe.FullName -ArgumentList $flag -PassThru -RedirectStandardOutput $flagOut -RedirectStandardError $flagErr -WindowStyle Hidden
+            if (-not $flagProc.WaitForExit(20000)) {
+              Stop-Process -Id $flagProc.Id -Force -ErrorAction SilentlyContinue
+              Write-Error "SMOKE_FAIL $flag did not exit within 20s"
+              exit 1
+            }
+            if ($flagProc.ExitCode -ne 0) {
+              Write-Error "SMOKE_FAIL $flag exited $($flagProc.ExitCode)"
+              exit 1
+            }
+          }
+          Assert-FlagExits '--register-login'
+          Assert-FlagExits '--unregister-login'
           $proc = Start-Process -FilePath $exe.FullName -ArgumentList '--smoke' -PassThru -RedirectStandardOutput $out -RedirectStandardError $err -WindowStyle Hidden
           if (-not $proc.WaitForExit(60000)) {
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue

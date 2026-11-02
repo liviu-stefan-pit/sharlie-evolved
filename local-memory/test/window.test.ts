@@ -135,7 +135,7 @@ test('the desktop window is an Electron shell titled Sharlie', () => {
       appId: string
       productName: string
       win: { target: string[]; requestedExecutionLevel?: string }
-      nsis: { perMachine?: boolean; allowElevation?: boolean }
+      nsis: { oneClick?: boolean; perMachine?: boolean; allowElevation?: boolean }
       mac: { target: string[] }
       linux?: unknown
     }
@@ -157,11 +157,12 @@ test('the desktop window is an Electron shell titled Sharlie', () => {
   assert.equal(pkg.build.productName, 'Sharlie')
   assert.deepEqual(pkg.build.win.target, ['nsis'])
   assert.equal(pkg.build.win.requestedExecutionLevel, 'asInvoker')
+  assert.equal(pkg.build.nsis.oneClick, true)
   assert.equal(pkg.build.nsis.perMachine, false)
   assert.equal(pkg.build.nsis.allowElevation, false)
   assert.match(loginItem, /setLoginItemSettings/)
   assert.equal(loginItem.includes('schtasks'), false)
-  assert.match(main, /finally\s*\{[\s\S]*app\.exit\(0\)/)
+  assert.match(main, /finally\s*\{[\s\S]*app\.exit\(0\)[\s\S]*process\.exit\(0\)/)
   assert.deepEqual(pkg.build.mac.target, ['dmg'])
   assert.equal(pkg.build.linux, undefined)
   assert.match(installer, /--register-login/)

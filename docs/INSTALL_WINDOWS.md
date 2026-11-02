@@ -15,8 +15,8 @@ To get the installer:
 
 ## 2. Install
 
-- The installer asks **"Who should this application be installed for?"** Pick **Only for me**. That choice needs no admin rights and installs into `%LOCALAPPDATA%\Programs\Sharlie`. (**Anyone who uses this computer** asks for admin; you don't need it.)
-- At the end of the install, Sharlie registers itself to start quietly in the tray each time you sign in. That is a per-user login item (`setLoginItemSettings`). It does not create a scheduled task and it does not ask for administrator rights. Uninstalling turns that login start off. *(Not yet checked on Windows.)*
+- The installer does not ask who to install for and it does not ask for administrator rights. It installs only for you, into `%LOCALAPPDATA%\Programs\Sharlie`.
+- At the end of the install, Sharlie registers itself to start quietly in the tray each time you sign in. That is a per-user login item (`setLoginItemSettings`). It does not create a scheduled task. Uninstalling turns that login start off. The install step exits on its own; it does not wait on the window. *(Not yet checked on Windows.)*
 
 ## 3. First run: four steps
 

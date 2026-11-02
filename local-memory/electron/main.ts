@@ -197,13 +197,19 @@ function createTray() {
 }
 
 if (registerFlag || unregisterFlag) {
+  // NSIS waits on this process. Exit even if Electron keeps the loop open.
+  const forceExit = setTimeout(() => process.exit(0), 10_000)
   app.whenReady().then(() => {
     try {
       if (registerFlag) registerLoginItem()
       else unregisterLoginItem()
     } finally {
+      clearTimeout(forceExit)
       app.exit(0)
+      process.exit(0)
     }
+  }).catch(() => {
+    process.exit(0)
   })
 } else if (smoke) {
   app.whenReady().then(async () => {
