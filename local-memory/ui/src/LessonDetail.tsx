@@ -24,6 +24,45 @@ function neighbours(node: GraphNode, nodes: GraphNode[], links: GraphLink[]) {
   return out
 }
 
+export type ShareState = 'local' | 'waiting' | 'shared'
+
+/**
+ * Sharing state is text only, in this panel, and only when the host sends `scope`. Personal lessons stay on the PC;
+ * a work lesson waits while sharing is on until the host reports it copied (`synced`).
+ */
+export function shareState(node: GraphNode, share: boolean): ShareState | null {
+  // No scope on the node means the host doesn't know yet: show no badge rather than guess.
+  if (node.scope === undefined || node.scope === null || node.scope === '') return null
+  if (node.scope !== 'work') return 'local'
+  if (node.synced === true) return 'shared'
+  return share ? 'waiting' : 'local'
+}
+
+const shareText: Record<ShareState, string> = { local: 'Only on this PC', waiting: 'Waiting to share', shared: 'Shared' }
+
+function ShareBadge({ state }: { state: ShareState }) {
+  return (
+    <p data-share-badge={state} className="inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-[13px] text-muted">
+      <svg aria-hidden="true" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        {state === 'local' ? (
+          <>
+            <rect x="3" y="7" width="10" height="7" rx="1.5" />
+            <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+          </>
+        ) : state === 'waiting' ? (
+          <>
+            <circle cx="8" cy="8" r="5.5" />
+            <path d="M8 5v3l2 1.5" />
+          </>
+        ) : (
+          <path d="M3.5 8.5l3 3 6-7" />
+        )}
+      </svg>
+      {shareText[state]}
+    </p>
+  )
+}
+
 function Chip({ node, onOpen }: { node: GraphNode; onOpen: (id: string) => void }) {
   return (
     <li>
@@ -47,6 +86,7 @@ export function LessonDetail({
   nodes,
   links,
   sheet,
+  share,
   onOpen,
   onClose,
 }: {
@@ -54,6 +94,8 @@ export function LessonDetail({
   nodes: GraphNode[]
   links: GraphLink[]
   sheet: boolean
+  /** docs/HOST_ACTIONS.md `share`: the team-Drive switch. */
+  share: boolean
   onOpen: (id: string) => void
   onClose: () => void
 }) {
@@ -117,15 +159,7 @@ export function LessonDetail({
           <>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
               {fromLine ? <p>From: {fromLine}</p> : null}
-              {node.scope !== 'work' ? (
-                <p data-local-badge className="inline-flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 text-[13px] text-muted">
-                  <svg aria-hidden="true" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="7" width="10" height="7" rx="1.5" />
-                    <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
-                  </svg>
-                  Only on this PC
-                </p>
-              ) : null}
+              {shareState(node, share) ? <ShareBadge state={shareState(node, share)!} /> : null}
             </div>
             {node.summary ? <p className="mt-3 text-[16px] leading-[1.55] text-ink">{node.summary}</p> : null}
             {node.solution ? (

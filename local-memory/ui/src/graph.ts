@@ -16,11 +16,30 @@ function hexChannel(value: number) {
   return value.toString(16).padStart(2, '0')
 }
 
-/** Low-degree nodes use the muted token, busy ones fade toward the amber token. */
-export function displayColor(degree?: number, low = '#a3a9b8', high = '#b89a6a') {
+const DAY = 24 * 60 * 60 * 1000
+
+/**
+ * How "new" a node is, 0..1. Amber means new only: a lesson written within the last 24 hours
+ * (by its created_at, newest brightest, fading to neutral at 24h) or, when the host gives no
+ * timestamp, a lesson first seen during this session. Everything else is neutral. Sharing state
+ * never colours a node.
+ */
+export function newness(node: GraphNode, sessionNew: ReadonlySet<string>, now: number) {
+  if (node.kind !== 'card') return 0
+  const at = node.created_at ? Date.parse(node.created_at) : Number.NaN
+  if (Number.isFinite(at)) {
+    const age = now - at
+    if (age < 0) return 1
+    if (age >= DAY) return 0
+    return Math.max(0.4, 1 - age / DAY)
+  }
+  return sessionNew.has(node.id) ? 1 : 0
+}
+
+/** Neutral (muted token) mixed toward the amber token by t (0 = neutral, 1 = amber). */
+export function displayColor(t: number, low = '#a3a9b8', high = '#b89a6a') {
   const GRAY = channels(low)
   const ORANGE = channels(high)
-  const t = fade(degree)
   const r = Math.round(GRAY[0] + (ORANGE[0] - GRAY[0]) * t)
   const g = Math.round(GRAY[1] + (ORANGE[1] - GRAY[1]) * t)
   const b = Math.round(GRAY[2] + (ORANGE[2] - GRAY[2]) * t)

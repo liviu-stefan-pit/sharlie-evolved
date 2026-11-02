@@ -35,7 +35,21 @@ export function App() {
   const [passEnd, setPassEnd] = useState<PassEnd | null>(null)
   const [ranOnce, setRanOnce] = useState(false)
 
+  const [sessionNew, setSessionNew] = useState<ReadonlySet<string>>(() => new Set())
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 5 * 60 * 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   function adopt(next: PageState) {
+    // Cards that appear after the first snapshot are new in this session.
+    const before = stateRef.current
+    if (before) {
+      const known = new Set(before.graph.nodes.map((node) => node.id))
+      const fresh = next.graph.nodes.filter((node) => node.kind === 'card' && !known.has(node.id)).map((node) => node.id)
+      if (fresh.length > 0) setSessionNew((prev) => new Set([...prev, ...fresh]))
+    }
     const wasActive = stateRef.current?.learning?.active === true
     const isActive = next.learning?.active === true
     const cards = next.graph.nodes.filter((node) => node.kind === 'card').length
@@ -141,6 +155,7 @@ export function App() {
         nodes={graph?.nodes ?? []}
         links={graph?.links ?? []}
         sheet={sheet}
+        share={state?.share === true}
         onOpen={openLesson}
         onClose={closeDetail}
       />
@@ -306,6 +321,8 @@ export function App() {
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 note={noWebgl ? "This PC can't draw the map, so here is the list." : undefined}
+                sessionNew={sessionNew}
+                now={now}
               />
             ) : (
               <GraphMap
@@ -314,6 +331,8 @@ export function App() {
                 onSelect={setSelectedId}
                 learningActive={active}
                 onUnsupported={() => setNoWebgl(true)}
+                sessionNew={sessionNew}
+                now={now}
               />
             )}
             {!firstRun && !homeEmpty && query.trim() !== '' && visible.nodes.length === 0 ? (

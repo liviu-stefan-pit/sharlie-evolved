@@ -1,6 +1,6 @@
 import { Graph } from '@cosmos.gl/graph'
 import { useEffect, useRef, useState } from 'react'
-import { displayColor, displayRadius, isBusy, linkEnd } from './graph'
+import { displayColor, displayRadius, isBusy, linkEnd, newness } from './graph'
 import type { GraphData, GraphNode } from './types'
 
 type LabelItem = { id: string; label: string; x: number; y: number }
@@ -18,6 +18,7 @@ type SharlieGraphApi = {
   }
 }
 
+const EMPTY: ReadonlySet<string> = new Set()
 const LABEL_CAP = 12
 const GLOW_MS = 600
 const LABEL_SIZE_FLOOR = 3.5
@@ -84,6 +85,8 @@ export function GraphMap({
   onSelect,
   learningActive = false,
   onUnsupported,
+  sessionNew = EMPTY,
+  now = Date.now(),
 }: {
   graph: GraphData
   selectedId: string
@@ -91,6 +94,10 @@ export function GraphMap({
   learningActive?: boolean
   /** Called once when this PC cannot draw the map (no WebGL2), so the caller can show the list. */
   onUnsupported?: () => void
+  /** Card ids first seen in this session (for hosts that send no created_at). */
+  sessionNew?: ReadonlySet<string>
+  /** Clock for newness; the App ticks it so amber fades without a reload. */
+  now?: number
 }) {
   const frame = useRef<HTMLDivElement>(null)
   const host = useRef<HTMLDivElement>(null)
@@ -110,6 +117,8 @@ export function GraphMap({
   const selectedRef = useRef(selectedId)
   const onSelectRef = useRef(onSelect)
   const onUnsupportedRef = useRef(onUnsupported)
+  const newRef = useRef({ sessionNew, now })
+  newRef.current = { sessionNew, now }
   onUnsupportedRef.current = onUnsupported
   const learningRef = useRef(learningActive)
   const e2e = import.meta.env.VITE_E2E === '1'
@@ -151,6 +160,13 @@ export function GraphMap({
     paintRings(g)
     scheduleLabels()
   }, [selectedId])
+
+  useEffect(() => {
+    const g = engine.current
+    if (!g || ids.current.length === 0) return
+    paintColors(g, hovered.current)
+    g.render(undefined, 0)
+  }, [sessionNew, now])
 
   // Follow the system theme (or the manual override) without reloading the map.
   useEffect(() => {
@@ -287,7 +303,9 @@ export function GraphMap({
     }
     if (selected != null) keep.add(selected)
     for (let i = 0; i < nodes.length; i++) {
-      const [r, gch, b] = rgba(displayColor(nodes[i]?.degree, colorsRef.current.low, colorsRef.current.high), 1)
+      const node = nodes[i]
+      const t = node ? newness(node, newRef.current.sessionNew, newRef.current.now) : 0
+      const [r, gch, b] = rgba(displayColor(t, colorsRef.current.low, colorsRef.current.high), 1)
       const alpha = hover == null || keep.has(i) ? 1 : HOVER_ALPHA
       colors[i * 4] = r
       colors[i * 4 + 1] = gch
