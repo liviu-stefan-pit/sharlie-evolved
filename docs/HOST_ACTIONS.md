@@ -184,7 +184,7 @@ Accepted: `1h`, `manual`. `manual` stores a 0 interval (no timer). `15m` and `30
 
 Same effect as the `cancel-learning` invoke and `sharlie.cancelLearning()`.
 
-The current pass stops before the next card write. Cards already written stay. Transcripts that were fully written stay marked imported. The one in flight is not marked, so a later pass can read it. `learning` goes to `null`. `learningResult.text` is `Learning cancelled · N lessons learned` with the count written before the stop. Calling cancel when nothing is running returns the snapshot with no error.
+The current pass stops before the next model call and before the next card write. A call that has not started is not sent. Cards already written stay. `lastLearnedAt` does not move. Transcripts that were fully written stay marked imported. The one in flight is not marked, so a later pass can read it. `learning` goes to `null`. `learningResult.text` is `Learning cancelled · N lessons learned` with the count written before the stop. Calling cancel when nothing is running returns the snapshot with no error.
 
 ### `start-learning`
 

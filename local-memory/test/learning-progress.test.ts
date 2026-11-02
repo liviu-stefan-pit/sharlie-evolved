@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mock, test } from 'node:test'
@@ -803,6 +803,44 @@ test('cancel stops before the next card write and keeps the card already written
     }
     assert.equal(typeof settings.importedTranscripts.kept, 'string')
     assert.equal(settings.importedTranscripts.skipped, undefined)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('cancel after the first model call sends no further calls and writes nothing', async () => {
+  const { cancelLearning, discardVault, openApp } = await import('../src/app.ts')
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-cancel-queue-'))
+  writeFileSync(join(directory, 'settings.json'), JSON.stringify({ lastLearnedAt: '2020-01-01T00:00:00.000Z' }))
+  try {
+    let calls = 0
+    const app = openApp(
+      directory,
+      () => {
+        calls += 1
+        if (calls === 1) cancelLearning()
+        return draft('Do not write this card')
+      },
+      machineWith(directory, ['cursor']),
+    )
+    app.saveProfile({ username: 'ada', email: 'ada@example.com', team: 'platform' })
+    app.saveKey({ provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })
+    const learned = app.runLearner(
+      [
+        { id: 'one', source: 'cursor', text: 'first chat', changedAt: '2024-01-03T00:00:00.000Z' },
+        { id: 'two', source: 'cursor', text: 'second chat', changedAt: '2024-01-02T00:00:00.000Z' },
+        { id: 'three', source: 'cursor', text: 'third chat', changedAt: '2024-01-01T00:00:00.000Z' },
+      ],
+      { foreground: true },
+    )
+    assert.equal(learned instanceof Promise, false)
+    assert.equal(calls, 1)
+    const cardsDir = join(directory, 'cards')
+    const cards = existsSync(cardsDir) ? readdirSync(cardsDir).filter((name) => name.endsWith('.md')) : []
+    assert.equal(cards.length, 0)
+    const stored = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as { lastLearnedAt?: string }
+    assert.equal(stored.lastLearnedAt, '2020-01-01T00:00:00.000Z')
   } finally {
     discardVault(directory)
     rmSync(directory, { recursive: true, force: true })

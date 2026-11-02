@@ -156,3 +156,7 @@ Host actions the UI team needs are specified in `docs/HOST_ACTIONS.md` (folder p
 5. Share toggle off by default, publish only `scope: work`, cadence minimum 1h, with tests.
 6. Host actions from `HOST_ACTIONS.md` (picker, cancel, chat counts, progress, summary).
 7. KB read/connect: scan the folder before write and before lookup. Concurrency test with two writers. No new transcript sources.
+
+## Known issues
+
+`pageState` calls `session.sourceFolders()` twice on every snapshot (`local-memory/src/window.ts`, the `sources` field and the `chatsFound` sum). Each call walks the installed-tool folders again. Performance only. Not fixed in this release.

@@ -2540,17 +2540,25 @@ export function openApp(
               }
               flushIngest()
             }
-            const lessons = prepared.map(({ original, transcript }) => ({
-              original,
-              transcript,
-              lesson: complete({
-                model,
+            const lessons: {
+              original: Transcript
+              transcript: Transcript
+              lesson: ReturnType<typeof complete>
+            }[] = []
+            for (const { original, transcript } of prepared) {
+              if (stopped()) break
+              lessons.push({
+                original,
                 transcript,
-                transcripts: prepared.map((item) => item.transcript),
-                projects,
-                cards,
-              }),
-            }))
+                lesson: complete({
+                  model,
+                  transcript,
+                  transcripts: prepared.map((item) => item.transcript),
+                  projects,
+                  cards,
+                }),
+              })
+            }
             const writeOneLesson = (
               original: Transcript,
               transcript: Transcript,
@@ -2649,6 +2657,7 @@ export function openApp(
                 scrubbed.why,
                 scrubbed.apply,
               ].filter(filled)
+              if (stopped()) return { status: 'skipped', detail: 'cancelled' }
               publishCard({
                 directory,
                 legacyId: previous?.id ?? randomUUID(),
@@ -2686,6 +2695,7 @@ export function openApp(
               if (stopped()) return
               try {
                 const outcome = writeOneLesson(original, transcript, lesson)
+                if (stopped()) return
                 settings.importedTranscripts[transcriptKey(original)] = transcriptRevision(original)
                 writeSettings(directory, settings)
                 settleIngest(original, outcome.status, outcome.detail)
