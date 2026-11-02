@@ -1,0 +1,630 @@
+{
+ "before": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": null,
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 3
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 3,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [],
+   "links": []
+  },
+  "learning": null,
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": null
+ },
+ "start": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": null,
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 3
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 3,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [],
+   "links": []
+  },
+  "learning": {
+   "active": true,
+   "done": 0,
+   "total": 3,
+   "lessons": 0,
+   "label": "Reading Cursor chats",
+   "detail": "cursor \u00b7 chat0.jsonl \u00b7 learning",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": {
+   "visible": true,
+   "lines": [
+    "Found 3 transcripts",
+    "cursor \u00b7 chat2.jsonl \u00b7 learning",
+    "cursor \u00b7 chat1.jsonl \u00b7 learning",
+    "cursor \u00b7 chat0.jsonl \u00b7 learning"
+   ],
+   "tokens": 0,
+   "unreported": 0
+  },
+  "notice": ""
+ },
+ "mid": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": null,
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 3
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 3,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [],
+   "links": []
+  },
+  "learning": {
+   "active": true,
+   "done": 0,
+   "total": 3,
+   "lessons": 0,
+   "label": "Reading Cursor chats",
+   "detail": "cursor \u00b7 chat0.jsonl \u00b7 learning",
+   "tokens": 0,
+   "unreported": 0
+  },
+  "learningResult": null,
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": {
+   "visible": true,
+   "lines": [
+    "Found 3 transcripts",
+    "cursor \u00b7 chat2.jsonl \u00b7 learning",
+    "cursor \u00b7 chat1.jsonl \u00b7 learning",
+    "cursor \u00b7 chat0.jsonl \u00b7 learning"
+   ],
+   "tokens": 0,
+   "unreported": 0
+  }
+ },
+ "cancel": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": null,
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 3
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 3,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [],
+   "links": []
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 0,
+   "chats": 0,
+   "text": "Learning cancelled \u00b7 0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": {
+   "visible": true,
+   "lines": [
+    "Found 3 transcripts",
+    "cursor \u00b7 chat2.jsonl \u00b7 learning",
+    "cursor \u00b7 chat1.jsonl \u00b7 learning",
+    "cursor \u00b7 chat0.jsonl \u00b7 learning"
+   ],
+   "tokens": 0,
+   "unreported": 0
+  },
+  "notice": ""
+ },
+ "after": {
+  "title": "Sharlie",
+  "paused": false,
+  "profile": {
+   "username": "ada",
+   "email": "ada@example.com",
+   "team": "platform"
+  },
+  "provider": "anthropic",
+  "providers": [
+   "cursor",
+   "copilot",
+   "anthropic",
+   "openai",
+   "custom"
+  ],
+  "savedProviders": [
+   "anthropic"
+  ],
+  "model": "claude-haiku-5-5",
+  "modelParams": [],
+  "models": [
+   {
+    "id": "claude-haiku-5-5",
+    "displayName": "claude-haiku-5-5"
+   },
+   {
+    "id": "claude-sonnet-5-5",
+    "displayName": "claude-sonnet-5-5"
+   },
+   {
+    "id": "claude-opus-5-5",
+    "displayName": "claude-opus-5-5"
+   }
+  ],
+  "hasKey": true,
+  "keyExpiresAt": "",
+  "vaultPath": "C:\\Users\\ada\\.sharlie\\knowledge",
+  "drivePath": "",
+  "autoDrop": false,
+  "share": false,
+  "shareAvailable": false,
+  "shareStartedAt": null,
+  "lastSharedAt": null,
+  "lastLearnedAt": null,
+  "cadence": "1h",
+  "customBaseUrl": "",
+  "sources": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects",
+    "chats": 3
+   }
+  ],
+  "searched": [
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/projects"
+   },
+   {
+    "tool": "Cursor",
+    "path": "C:\\Users\\ada/.cursor/plans"
+   },
+   {
+    "tool": "Cursor CLI",
+    "path": "C:\\Users\\ada/.cursor/chats"
+   },
+   {
+    "tool": "Claude CLI",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/workspaceStorage"
+   },
+   {
+    "tool": "Copilot in VS Code",
+    "path": "C:\\Users\\ada/Library/Application Support/Code/User/globalStorage/emptyWindowChatSessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/Library/Application Support/Claude/local-agent-mode-sessions"
+   },
+   {
+    "tool": "Claude",
+    "path": "C:\\Users\\ada/.claude/projects"
+   },
+   {
+    "tool": "Copilot CLI",
+    "path": "C:\\Users\\ada/.copilot/session-state"
+   }
+  ],
+  "chatsFound": 3,
+  "scheduled": true,
+  "graph": {
+   "canvas": "#1f1f1f",
+   "panel": "#252526",
+   "border": "#3c3c3c",
+   "text": "#cccccc",
+   "muted": "#9d9d9d",
+   "accent": "#5c5c5c",
+   "synced": "#6f8f78",
+   "pending": "#b89a6a",
+   "nodes": [],
+   "links": []
+  },
+  "learning": null,
+  "learningResult": {
+   "lessons": 0,
+   "chats": 0,
+   "text": "Learning cancelled \u00b7 0 lessons learned"
+  },
+  "learningTokens": 0,
+  "learningTokensUnreported": 0,
+  "ingest": {
+   "visible": true,
+   "lines": [
+    "Found 3 transcripts",
+    "cursor \u00b7 chat2.jsonl \u00b7 learning",
+    "cursor \u00b7 chat1.jsonl \u00b7 learning",
+    "cursor \u00b7 chat0.jsonl \u00b7 learning"
+   ],
+   "tokens": 0,
+   "unreported": 0
+  }
+ }
+}

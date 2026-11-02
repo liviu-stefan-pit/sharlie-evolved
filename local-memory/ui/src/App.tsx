@@ -3,6 +3,8 @@ import { LessonDetail } from './LessonDetail'
 import { FirstRun } from './FirstRun'
 import { LearningStrip, type PassEnd } from './LearningStrip'
 
+// A cancel ends the pass with the host's own text (cancelLearning in src/app.ts), even at 0 of 0: never "Nothing new".
+const cancelledResult = (result: { text?: string } | null | undefined) => !!result?.text?.startsWith('Learning cancelled')
 const learnProblemText = (text: string, code: string) => learnProblem(text, code).text
 import { LessonList } from './LessonList'
 import { AskPanel, type AskState } from './Ask'
@@ -49,7 +51,7 @@ export function App() {
     const error = next.learning?.error || (next.errorCode ? next.notice || next.errorCode : '')
     const result = fresh(next.learningResult)
     const ranEmpty =
-      (!!result && result.lessons === 0 && result.chats === 0) ||
+      (!!result && !cancelledResult(result) && result.lessons === 0 && result.chats === 0) ||
       (!result && !!next.learning && !next.learning.active && next.learning.total === 0)
     const end = (patch: Partial<PassEnd>) =>
       setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: 0, error: '', result: null, ...patch }))
@@ -109,7 +111,7 @@ export function App() {
       const error = passError.current
       const errorCode = error ? passErrorCode.current : ''
       const result = fresh(next.learningResult)
-      const nothingNew = !error && !!result && result.lessons === 0 && result.chats === 0
+      const nothingNew = !error && !!result && !cancelledResult(result) && result.lessons === 0 && result.chats === 0
       // A failed pass (84fcd42: learning.error + errorCode, plus a 0-lesson result) is never "Done" or "Nothing new".
       const failedEmpty = !!error && (!result || result.lessons === 0)
       setPassEnd((prev) => ({ seq: (prev?.seq ?? 0) + 1, added: Math.max(0, cards - passStart.current), error, errorCode, result: nothingNew || failedEmpty ? null : result, nothingNew }))
