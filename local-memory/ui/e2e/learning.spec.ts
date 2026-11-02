@@ -315,3 +315,34 @@ test('nothing learning-related shows once lessons exist', async ({ page }) => {
   await expect(page.getByRole('progressbar')).toHaveCount(0)
   await expect(page.getByRole('log', { name: 'Learning log' })).toHaveCount(0)
 })
+
+test('five same-tick clicks on first-run Check again send one recheck-sources', async ({ page }) => {
+  await openApp(page, pageState({ sources: [] }))
+  const check = page.getByRole('button', { name: 'Check again' })
+  await check.evaluate((button: HTMLButtonElement) => {
+    for (let i = 0; i < 5; i++) button.click()
+  })
+  const count = () => page.evaluate(() => window.__sharlieCalls.filter((call) => call.cmd === 'action' && (call.payload as { action?: string })?.action === 'recheck-sources').length)
+  await page.waitForTimeout(200)
+  expect(await count()).toBe(1)
+  await reply(page, 'action', pageState({ sources: [] }))
+  await expect(page.getByRole('button', { name: 'Check again' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Check again' }).click()
+  await page.waitForTimeout(100)
+  expect(await count()).toBe(2)
+})
+
+for (const width of [360, 768, 1280]) {
+  test(`the first-run scroll area is never a tab stop at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 640 })
+    await openApp(page, pageState({ sources: [] }))
+    const area = page.locator('[data-first-run-scroll]')
+    await expect(area).toHaveAttribute('tabindex', '-1')
+    const stops: string[] = []
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('Tab')
+      stops.push(await page.evaluate(() => (document.activeElement as HTMLElement | null)?.hasAttribute('data-first-run-scroll') ? 'scroll' : 'other'))
+    }
+    expect(stops).not.toContain('scroll')
+  })
+}

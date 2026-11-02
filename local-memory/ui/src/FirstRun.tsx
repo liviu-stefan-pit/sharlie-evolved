@@ -163,7 +163,11 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [showFolders])
+  // Clicks in the same tick see the same render, so the guard is a ref, not state.
+  const checkBusy = useRef(false)
   async function checkAgain() {
+    if (checkBusy.current) return
+    checkBusy.current = true
     setChecking(true)
     setCheckError(null)
     try {
@@ -172,6 +176,7 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
     } catch (error) {
       setCheckError({ raw: errorText(error) })
     } finally {
+      checkBusy.current = false
       setChecking(false)
     }
   }

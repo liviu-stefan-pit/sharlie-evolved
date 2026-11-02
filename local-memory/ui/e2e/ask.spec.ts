@@ -106,3 +106,35 @@ test('a failed ask shows the host-trouble line with Details, and can ask again',
   await page.getByRole('button', { name: 'Close answer' }).click()
   await expect(page.getByText('Retry the deploy once.')).toHaveCount(0)
 })
+
+test('five same-tick Ask submits send one lookup', async ({ page }) => {
+  await openApp(page, pageState({ graph: graphWithNodes() }))
+  await page.getByRole('searchbox', { name: 'Ask Sharlie' }).or(page.getByRole('textbox', { name: 'Ask Sharlie' })).fill('why does the deploy fail')
+  await page.locator('form[role=search]').evaluate((form: HTMLFormElement) => {
+    for (let i = 0; i < 5; i++) form.requestSubmit()
+  })
+  await page.waitForTimeout(200)
+  const lookups = () => page.evaluate(() => window.__sharlieCalls.filter((call) => call.cmd === 'lookup').length)
+  expect(await lookups()).toBe(1)
+  await reply(page, 'lookup', { answer: 'Retry once.' })
+  await expect(page.getByText('Retry once.')).toBeVisible()
+  await page.locator('form[role=search]').evaluate((form: HTMLFormElement) => form.requestSubmit())
+  await page.waitForTimeout(100)
+  expect(await lookups()).toBe(2)
+})
+
+for (const name of ['Ask Sharlie', 'Sources', 'Settings']) {
+  test(`${name} shows the focus-token ring at once on keyboard focus`, async ({ page }) => {
+    await openApp(page, pageState({ graph: graphWithNodes() }))
+    const target = name === 'Ask Sharlie' ? page.getByRole('textbox', { name }) : page.getByRole('button', { name, exact: true })
+    await target.focus()
+    await page.keyboard.press('Shift+Tab')
+    await page.keyboard.press('Tab')
+    // Read straight away: no fade from the ink colour.
+    const ring = await page.evaluate(() => {
+      const style = getComputedStyle(document.activeElement as HTMLElement)
+      return [style.outlineStyle, style.outlineWidth, style.outlineColor]
+    })
+    expect(ring).toEqual(['solid', '2px', 'rgb(61, 155, 255)'])
+  })
+}

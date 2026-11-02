@@ -91,6 +91,8 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+  /* transition-colors includes outline-color: without this the ring fades in from the ink colour. */
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, transform, translate, scale;
 }
 
 input[type="checkbox"] {

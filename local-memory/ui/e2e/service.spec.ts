@@ -42,3 +42,11 @@ test('a bridge that throws synchronously still shows the service screen', async 
   await expect(page.getByRole('alert').getByText('ipc channel closed')).toBeVisible()
   await expect(page.getByRole('alert').getByRole('heading', { name: heading })).toBeVisible()
 })
+
+test('Retry on the service screen is at least 44px tall', async ({ page }) => {
+  await installHost(page)
+  await page.goto('/')
+  await fail(page, 'state', 'host process exited with code 1')
+  const box = await page.getByRole('button', { name: 'Retry' }).boundingBox()
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+})

@@ -177,7 +177,10 @@ export function App() {
 
   const [checkingHome, setCheckingHome] = useState(false)
   const [homeTrouble, setHomeTrouble] = useState('')
+  const homeBusy = useRef(false)
   async function checkHome() {
+    if (homeBusy.current) return
+    homeBusy.current = true
     setCheckingHome(true)
     setHomeTrouble('')
     try {
@@ -185,6 +188,7 @@ export function App() {
     } catch (error) {
       setHomeTrouble(error instanceof Error ? error.message : String(error))
     } finally {
+      homeBusy.current = false
       setCheckingHome(false)
     }
   }
@@ -196,10 +200,12 @@ export function App() {
     return stateRef.current ?? next
   }
 
+  // Same-tick submits see the same render, so one lookup at a time is guarded by a ref.
+  const askBusy = useRef(false)
   async function submitAsk(event: FormEvent) {
     event.preventDefault()
     const asked = question.trim()
-    if (asked === '' || ask.phase === 'asking') {
+    if (asked === '' || ask.phase === 'asking' || askBusy.current) {
       askRef.current?.focus()
       return
     }
@@ -207,12 +213,15 @@ export function App() {
       setAsk({ phase: 'empty-lessons', question: asked })
       return
     }
+    askBusy.current = true
     setAsk({ phase: 'asking', question: asked })
     try {
       const result = await runLookup(asked)
       setAsk({ phase: 'answered', question: asked, answer: result.answer ?? '', cited: Array.isArray(result.cited) ? result.cited : [] })
     } catch (error) {
       setAsk({ phase: 'failed', question: asked, raw: error instanceof Error ? error.message : String(error) })
+    } finally {
+      askBusy.current = false
     }
   }
 
@@ -358,7 +367,7 @@ export function App() {
               </div>
             ) : null}
             {firstRun && state ? (
-              <div className="absolute inset-0 overflow-auto bg-canvas">
+              <div tabIndex={-1} data-first-run-scroll className="absolute inset-0 overflow-auto bg-canvas">
                 <FirstRun
                   state={state}
                   act={act}
@@ -456,7 +465,7 @@ function ServiceDown({ detail, retrying, onRetry }: { detail: string; retrying: 
       </p>
       <button
         type="button"
-        className="min-h-8 rounded-full border border-accent bg-accent px-4 py-1.5 text-[13px] font-medium text-on-accent transition-colors duration-[120ms] focus:border-focus disabled:opacity-50"
+        className="min-h-11 rounded-full border border-accent bg-accent px-4 py-1.5 text-[15px] font-medium text-on-accent transition-colors duration-[120ms] focus:border-focus disabled:opacity-50"
         disabled={retrying}
         onClick={onRetry}
       >
