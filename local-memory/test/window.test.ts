@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -161,6 +161,52 @@ test('the desktop window is an Electron shell titled Sharlie', () => {
   assert.match(main, /cancel-learning/)
   const preload = readFileSync(new URL('../electron/preload.cjs', import.meta.url), 'utf8')
   assert.match(preload, /cancelLearning:\s*\(\)\s*=>\s*ipcRenderer\.invoke\('cancel-learning'\)/)
+})
+
+test('recheck-sources reports chats it found and does not start learning', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  const chat = join(machine.home, '.cursor', 'projects', 'sharlie', 'agent-transcripts', 'chat', 'chat.jsonl')
+  mkdirSync(join(chat, '..'), { recursive: true })
+  writeFileSync(
+    chat,
+    JSON.stringify({ role: 'user', message: { content: [{ type: 'text', text: 'retry the deploy' }] } }),
+  )
+  let modelCalls = 0
+  const session = openUserSession(
+    'ada',
+    () => {
+      modelCalls += 1
+      return draft('should not run')
+    },
+    machine,
+    () => [],
+  )
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const reply = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'recheck-sources' }))) as {
+      sources: { tool: string; path: string; chats: number }[]
+      searched: { tool: string; path: string }[]
+      chatsFound: number
+      learning: unknown
+      notice?: string
+    }
+    assert.equal(modelCalls, 0)
+    assert.equal(reply.learning, null)
+    assert.equal(reply.notice ?? '', '')
+    assert.equal(reply.chatsFound, 1)
+    assert.deepEqual(
+      reply.sources.filter((source) => source.chats > 0),
+      [{ tool: 'Cursor', path: join(machine.home, '.cursor', 'projects'), chats: 1 }],
+    )
+    assert.ok(reply.searched.some((folder) => folder.path === join(machine.home, '.cursor', 'plans')))
+    assert.equal(reply.searched.length > reply.sources.length, true)
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
 })
 
 test('cancel-learning while nothing is running returns the snapshot and no error', async () => {

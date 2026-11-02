@@ -127,6 +127,7 @@ function applyWindow(app: WindowApp, params: URLSearchParams): string | Promise<
   }
   if (action === 'start-learning') return app.startLearning()
   if (action === 'cancel-learning') cancelLearning()
+  if (action === 'recheck-sources') return ''
   if (action === 'select-model') {
     const model = params.get('model') ?? ''
     try {
@@ -195,6 +196,8 @@ async function pageState(app: WindowApp, session: Session) {
     cadence: app.cadence(),
     customBaseUrl: app.customBaseUrl(),
     sources: session.sourceFolders(),
+    searched: session.searchedFolders(),
+    chatsFound: session.sourceFolders().reduce((sum, source) => sum + source.chats, 0),
     graph,
     learning: snapshot?.active ? { ...snapshot, tokens, unreported } : null,
     learningResult: learningResult(),

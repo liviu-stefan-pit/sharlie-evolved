@@ -132,7 +132,9 @@ export type CursorLookup = (secret: string) => Promise<CursorAccount>
 
 export type ToolId = 'cursor' | 'copilot' | 'claude' | 'cursor-cli' | 'claude-cli' | 'copilot-cli'
 
-export type SourceFolder = { tool: string; path: string }
+export type SourceFolder = { tool: string; path: string; chats: number }
+
+export type SearchedFolder = { tool: string; path: string }
 
 export type Machine = {
   platform: 'win32' | 'darwin'
@@ -1551,6 +1553,8 @@ function transcriptFromPlan(file: string): Transcript | null {
 function collectInstalledSources(machine: Machine) {
   const installed = new Set(scanTools(machine).map((tool) => tool.id))
   const folders: SourceFolder[] = []
+  const searched: SearchedFolder[] = []
+  const counts = new Map<string, number>()
   const marked = new Set<string>()
   const seen = new Set<string>()
   const transcripts: Transcript[] = []
@@ -1564,12 +1568,18 @@ function collectInstalledSources(machine: Machine) {
   const claudeSessions = join(roamingAppData(machine), 'Claude', 'local-agent-mode-sessions')
   const copilotCliState = join(machine.home, '.copilot', 'session-state')
 
-  function mark(tool: string, path: string) {
-    if (isDirectory(path)) marked.add(`${tool}\0${pathKey(machine, path)}`)
+  function mark(tool: string, path: string, chats = 1) {
+    if (!isDirectory(path) || chats <= 0) return
+    const key = `${tool}\0${pathKey(machine, path)}`
+    marked.add(key)
+    counts.set(key, (counts.get(key) ?? 0) + chats)
   }
 
   function emit(tool: string, path: string) {
-    if (marked.has(`${tool}\0${pathKey(machine, path)}`)) folders.push({ tool, path })
+    searched.push({ tool, path })
+    const key = `${tool}\0${pathKey(machine, path)}`
+    const chats = counts.get(key) ?? 0
+    if (chats > 0) folders.push({ tool, path, chats })
   }
 
   function walk(tool: string, files: string[], read: (file: string) => Transcript | null, menu: string | null) {
@@ -1582,7 +1592,7 @@ function collectInstalledSources(machine: Machine) {
       transcripts.push(transcript)
       produced++
     }
-    if (produced > 0 && menu) mark(tool, menu)
+    if (produced > 0 && menu) mark(tool, menu, produced)
   }
 
   if (installed.has('cursor-cli')) {
@@ -1701,11 +1711,15 @@ function collectInstalledSources(machine: Machine) {
   if (!installed.has('claude-cli')) emit('Claude', claudeProjects)
   emit('Copilot CLI', copilotCliState)
 
-  return { folders, transcripts }
+  return { folders, searched, transcripts }
 }
 
 export function sourceFolders(machine: Machine = thisMachine()): SourceFolder[] {
   return collectInstalledSources(machine).folders
+}
+
+export function searchedFolders(machine: Machine = thisMachine()): SearchedFolder[] {
+  return collectInstalledSources(machine).searched
 }
 
 export function readInstalledTranscripts(machine: Machine = thisMachine()): Transcript[] {
@@ -2718,6 +2732,7 @@ export function openUserSession(
   let answer: AnswerLookup | undefined
   const jobs = new Map<string, ScheduledJobs>()
   const folders = () => sourceFolders(machine)
+  const searched = () => searchedFolders(machine)
 
   function scheduled(directory: string) {
     const existing = jobs.get(directory)
@@ -2893,6 +2908,9 @@ export function openUserSession(
     },
     sourceFolders() {
       return folders()
+    },
+    searchedFolders() {
+      return searched()
     },
     install(directory: string) {
       register(directory)

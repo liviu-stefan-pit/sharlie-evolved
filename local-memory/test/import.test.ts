@@ -490,7 +490,7 @@ test('Cursor CLI claims the parent transcript, imports subagents, and ignores em
     const folders = sourceFolders(machine)
     assert.deepEqual(
       folders.filter((folder) => folder.tool === 'Cursor CLI'),
-      [{ tool: 'Cursor CLI', path: join(machine.home, '.cursor', 'chats') }],
+      [{ tool: 'Cursor CLI', path: join(machine.home, '.cursor', 'chats'), chats: 2 }],
     )
   } finally {
     rmSync(root, { recursive: true, force: true })
@@ -554,9 +554,9 @@ test('sourceFolders lists each Cursor store root once', () => {
     assert.equal(found.some((item) => item.source === 'workspace'), true)
     const folders = sourceFolders(machine)
     assert.deepEqual(folders, [
-      { tool: 'Cursor', path: join(machine.home, '.cursor', 'projects') },
-      { tool: 'Cursor', path: join(machine.home, '.cursor', 'plans') },
-      { tool: 'Cursor CLI', path: join(machine.home, '.cursor', 'chats') },
+      { tool: 'Cursor', path: join(machine.home, '.cursor', 'projects'), chats: 2 },
+      { tool: 'Cursor', path: join(machine.home, '.cursor', 'plans'), chats: 1 },
+      { tool: 'Cursor CLI', path: join(machine.home, '.cursor', 'chats'), chats: 1 },
     ])
     assert.equal(folders.filter((folder) => folder.tool === 'Cursor').length, 2)
     assert.equal(folders.some((folder) => folder.path.includes('agent-transcripts')), false)
