@@ -21,6 +21,8 @@ export type GraphNode = {
   /** Assumed card parts (host may add them to graph nodes): one-line summary, why it works, scope. */
   summary?: string
   why?: string
+  /** When the lesson applies (not sent by the host today; it is packed last in failure_modes). */
+  apply?: string
   scope?: 'work' | 'personal' | string
   shareState?: 'local' | 'waiting' | 'shared'
   writer?: string
@@ -92,7 +94,7 @@ export type PageState = {
   customBaseUrl: string
   sources: SourceFolder[]
   graph: GraphData
-  learning: { active: boolean; done: number; total: number; lessons?: number; error?: string; errorCode?: string; tokens?: number; unreported?: number } | null
+  learning: { active: boolean; done: number; total: number; lessons?: number; error?: string; errorCode?: string; notice?: string; cappedChats?: number; deferredChats?: number; tokens?: number; unreported?: number } | null
   learningTokens: number
   learningTokensUnreported: number
   ingest: IngestState | null

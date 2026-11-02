@@ -410,9 +410,9 @@ export function App() {
         <form role="search" aria-label="Ask Sharlie" className="flex min-w-0 flex-1 items-center gap-1.5" onSubmit={(event) => void submitAsk(event)}>
           <input
             ref={askRef}
-            className="h-9 w-full min-w-0 rounded-full border border-border-input bg-field px-3 text-[15px] text-ink transition-colors duration-[120ms] placeholder:text-muted hover:bg-white/[0.05]"
+            className="h-9 w-full min-w-[64px] rounded-full border border-border-input bg-field px-3 text-[15px] text-ink transition-colors duration-[120ms] placeholder:text-muted hover:bg-white/[0.05]"
             aria-label="Ask Sharlie"
-            placeholder="Ask Sharlie"
+            placeholder={narrow ? 'Ask' : 'Ask Sharlie'}
             enterKeyHint="send"
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
@@ -578,13 +578,24 @@ function StatusDot({ state, active, learnedAt, now }: { state: PageState | null;
         ? ['Not set up yet', 'border border-faint']
         : state.paused
           ? ['Learning paused', 'bg-muted']
-          : [statusLabel(state, learnedAt, now), 'bg-synced']
+          : neverLearned(state, learnedAt)
+            ? ['Ready to learn', 'border border-synced']
+            : [statusLabel(state, learnedAt, now), 'bg-synced']
   return (
     <span className="flex shrink-0 items-center gap-1.5" title={label}>
       <span role="img" aria-label={label} className={`inline-block h-2 w-2 rounded-full ${tone}`} />
       <span className="hidden text-[13px] text-muted md:inline">{label}</span>
     </span>
   )
+}
+
+/**
+ * Set up but no pass yet: the host registers the hourly timer as soon as the key is saved (scheduled: true), but its
+ * learner does nothing until the first Start learning (app.ts learn(): learningStarted, initialIngestComplete).
+ * No host lastLearnedAt and no lessons means no pass has run, so the header must not claim a schedule.
+ */
+function neverLearned(state: PageState, learnedAt: number | null) {
+  return learnedAt == null && !state.graph.nodes.some((node) => node.kind === 'card')
 }
 
 /** "Last learned 5 min ago" once a pass has ended; manual or scheduled modes keep their wording in front. */

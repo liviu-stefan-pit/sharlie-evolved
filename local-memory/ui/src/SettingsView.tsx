@@ -274,7 +274,7 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
 
         <Section title="About you" id={`${ids}-about`} saved={savedProfile.shown}>
           <p className="text-[13px] text-muted">Each lesson is signed with these, so your team knows who learned it.</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)]">
             {(['username', 'email', 'team'] as const).map((key) => (
               <label key={key} className="text-[13px] text-muted">
                 {key === 'username' ? 'Name' : key === 'email' ? 'Email' : 'Team'}
@@ -409,14 +409,19 @@ export function SettingsView({ state, act, focusSection }: { state: PageState; a
               <p id={`${ids}-share-label`} className="text-[15px] text-ink">
                 Share work lessons with my team's Drive folder
               </p>
-              <p id={`${ids}-share-help`} className="mt-1 text-[13px] text-muted">
-                Only lessons from work projects are copied. Sharlie removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI. Personal lessons never leave this PC.
-              </p>
+              {/* While sharing is unavailable the switch is disabled: say so right under its label, without the long how-it-works copy. */}
+              {shareable ? (
+                <p id={`${ids}-share-help`} className="mt-1 text-[13px] text-muted">
+                  Only lessons from work projects are copied. Sharlie removes secrets such as keys and passwords, and other people's email addresses, before anything is sent to the AI. Personal lessons never leave this PC.
+                </p>
+              ) : (
+                <p id={`${ids}-share-help`} className="mt-1 text-[15px] text-muted">
+                  {SHARE_UNAVAILABLE}
+                </p>
+              )}
             </div>
           </div>
-          {!shareable ? (
-            <p className="text-[15px] text-muted">{SHARE_UNAVAILABLE}</p>
-          ) : sharing ? (
+          {!shareable ? null : sharing ? (
             <div className="space-y-2">
               <p className="text-[15px] break-all text-ink">
                 Sharing to {state.drivePath}

@@ -288,7 +288,7 @@ export function FirstRun({ state, act, starting, startError, refusal, onStart, o
           )}
         </Step>
         <Step n={2} id={`${ids}-profile`} title="About you" done={!pHold} problem={profileProblem}>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)]">
             <label className="text-[13px] text-muted">
               Name
               <input

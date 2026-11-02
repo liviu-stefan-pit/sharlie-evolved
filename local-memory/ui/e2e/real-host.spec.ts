@@ -29,13 +29,19 @@ test('real fresh snapshot: not set up, no schedule claimed', async ({ page }) =>
   await expect(status(page)).toHaveAccessibleName('Not set up yet')
 })
 
-test('real snapshot after the key: scheduled true and default cadence 1h reads "Learns every hour"', async ({ page }) => {
+test('real snapshot after the key, before Start learning: scheduled true but no pass yet reads "Ready to learn"', async ({ page }) => {
   expect(real['01-fresh']!.cadence).toBe('1h')
   expect(real['02-recheck']!.scheduled).toBe(false)
   expect(real['06b-state']!.scheduled).toBe(true)
   expect(real['06b-state']!.cadence).toBe('1h')
+  expect(real['06b-state']!.lastLearnedAt).toBeNull()
   await openApp(page, snap('06b-state'))
-  await expect(status(page)).toHaveAccessibleName('Learns every hour')
+  await expect(status(page)).toHaveAccessibleName('Ready to learn')
+})
+
+test('real snapshot after the first pass: "Learns every hour · last learned …"', async ({ page }) => {
+  await openApp(page, snap('08-finished'))
+  await expect(status(page)).toHaveAccessibleName(/^Learns every hour · last learned /)
 })
 
 test('real set-cadence 15m refusal: cadence_too_short, host sentence, cadence stays 1h', async ({ page }) => {

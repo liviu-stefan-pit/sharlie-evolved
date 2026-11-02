@@ -34,20 +34,33 @@ const norm = (text?: string) => (text ?? '').replace(/\s+/g, ' ').trim().toLower
  * shows under Why it works only; empty or repeated failure lines are dropped.
  */
 export function cardParts(node: GraphNode) {
-  const why = node.why?.trim() ?? ''
+  // Host layout today (src/app.ts publishCard call, ~2600): failure_modes = [...situation lines, why, apply], with no
+  // separate why/apply on the card or node; host.ts always fills why and apply. Split them back out so "What went
+  // wrong" lists only what went wrong. A node that carries its own why/apply is taken as is.
+  let modes = node.failure_modes ?? []
+  let packedWhy = ''
+  let apply = node.apply?.trim() ?? ''
+  if (!node.why && !node.apply && modes.length >= 2) {
+    packedWhy = modes[modes.length - 2]!.trim()
+    apply = modes[modes.length - 1]!.trim()
+    modes = modes.slice(0, -2)
+  }
+  const why = node.why?.trim() || packedWhy
   let solution = node.solution?.trim() ?? ''
   if (why && solution && (norm(why) === norm(solution) || norm(why).includes(norm(solution)))) solution = ''
   let summary = node.summary?.trim() ?? ''
   if (summary && [why, solution].some((text) => text && norm(text).includes(norm(summary)))) summary = ''
-  const seen = new Set([norm(why), norm(solution), norm(summary)].filter(Boolean))
+  // apply defaults to whatToDo on the host: show it only when it says something new.
+  if (apply && [why, solution, summary].some((text) => text && norm(text) === norm(apply))) apply = ''
+  const seen = new Set([norm(why), norm(solution), norm(summary), norm(apply)].filter(Boolean))
   const failures: string[] = []
-  for (const mode of node.failure_modes ?? []) {
+  for (const mode of modes) {
     const key = norm(mode)
     if (!key || seen.has(key)) continue
     seen.add(key)
     failures.push(mode.trim())
   }
-  return { summary, solution, why, failures }
+  return { summary, solution, why, apply, failures }
 }
 
 export type ShareState = 'local' | 'waiting' | 'shared'
@@ -200,6 +213,12 @@ export function LessonDetail({
               <section className="mt-4">
                 <h3 className="text-[13px] font-semibold text-muted">Why it works</h3>
                 <p className={`mt-1 text-[15px] whitespace-pre-wrap text-ink ${wrap}`}>{parts.why}</p>
+              </section>
+            ) : null}
+            {parts.apply ? (
+              <section className="mt-4">
+                <h3 className="text-[13px] font-semibold text-muted">When to use it</h3>
+                <p className={`mt-1 text-[15px] whitespace-pre-wrap text-ink ${wrap}`}>{parts.apply}</p>
               </section>
             ) : null}
             {parts.failures.length > 0 ? (
