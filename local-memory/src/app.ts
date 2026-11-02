@@ -234,6 +234,19 @@ export function learningProgress(): LearningProgress | null {
   return learningSnapshot
 }
 
+/** Drop a failed pass's error once a key is stored or a provider is turned on. An in-progress pass keeps its counts. */
+export function clearLearningError() {
+  if (!learningSnapshot?.error && !learningSnapshot?.errorCode) return
+  if (learningSnapshot.active) {
+    const next: LearningProgress = { ...learningSnapshot }
+    delete next.error
+    delete next.errorCode
+    emitLearning(next)
+    return
+  }
+  learningSnapshot = null
+}
+
 export function learningResult(): LearningResult | null {
   return learningOutcome
 }

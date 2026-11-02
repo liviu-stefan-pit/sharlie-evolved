@@ -1,7 +1,7 @@
 import { rmSync, statSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
-import { cancelLearning, learningProgress, learningResult, openUserSession, type Provider } from './app.ts'
+import { cancelLearning, clearLearningError, learningProgress, learningResult, openUserSession, type Provider } from './app.ts'
 import { listCopilotModels, listCursorCatalog } from './exchange.ts'
 import { mockModelEnabled } from './host.ts'
 import { runningUnderTest } from './login-item.ts'
@@ -185,6 +185,10 @@ const keyProviders: { id: Provider; label: string }[] = [
 async function saveKey(app: WindowApp, params: URLSearchParams): Promise<ActionResult> {
   const secret = params.get('secret') ?? ''
   const provider = params.get('provider')
+  const store: WindowApp['saveKey'] = (input) => {
+    app.saveKey(input)
+    clearLearningError()
+  }
   if (
     secret.trim() === '' ||
     (provider !== 'cursor' && provider !== 'copilot' && provider !== 'anthropic' && provider !== 'openai' && provider !== 'custom')
@@ -192,7 +196,7 @@ async function saveKey(app: WindowApp, params: URLSearchParams): Promise<ActionR
     return ok()
   }
   if (provider === 'custom') {
-    app.saveKey({
+    store({
       provider,
       secret,
       baseUrl: params.get('baseUrl') ?? '',
@@ -203,7 +207,7 @@ async function saveKey(app: WindowApp, params: URLSearchParams): Promise<ActionR
   if (provider === 'anthropic' || provider === 'openai') {
     const verdict = await judgeKey(provider, secret)
     if (verdict === 'rejected') return rejection(provider)
-    app.saveKey({ provider, secret })
+    store({ provider, secret })
     return verdict === 'unchecked' ? unchecked(provider) : ok()
   }
   if (provider === 'cursor') {
@@ -224,11 +228,11 @@ async function saveKey(app: WindowApp, params: URLSearchParams): Promise<ActionR
       }
     }
     if (verdict === 'unchecked') {
-      app.saveKey(account.models.length > 0 ? { provider, secret, account } : { provider, secret })
+      store(account.models.length > 0 ? { provider, secret, account } : { provider, secret })
       return unchecked('cursor')
     }
     if (account.models.length === 0) return { notice: account.error || 'Cursor model list failed' }
-    app.saveKey({ provider, secret, account })
+    store({ provider, secret, account })
     return ok()
   }
   if (provider === 'copilot') {
@@ -240,10 +244,10 @@ async function saveKey(app: WindowApp, params: URLSearchParams): Promise<ActionR
         models = undefined
       }
     }
-    app.saveKey(models ? { provider, secret, account: { models } } : { provider, secret })
+    store(models ? { provider, secret, account: { models } } : { provider, secret })
     return ok()
   }
-  app.saveKey({ provider, secret })
+  store({ provider, secret })
   return ok()
 }
 
@@ -280,12 +284,16 @@ function applyWindow(app: WindowApp, params: URLSearchParams): ActionResult | Pr
   }
   if (action === 'activate-key') {
     const id = params.get('id') ?? ''
-    if (id !== '') app.activateKey(id)
+    if (id !== '') {
+      app.activateKey(id)
+      clearLearningError()
+    }
   }
   if (action === 'activate-provider') {
     const provider = params.get('provider')
     if (provider === 'cursor' || provider === 'copilot' || provider === 'anthropic' || provider === 'openai' || provider === 'custom') {
       app.activateProvider(provider)
+      if (app.activeProvider() === provider) clearLearningError()
     }
   }
   if (action === 'clear-provider') app.clearProvider()

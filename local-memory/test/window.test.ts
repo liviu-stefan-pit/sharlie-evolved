@@ -708,6 +708,94 @@ test('learn now with no key keeps a non-active error snapshot and does not move 
   }
 })
 
+test('saving a key clears a key_missing learn error and leaves lastLearnedAt', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  plantChats(machine, ['one', 'two'])
+  writeFileSync(
+    join(directory, 'settings.json'),
+    JSON.stringify({
+      lastLearnedAt: '2020-01-01T00:00:00.000Z',
+      profile: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+    }),
+  )
+  const session = openUserSession('ada', () => draft('should not learn'), machine, () => readInstalledTranscripts(machine))
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    const failed = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      learning?: { error?: string; errorCode?: string } | null
+    }
+    assert.equal(failed.learning?.errorCode, 'key_missing')
+    const saved = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-aaaa' })),
+    ) as {
+      notice?: string
+      errorCode?: string
+      lastLearnedAt?: string | null
+      learningResult?: unknown
+      learning?: { error?: string; errorCode?: string } | null
+    }
+    assert.equal(saved.notice, '')
+    assert.equal(saved.errorCode, undefined)
+    assert.equal(saved.lastLearnedAt, '2020-01-01T00:00:00.000Z')
+    assert.equal(saved.learningResult, null)
+    assert.equal(saved.learning, null)
+    const again = JSON.parse(await host.line(JSON.stringify({ cmd: 'state' }))) as {
+      lastLearnedAt?: string | null
+      learning?: { error?: string } | null
+    }
+    assert.equal(again.learning, null)
+    assert.equal(again.lastLearnedAt, '2020-01-01T00:00:00.000Z')
+    const stored = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as { lastLearnedAt?: string }
+    assert.equal(stored.lastLearnedAt, '2020-01-01T00:00:00.000Z')
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
+test('turning a provider on clears a key_missing learn error and leaves lastLearnedAt', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
+  const machine = machineWith(machineRoot(directory), ['cursor'])
+  plantChats(machine, ['one', 'two'])
+  writeFileSync(
+    join(directory, 'settings.json'),
+    JSON.stringify({
+      lastLearnedAt: '2020-01-01T00:00:00.000Z',
+      profile: { username: 'ada', email: 'ada@example.com', team: 'platform' },
+    }),
+  )
+  const session = openUserSession('ada', () => draft('should not learn'), machine, () => readInstalledTranscripts(machine))
+  session.logIn()
+  try {
+    const host = await openDesktopHost({ directory, session })
+    await host.line(JSON.stringify({ cmd: 'action', action: 'save-key', provider: 'anthropic', secret: 'sk-ant-api03-aaaa' }))
+    await host.line(JSON.stringify({ cmd: 'action', action: 'clear-provider' }))
+    const failed = JSON.parse(await host.line(JSON.stringify({ cmd: 'action', action: 'start-learning' }))) as {
+      learning?: { errorCode?: string } | null
+    }
+    assert.equal(failed.learning?.errorCode, 'key_missing')
+    const turnedOn = JSON.parse(
+      await host.line(JSON.stringify({ cmd: 'action', action: 'activate-provider', provider: 'anthropic' })),
+    ) as {
+      lastLearnedAt?: string | null
+      learning?: { error?: string; errorCode?: string } | null
+      provider?: string
+    }
+    assert.equal(turnedOn.provider, 'anthropic')
+    assert.equal(turnedOn.learning, null)
+    assert.equal(turnedOn.lastLearnedAt, '2020-01-01T00:00:00.000Z')
+    const stored = JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')) as { lastLearnedAt?: string }
+    assert.equal(stored.lastLearnedAt, '2020-01-01T00:00:00.000Z')
+  } finally {
+    discardVault(directory)
+    rmSync(directory, { recursive: true, force: true })
+    rmSync(machineRoot(directory), { recursive: true, force: true })
+  }
+})
+
 test('learn now with a missing key secret reports secret_missing and does not move lastLearnedAt', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sharlie-'))
   const machine = machineWith(machineRoot(directory), ['cursor'])
